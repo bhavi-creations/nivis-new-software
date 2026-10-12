@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const empty = document.getElementById("nlrEmptyMessage");
     const exportButton = document.getElementById("nlrExportCSV");
     let currentRows = [];
+    let requestVersion = 0;
+    let reportSelection = null;
 
     const localDate = date => [
         date.getFullYear(),
@@ -27,7 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadReport() {
+        to.setCustomValidity("");
         if (!form.reportValidity()) return;
+        exportButton.disabled = true;
+        const version = ++requestVersion;
         if (to.value < from.value) {
             to.setCustomValidity("End date must not be earlier than start date.");
             to.reportValidity();
@@ -43,8 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const response = await fetch("api.php?" + query);
             const result = await response.json();
+            if (version !== requestVersion) return;
             if (!response.ok) throw new Error(result.error || "Could not load report.");
             currentRows = result.rows;
+            reportSelection = {type:type.value, from:from.value, to:to.value};
+            exportButton.disabled = !currentRows.length;
             document.getElementById("nlrInvoicedSales").textContent =
                 formatMoney(result.summary.sales);
             document.getElementById("nlrCollected").textContent =
@@ -78,8 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 columns.forEach(column => {
                     const cell = document.createElement("td");
                     const value = record[column];
-                    cell.textContent = typeof value === "number" &&
-                        /total|amount|price|outstanding|paid/.test(column)
+                    cell.textContent = value !== null &&
+                        /total|amount|price|outstanding|paid|sales/.test(column)
                         ? formatMoney(value) : (value ?? "");
                     row.appendChild(cell);
                 });
@@ -89,7 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? "" : "No report data found for the selected period.";
             empty.classList.toggle("d-none", currentRows.length > 0);
         } catch (error) {
+            if (version !== requestVersion) return;
             currentRows = [];
+            ["nlrInvoicedSales","nlrCollected","nlrOutstanding"].forEach(id => document.getElementById(id).textContent = "—");
             tableHead.replaceChildren();
             tableBody.replaceChildren();
             empty.textContent = error.message;
@@ -98,7 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function csvEscape(value) {
-        const text = String(value ?? "");
+        let text = String(value ?? "");
+        if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
         return '"' + text.replace(/"/g, '""') + '"';
     }
 
@@ -121,11 +132,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }));
         const link = document.createElement("a");
         link.href = url;
-        link.download = "nivis-" + type.value + "-report-" + from.value + "-to-" + to.value + ".csv";
+        link.download = "nivis-" + reportSelection.type + "-report-" + reportSelection.from + "-to-" + reportSelection.to + ".csv";
         document.body.appendChild(link);
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
     });
+    document.getElementById("nlrPrint").addEventListener("click", () => window.print());
     loadReport();
 });

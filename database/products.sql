@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS products (
  category_id BIGINT UNSIGNED NOT NULL,
  hsn_code VARCHAR(8) NOT NULL,
  unit VARCHAR(30) NOT NULL DEFAULT 'PCS',
+ default_quantity DECIMAL(12,3) NOT NULL DEFAULT 1,
+ gst_region ENUM('inside_ap','outside_ap') NOT NULL DEFAULT 'inside_ap',
  selling_price DECIMAL(15,2) NOT NULL DEFAULT 0,
  default_discount_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
  tax_rate_id BIGINT UNSIGNED NULL,

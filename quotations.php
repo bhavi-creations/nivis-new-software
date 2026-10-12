@@ -1,7 +1,7 @@
 
 <?php
 // Common sidebar - include only once.
-include 'header.php';
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -133,17 +133,7 @@ include 'sidebar.php';
 
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nivis-labs-quotation-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Beauty range: sunscreen, moisturizer, serum and daily skin-care essentials.</p>
-      <p>• Status: Draft &gt; Sent &gt; Approved / Rejected &gt; Converted (or Expired).</p>
-      <p>• Convert action available for approved quotation; prevent duplicate conversion.</p>
-      <p>• List actions: preview PDF, download, send/share, edit draft, duplicate, convert.</p>
-
-      <span class="nivis-labs-quotation-page">09</span>
-    </div>
 
   </div>
 </section>
@@ -216,4 +206,6 @@ include 'sidebar.php';
 </div>
 
 <!-- Include Bootstrap JS only if not loaded globally -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<?php include 'footer.php'; ?>

@@ -5339,3 +5339,12 @@
         padding: 14px;
     }
 }
+
+/* Printable documents and reports */
+@media print {
+ .side-bar, .side-bar-toggle, .side-bar-overlay, .nlidp-actions, .nlcq-actions, .nlr-export-btn, .modal, .nlidp-feedback { display: none !important; }
+ section { margin: 0 !important; padding: 0 !important; width:100% !important; }
+ .table-responsive { overflow: visible !important; }
+ .nlr-filter-card { border:0; }
+ .nlr-filter-card button { display:none; }
+}

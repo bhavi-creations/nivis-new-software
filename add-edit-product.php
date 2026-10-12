@@ -1,6 +1,7 @@
 
 <?php
 // Common sidebar - include once only
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -29,6 +30,8 @@ include 'sidebar.php';
         <input type="hidden" name="product_id" id="editProductId">
 
         <div class="row g-4">
+          <div class="col-md-4"><label for="editProductSerial" class="form-label">S.NO</label><input id="editProductSerial" class="form-control" value="Assigned when saved" readonly></div>
+          <div class="col-md-4"><label for="editProductQuantity" class="form-label">QUANTITY *</label><input id="editProductQuantity" class="form-control" type="number" min="0.001" max="1000000" step="0.001" value="1" required></div>
 
           <!-- Product Name -->
           <div class="col-12 col-md-6 col-xl-4">
@@ -42,6 +45,19 @@ include 'sidebar.php';
                    placeholder="Daily Shield SPF 50 Sunscreen"
                    maxlength="150"
                    required>
+          <!-- Category -->
+          <div class="mt-3">
+            <label for="editProductCategory" class="form-label">
+              CATEGORY *
+            </label>
+            <select class="form-select"
+                    id="editProductCategory"
+                    name="category_id"
+                    required>
+              <option value="">Select category</option>
+            </select>
+          </div>
+
           </div>
 
           <!-- SKU -->
@@ -55,19 +71,6 @@ include 'sidebar.php';
                    name="sku"
                    placeholder="SUN-050"
                    maxlength="50">
-          </div>
-
-          <!-- Category -->
-          <div class="col-12 col-md-6 col-xl-4">
-            <label for="editProductCategory" class="form-label">
-              CATEGORY *
-            </label>
-            <select class="form-select"
-                    id="editProductCategory"
-                    name="category_id"
-                    required>
-              <option value="">Select category</option>
-            </select>
           </div>
 
           <!-- HSN -->
@@ -136,6 +139,8 @@ include 'sidebar.php';
             </select>
           </div>
 
+          <div class="col-md-4"><label for="editProductRegion" class="form-label">GST REGION</label><select id="editProductRegion" class="form-select"><option value="inside_ap">Inside AP (CGST + SGST)</option><option value="outside_ap">Outside AP (IGST)</option></select><small>Default for product preview. Documents use their place of supply.</small></div>
+          <div class="col-md-4"><label for="editProductTotal" class="form-label">TOTAL</label><input id="editProductTotal" class="form-control" readonly><small id="editProductTaxSplit"></small></div>
           <!-- Discount -->
           <div class="col-12 col-md-6 col-xl-4">
             <label for="editProductDiscount" class="form-label">
@@ -203,16 +208,9 @@ include 'sidebar.php';
       </form>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="add-edit-product-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Quotation line additionally needs S.No, quantity, price, GST, discount and total.</p>
-      <p>• HSN and GST should be validated against current applicable classifications.</p>
-      <p>• Retain item snapshot on documents if product master is edited later.</p>
-
-      <span class="add-edit-product-page">08</span>
-    </div>
 
   </div>
 </section>
+
+<?php include 'footer.php'; ?>

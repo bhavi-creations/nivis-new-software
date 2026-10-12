@@ -1,6 +1,7 @@
 
 <?php
 // Common sidebar
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -226,16 +227,9 @@ include 'sidebar.php';
       </form>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="add-edit-customer-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Required: name, mobile, state, billing address; GSTIN if registered.</p>
-      <p>• State determines place-of-supply proposal; user can verify per invoice.</p>
-      <p>• Actions: Save, Cancel, Edit, Deactivate, customer transaction history.</p>
-
-      <span class="add-edit-customer-page">04</span>
-    </div>
 
   </div>
 </section>
+
+<?php include 'footer.php'; ?>

@@ -1,5 +1,5 @@
 <?php
-include 'header.php';?>
+include_once 'header.php';?>
 
 <?php
 
@@ -31,7 +31,7 @@ include 'sidebar.php';
         <div class="nivis_dashboard_stat_card">
           <h6>Total Customers</h6>
           <h2 id="nivisTotalCustomers">0</h2>
-          <p>Active beauty retailers</p>
+          <p>All saved customers</p>
         </div>
       </div>
 
@@ -39,7 +39,7 @@ include 'sidebar.php';
         <div class="nivis_dashboard_stat_card">
           <h6>Total Products</h6>
           <h2 id="nivisTotalProducts">0</h2>
-          <p>Active skin-care products</p>
+          <p>All saved products</p>
         </div>
       </div>
 
@@ -95,12 +95,12 @@ include 'sidebar.php';
               + View invoices
             </a>
 
-            <a href="customers.php?action=create"
+            <a href="add-edit-customer.php"
                class="nivis_dashboard_action_btn">
               + Add customer
             </a>
 
-            <a href="products.php?action=create"
+            <a href="add-edit-product.php"
                class="nivis_dashboard_action_btn">
               + Add product
             </a>
@@ -133,14 +133,7 @@ include 'sidebar.php';
 
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nivis_dashboard_notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• KPI cards respond to date filter; count pending quotations and unpaid invoices.</p>
-      <p>• Charts from approved invoices, excluding cancelled documents.</p>
-      <p>• Show recent activity, quick create, search, notifications and account menu.</p>
-    </div>
 
   </div>
 </section>

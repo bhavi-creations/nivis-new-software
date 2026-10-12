@@ -2,7 +2,7 @@
 <?php
 // customers.php
 // Common sidebar included only once.
-include 'header.php';
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -84,14 +84,7 @@ include 'sidebar.php';
       </p>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nivis_customer_notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
-      <p>• Columns: name, phone, GSTIN, state, email, outstanding, status, actions.</p>
-      <p>• Add customer form holds billing and shipping addresses separately.</p>
-      <p>• Validate GSTIN format and state code; customer delete needs safeguards.</p>
-      <span class="nivis_customer_page_num">03</span>
-    </div>
+
 
   </div>
 </section>
@@ -190,4 +183,6 @@ include 'sidebar.php';
 </div>
 
 <!-- Bootstrap JS: include once if not already in common layout -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<?php include 'footer.php'; ?>

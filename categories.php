@@ -1,7 +1,7 @@
 
 <?php
 // Common sidebar - include once
-include 'header.php';
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -126,6 +126,7 @@ include 'sidebar.php';
               </select>
             </div>
 
+            <div class="nivis_labs_category_field"><label for="nivisCategoryProducts">PRODUCTS</label><input id="nivisCategoryProducts" class="form-control" type="number" min="0" max="1000000" step="1" placeholder="Automatic count"><small>Optional manual count. Leave blank to count linked products automatically.</small><small id="nivisCategoryLinkedProducts" class="d-block"></small><br><a id="nivisCategoryAddProduct" href="add-edit-product.php" hidden>Add product to this category</a></div>
             <div id="nivisCategoryMessage"
                  class="nivis_labs_category_message"
                  role="status"></div>
@@ -145,16 +146,9 @@ include 'sidebar.php';
 
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nivis_labs_category_notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Category fields: ID, name, code, description, status, created date.</p>
-      <p>• One product belongs to a category; products dropdown uses active categories.</p>
-      <p>• Block hard deletion of categories already linked to products.</p>
-
-      <span class="nivis_labs_category_page">05</span>
-    </div>
 
   </div>
 </section>
+
+<?php include 'footer.php'; ?>

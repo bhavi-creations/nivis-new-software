@@ -2,7 +2,7 @@
 <?php
 // tax.php
 // Include the common sidebar only once.
-include 'header.php';
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -41,8 +41,7 @@ include 'sidebar.php';
           <label for="taxDefaultMode">DEFAULT TAX MODE</label>
           <select class="form-select" id="taxDefaultMode">
             <option value="auto">Auto by place of supply</option>
-            <option value="intra">Intra-state (CGST + SGST)</option>
-            <option value="inter">Inter-state (IGST)</option>
+            
           </select>
         </div>
         <div class="col-12 col-md-4">
@@ -76,9 +75,19 @@ include 'sidebar.php';
 
     </div>
 
+    <div class="tax-gst-card">
+      <h2>Add GST rate</h2><p>Use the applicable HSN rate and effective date. Inside AP splits GST equally into CGST and SGST; outside AP uses IGST for ordinary domestic sales by an AP supplier.</p>
+      <form id="taxRateForm" class="row g-3">
+        <div class="col-md-4"><label for="taxRateName">Rate name</label><input id="taxRateName" class="form-control" maxlength="100" required></div>
+        <div class="col-md-2"><label for="taxRatePercent">GST %</label><input id="taxRatePercent" class="form-control" type="number" min="0" max="100" step="0.001" required></div>
+        <div class="col-md-3"><label for="taxRateTreatment">Treatment</label><select id="taxRateTreatment" class="form-select"><option value="taxable">Taxable</option><option value="nil_rated">Nil rated</option><option value="exempt">Exempt</option><option value="zero_rated">Zero rated</option><option value="non_gst">Non GST</option></select></div>
+        <div class="col-md-3"><label for="taxRateDate">Effective from</label><input id="taxRateDate" class="form-control" type="date" required></div>
+        <div><button class="btn btn-primary" type="submit">Add rate</button><span id="taxRateMessage" role="status"></span></div>
+      </form>
+    </div>
     <!-- GST Rates -->
     <div class="tax-gst-card tax-gst-rates">
-      <h2><i class="fa-solid fa-table-list" aria-hidden="true"></i> Available rates - illustration</h2>
+      <h2><i class="fa-solid fa-table-list" aria-hidden="true"></i> Configured GST rates</h2>
 
       <div class="table-responsive">
         <table class="table tax-gst-table mb-0">
@@ -96,16 +105,9 @@ include 'sidebar.php';
       </div>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="tax-gst-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Use legally applicable GST rate for each HSN; do not infer tax solely from state.</p>
-      <p>• Tax split depends on place of supply, transaction type and GST rules.</p>
-      <p>• Support exempt, nil-rated and other applicable treatments where required.</p>
-
-      <span class="tax-gst-page">06</span>
-    </div>
 
   </div>
 </section>
+
+<?php include 'footer.php'; ?>

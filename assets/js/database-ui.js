@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const modalTitle = document.getElementById("nivisProductModalTitle");
         const saveButton = form.querySelector('button[type="submit"]');
         let editingId = null;
+        let productPriceMode = "exclusive";
 
         function setCategoryOptions() {
             const options = categories.map(category =>
@@ -76,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 (product.name + " " + product.sku + " " + product.hsn)
                     .toLowerCase().includes(query) &&
                 (category === "all" || product.category === category) &&
-                (gst === "all" || String(product.gst) === gst)
+                (gst === "all" || Number(product.gst) === Number(gst))
             );
 
             productTable.replaceChildren();
@@ -121,13 +122,19 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("productHSN").value = product?.hsn || "";
             document.getElementById("productUnit").value = product?.unit || "PCS";
             document.getElementById("productPrice").value = product?.price ?? "";
-            document.getElementById("productGST").value = product?.gst ?? "18";
+            document.getElementById("productGST").value = String(Number(product?.gst ?? 18));
             document.getElementById("productStatus").value =
                 product?.status === "inactive" ? "Inactive" : "Active";
             document.getElementById("productDiscount").value =
                 product?.discount ?? 0;
             document.getElementById("productDescription").value =
                 product?.description || "";
+            document.getElementById("productSerial").value = product?.id || "";
+            document.getElementById("productQuantity").value = product?.quantity || 1;
+            document.getElementById("productRegion").value = product?.gst_region === "outside_ap" ? "Outside AP (IGST)" : "Inside AP (CGST + SGST)";
+            const amounts = nivisAmounts(Number(product?.quantity || 1), Number(product?.price || 0), Number(product?.discount || 0), Number(product?.gst || 0), productPriceMode);
+            document.getElementById("productTotal").value = nivisMoney(amounts.total);
+            document.getElementById("productTaxSplit").textContent = product?.gst_region === "outside_ap" ? "IGST " + nivisMoney(amounts.tax) : "CGST " + nivisMoney(amounts.cgst) + " + SGST " + nivisMoney(amounts.sgst);
             modalTitle.textContent = readOnly ? "Product details" :
                 product ? "Edit product" : "Add product";
             form.querySelectorAll("input, select, textarea").forEach(field => {
@@ -145,6 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 nivisApi("categories"),
                 nivisApi("tax")
             ]);
+            productPriceMode = taxResult.configuration?.price_mode || "exclusive";
             products.splice(0, products.length, ...productResult.data);
             categories.splice(0, categories.length, ...categoryResult.data);
             setCategoryOptions();
@@ -167,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         document.getElementById("nivisProductAddBtn").addEventListener(
-            "click", () => populateProductForm()
+            "click", () => { window.location.href = "add-edit-product.php"; }
         );
         [search, categoryFilter, gstFilter].forEach(control =>
             control.addEventListener(control === search ? "input" : "change", renderProducts)
@@ -187,7 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 return;
             }
-            populateProductForm(product, button.dataset.action === "view");
+            if (button.dataset.action === "edit") { window.location.href = "add-edit-product.php?id=" + product.id; return; }
+            populateProductForm(product, true);
         });
         form.addEventListener("submit", async event => {
             event.preventDefault();
@@ -215,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         refresh().then(() => {
             if (new URLSearchParams(window.location.search).get("action") === "create") {
-                populateProductForm();
+                window.location.href = "add-edit-product.php";
             }
         }).catch(error => {
             empty.textContent = error.message;
@@ -231,7 +240,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const categorySelect = document.getElementById("editProductCategory");
         const gstSelect = document.getElementById("editProductGST");
         let rates = [];
+        let priceMode = "exclusive";
+        function updateProductTotal() {
+            const value = id => Number(document.getElementById(id).value) || 0;
+            const amounts = nivisAmounts(value("editProductQuantity"), value("editProductPrice"), value("editProductDiscount"), value("editProductGST"), priceMode);
+            document.getElementById("editProductTotal").value = nivisMoney(amounts.total);
+            document.getElementById("editProductTaxSplit").textContent = document.getElementById("editProductRegion").value === "inside_ap"
+                ? "CGST " + nivisMoney(amounts.cgst) + " + SGST " + nivisMoney(amounts.sgst)
+                : "IGST " + nivisMoney(amounts.tax);
+        }
+        productForm.addEventListener("input", updateProductTotal);
+        productForm.addEventListener("change", updateProductTotal);
 
+        document.getElementById("addEditProductSave").disabled = true;
         async function loadProductForm() {
             const [categoryResult, taxResult] = await Promise.all([
                 nivisApi("categories"),
@@ -241,29 +262,35 @@ document.addEventListener("DOMContentLoaded", () => {
             categoryResult.data.forEach(category =>
                 categorySelect.add(new Option(category.name, category.id))
             );
-            rates = taxResult.rates;
-            gstSelect.replaceChildren();
+            priceMode = taxResult.configuration?.price_mode || "exclusive";
+            const today = new Date().toLocaleDateString("en-CA");
+            rates = taxResult.rates.filter(rate => Number(rate.is_enabled) && rate.effective_from <= today && (!rate.effective_to || rate.effective_to >= today));
+            gstSelect.replaceChildren(new Option("Select GST rate", ""));
             rates.forEach(rate =>
                 gstSelect.add(new Option(
                     Number(rate.rate_percent) + "%", Number(rate.rate_percent)
                 ))
             );
             const id = new URLSearchParams(window.location.search).get("id");
-            if (!id) return;
+            if (!id) { categorySelect.value = new URLSearchParams(location.search).get("category_id") || ""; updateProductTotal(); return; }
             const response = await nivisApi("products");
             const product = response.data.find(item => String(item.id) === id);
             if (!product) throw new Error("Product not found.");
             idField.value = product.id;
+            document.getElementById("editProductSerial").value = product.id;
+            document.getElementById("editProductQuantity").value = product.quantity;
+            document.getElementById("editProductRegion").value = product.gst_region;
             document.getElementById("editProductName").value = product.name;
             document.getElementById("editProductSKU").value = product.sku;
             categorySelect.value = product.category_id;
             document.getElementById("editProductHSN").value = product.hsn;
             document.getElementById("editProductUnit").value = product.unit;
             document.getElementById("editProductPrice").value = product.price;
-            gstSelect.value = product.gst;
+            gstSelect.value = String(Number(product.gst));
             document.getElementById("editProductDiscount").value = product.discount;
-            document.getElementById("editProductStatus").value = product.status;
-            document.getElementById("editProductDescription").value = product.description;
+            document.getElementById("editProductStatus").value = product.status === "inactive" ? "Inactive" : "Active";
+            document.getElementById("editProductDescription").value = product.description || "";
+            updateProductTotal();
         }
 
         productForm.addEventListener("submit", async event => {
@@ -271,6 +298,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!productForm.reportValidity()) return;
             const data = {
                 id: idField.value || null,
+                quantity: Number(document.getElementById("editProductQuantity").value),
+                gst_region: document.getElementById("editProductRegion").value,
                 name: document.getElementById("editProductName").value.trim(),
                 sku: document.getElementById("editProductSKU").value.trim().toUpperCase(),
                 category_id: categorySelect.value,
@@ -289,7 +318,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 nivisMessage(message, error.message, true);
             }
         });
-        loadProductForm().catch(error => nivisMessage(message, error.message, true));
+        loadProductForm().then(() => { document.getElementById("addEditProductSave").disabled = false; }).catch(error => nivisMessage(message, error.message, true));
     }
 
     const categoryForm = document.getElementById("nivisCategoryForm");
@@ -333,6 +362,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function resetCategory() {
             categoryForm.reset();
+            field("nivisCategoryAddProduct").hidden = true;
+            field("nivisCategoryLinkedProducts").textContent = "";
             idField.value = "";
             field("nivisCategoryStatus").value = "Active";
             nivisMessage(message, "");
@@ -346,6 +377,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!category) return;
             if (button.dataset.action === "edit") {
                 idField.value = category.id;
+                field("nivisCategoryProducts").value = category.product_count ?? "";
+                field("nivisCategoryLinkedProducts").textContent = "Linked products: " + category.linked_products;
+                field("nivisCategoryAddProduct").href = "add-edit-product.php?category_id=" + category.id;
+                field("nivisCategoryAddProduct").hidden = false;
                 field("nivisCategoryName").value = category.name;
                 field("nivisCategoryCode").value = category.code;
                 field("nivisCategoryDescription").value = category.description || "";
@@ -370,6 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     id: idField.value || null,
                     name: field("nivisCategoryName").value.trim(),
                     code: field("nivisCategoryCode").value.trim().toUpperCase(),
+                    product_count: field("nivisCategoryProducts").value === "" ? null : Number(field("nivisCategoryProducts").value),
                     description: field("nivisCategoryDescription").value.trim(),
                     status: field("nivisCategoryStatus").value.toLowerCase()
                 });
@@ -477,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         document.getElementById("nivisCustomerAddBtn").addEventListener(
-            "click", () => openCustomer()
+            "click", () => { window.location.href = "add-edit-customer.php"; }
         );
         [search, typeFilter].forEach(control =>
             control.addEventListener(control === search ? "input" : "change", renderCustomers)
@@ -499,7 +535,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 return;
             }
-            openCustomer(customer, button.dataset.action === "view");
+            if (button.dataset.action === "edit") { window.location.href = "add-edit-customer.php?id=" + customer.id; return; }
+            openCustomer(customer, true);
         });
         form.addEventListener("submit", async event => {
             event.preventDefault();
@@ -530,7 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         refreshCustomers().then(() => {
             if (new URLSearchParams(window.location.search).get("action") === "create") {
-                openCustomer();
+                window.location.href = "add-edit-customer.php";
             }
         }).catch(error => {
             empty.textContent = error.message;
@@ -806,9 +843,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const rows = [];
         let products = [];
         let customers = [];
+        let quoteConfiguration = {price_mode:"exclusive", seller_state_code:"37"};
         let quoteId = new URLSearchParams(window.location.search).get("id");
         const formData = () => ({
             customer_id: productSelect.value,
+            place_of_supply_state_code: document.getElementById("nlcqSupplyState").value,
             issue_date: document.getElementById("nlcqIssueDate").value,
             valid_until: document.getElementById("nlcqValidUntil").value,
             notes: document.getElementById("nlcqNotes").value,
@@ -828,18 +867,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         function calculateQuote() {
+            const sameState = document.getElementById("nlcqSupplyState").value === quoteConfiguration.seller_state_code;
+            document.getElementById("nlcqTaxTreatment").textContent = (sameState ? "CGST + SGST" : "IGST") + " | Prices " + quoteConfiguration.price_mode + " of GST";
             let taxable = 0;
             let tax = 0;
             rows.forEach((row, index) => {
-                const base = Math.max(0, Number(row.quantity) || 0) *
-                    Math.max(0, Number(row.unit_price) || 0);
-                const discount = base * Math.min(100,
-                    Math.max(0, Number(row.discount_percent) || 0)) / 100;
-                const net = base - discount;
                 const gst = Number(products.find(p => Number(p.id) === Number(row.product_id))?.gst || 0);
-                const lineTax = net * gst / 100;
-                taxable += net;
-                tax += lineTax;
+                const amounts = nivisAmounts(Number(row.quantity) || 0, Number(row.unit_price) || 0, Number(row.discount_percent) || 0, gst, quoteConfiguration.price_mode);
+                taxable += amounts.taxable;
+                tax += amounts.tax;
+                const net = amounts.taxable, lineTax = amounts.tax;
                 const totalCell = quoteLines.querySelector('[data-total="' + index + '"]');
                 if (totalCell) totalCell.textContent = quoteMoney(net + lineTax);
             });
@@ -863,6 +900,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 products.forEach(product => select.add(new Option(product.name, product.id)));
                 select.value = row.product_id || "";
                 selectCell.appendChild(select);
+                const category = document.createElement("small");
+                category.textContent = products.find(p => Number(p.id) === Number(row.product_id))?.category || "";
+                selectCell.appendChild(category);
                 tr.appendChild(selectCell);
                 const product = products.find(item => Number(item.id) === Number(row.product_id));
                 const hsn = document.createElement("td");
@@ -944,10 +984,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         async function initializeQuote() {
-            const [productResult, customerResult] = await Promise.all([
-                nivisApi("products"),
-                nivisApi("customers")
+            const [productResult, customerResult, taxResult] = await Promise.all([
+                nivisApi("products"), nivisApi("customers"), nivisApi("tax")
             ]);
+            quoteConfiguration = taxResult.configuration;
             products = productResult.data.filter(product => product.status === "active");
             customers = customerResult.data;
             productSelect.replaceChildren(new Option("Select customer", ""));
@@ -972,6 +1012,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 document.getElementById("nlcqQuoteNumber").value = quote.quote_number;
                 productSelect.value = quote.customer_id;
+                document.getElementById("nlcqSupplyState").value = quote.place_of_supply_state_code;
                 document.getElementById("nlcqIssueDate").value = quote.issue_date;
                 document.getElementById("nlcqValidUntil").value = quote.valid_until;
                 document.getElementById("nlcqNotes").value = quote.notes || "";
@@ -987,6 +1028,13 @@ document.addEventListener("DOMContentLoaded", () => {
             renderQuoteLines();
         }
 
+        productSelect.addEventListener("change", () => {
+            const customer = customers.find(c => String(c.id) === productSelect.value);
+            const codes = {"Andhra Pradesh":"37","Telangana":"36","Karnataka":"29","Tamil Nadu":"33","Maharashtra":"27","Kerala":"32","Odisha":"21","Delhi":"07"};
+            document.getElementById("nlcqSupplyState").value = codes[customer?.shipping_state || customer?.state] || "37";
+            calculateQuote();
+        });
+        document.getElementById("nlcqSupplyState").addEventListener("change", calculateQuote);
         quoteLines.addEventListener("change", event => {
             const select = event.target.closest("select[data-index]");
             if (select) {
@@ -994,6 +1042,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const product = products.find(item => Number(item.id) === Number(select.value));
                 if (!row || !product) return;
                 row.product_id = Number(product.id);
+                row.quantity = Number(product.quantity || 1);
                 row.unit_price = Number(product.price);
                 row.discount_percent = Number(product.discount);
                 renderQuoteLines();
@@ -1055,6 +1104,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const empty = document.getElementById("nivisInvoiceEmpty");
 
         function paymentStatus(invoice) {
+            if (invoice.status !== "issued") return invoice.status === "draft" ? "Draft" : "Cancelled";
             const balance = Number(invoice.grand_total) - Number(invoice.paid_total);
             if (balance <= 0.005) return "Paid";
             return Number(invoice.paid_total) > 0 ? "Part-paid" : "Unpaid";
@@ -1141,24 +1191,24 @@ document.addEventListener("DOMContentLoaded", () => {
             invoiceNumber.textContent = invoice.invoice_number;
             document.getElementById("nlidpInvoiceDate").textContent = invoice.issue_date;
             document.getElementById("nlidpSellerName").textContent = invoice.supplier_name;
-            document.getElementById("nlidpSellerDetails").textContent = invoice.supplier_address;
+            document.getElementById("nlidpSellerDetails").textContent = invoice.supplier_address + " | GSTIN: " + (invoice.supplier_gstin || "Not configured");
             document.getElementById("nlidpCustomerName").textContent =
-                invoice.buyer_name + (invoice.billing_address ? ", " + invoice.billing_address : "");
+                invoice.buyer_name + (invoice.billing_address ? ", " + invoice.billing_address : "") + " | GSTIN: " + (invoice.buyer_gstin || "Unregistered");
             document.getElementById("nlidpQuotationLink").textContent =
                 invoice.quote_number ? "Linked " + invoice.quote_number : "No linked quotation";
             document.getElementById("nlidpQuotationLink").href = invoice.quotation_id
                 ? "quotations.php?quote_id=" + encodeURIComponent(invoice.quote_number)
                 : "quotations.php";
-            document.getElementById("nlidpSupplyState").textContent =
-                "Place of supply: " + invoice.place_of_supply_state_code;
+            const states = {"37":"Andhra Pradesh","36":"Telangana","29":"Karnataka","33":"Tamil Nadu","27":"Maharashtra","32":"Kerala","21":"Odisha","07":"Delhi"};
+            document.getElementById("nlidpSupplyState").textContent = "Place of supply: " + (states[invoice.place_of_supply_state_code] || "") + " (" + invoice.place_of_supply_state_code + ")";
             const items = document.getElementById("nlidpInvoiceItems");
             items.replaceChildren();
-            invoice.items.forEach(item => {
+            invoice.items.forEach((item, index) => {
                 const row = document.createElement("tr");
                 [
-                    item.product_name, item.hsn, item.quantity,
+                    index + 1, item.product_name, item.hsn, item.quantity,
                     money(item.unit_price), Number(item.discount_percent) + "%",
-                    money(item.taxable_amount), Number(item.gst_rate) + "%"
+                    money(item.taxable_amount), Number(item.gst_rate) + "%", money(item.line_total)
                 ].forEach(value => {
                     const cell = document.createElement("td");
                     cell.textContent = value;
@@ -1179,7 +1229,11 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("nlidpOutstanding").textContent =
                 money(Math.max(0, Number(invoice.grand_total) - paid));
             const paymentButton = document.getElementById("nlidpRecordPayment");
-            paymentButton.disabled = invoice.status !== "issued";
+            paymentButton.disabled = invoice.status !== "issued" || Number(invoice.grand_total) - paid <= 0.005;
+            document.getElementById("nlidpPaid").textContent = money(paid);
+            document.getElementById("nlidpBalance").textContent = money(Math.max(0, Number(invoice.grand_total) - paid));
+            document.getElementById("nlidpDocumentStatus").textContent = invoice.status.toUpperCase();
+            document.getElementById("nlidpPaymentAmount").max = Math.max(0, Number(invoice.grand_total) - paid).toFixed(2);
             const issueButton = document.getElementById("nlidpSendInvoice");
             issueButton.textContent = invoice.status === "draft" ? "Issue invoice" : "Invoice issued";
             issueButton.disabled = invoice.status !== "draft";
@@ -1208,6 +1262,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
                 jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
             }).from(document.getElementById("nlidpPrintableInvoice")).save();
+        });
+        document.getElementById("nlidpRecordPayment").addEventListener("click", () => {
+            const today = new Date();
+            document.getElementById("nlidpPaymentDate").value = [today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")].join("-");
         });
         paymentForm.addEventListener("submit", async event => {
             event.preventDefault();
@@ -1243,6 +1301,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const save = document.getElementById("taxSaveSettings");
         const message = document.getElementById("taxSettingsMessage");
 
+        document.getElementById("taxRateForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            if (!event.target.reportValidity()) return;
+            try {
+                await nivisApi("tax_rates", "POST", { name:document.getElementById("taxRateName").value, rate_percent:Number(document.getElementById("taxRatePercent").value), treatment:document.getElementById("taxRateTreatment").value, effective_from:document.getElementById("taxRateDate").value });
+                location.reload();
+            } catch(error) { nivisMessage(document.getElementById("taxRateMessage"), error.message, true); }
+        });
         function updateTaxIndicators() {
             const stateName = sellerState.options[sellerState.selectedIndex].text;
             const inside = document.querySelector(".tax-gst-inside");
@@ -1260,9 +1326,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const config = result.configuration;
             if (config) {
                 sellerState.value = config.seller_state_code;
-                taxMode.value = config.tax_mode === "manual_review" ? "inter" : "auto";
+                taxMode.value = "auto";
                 priceMode.value = config.price_mode;
             }
+            updateTaxIndicators();
             if (!ratesBody) return;
             ratesBody.replaceChildren();
             result.rates.forEach(rate => {

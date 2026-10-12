@@ -62,7 +62,7 @@ try {
 
     if ($resource === 'products' && $method === 'GET') {
         $rows = $pdo->query(
-            "SELECT p.id, p.name, p.sku, p.category_id, c.name AS category,
+            "SELECT p.id, p.default_quantity AS quantity, p.gst_region, p.name, p.sku, p.category_id, c.name AS category,
                     p.hsn_code AS hsn, p.unit, p.selling_price AS price,
                     COALESCE(t.rate_percent, 0) AS gst,
                     p.default_discount_percent AS discount, p.status, p.description
@@ -76,7 +76,14 @@ try {
 
     if ($resource === 'products' && $method === 'POST') {
         $name = required_text($data, 'name', 180);
-        $sku = required_text($data, 'sku', 70);
+        $sku = trim((string) ($data['sku'] ?? ''));
+        if ($sku === '') $sku = 'PRD-' . strtoupper(bin2hex(random_bytes(6)));
+        if (strlen($sku) > 70) respond(['error' => 'Product code is too long.'], 422);
+        $quantity = filter_var($data['quantity'] ?? 1, FILTER_VALIDATE_FLOAT);
+        $region = (string) ($data['gst_region'] ?? 'inside_ap');
+        if ($quantity === false || $quantity <= 0 || $quantity > 1000000 || !in_array($region, ['inside_ap', 'outside_ap'], true)) {
+            respond(['error' => 'Enter a quantity above zero and choose a GST region.'], 422);
+        }
         $categoryId = filter_var($data['category_id'] ?? null, FILTER_VALIDATE_INT);
         $hsn = required_text($data, 'hsn', 8);
         $unit = required_text($data, 'unit', 30);
@@ -90,7 +97,7 @@ try {
             respond(['error' => 'Check the product category, HSN, price, tax and discount values.'], 422);
         }
         $rate = $pdo->prepare(
-            "SELECT id FROM tax_rates WHERE rate_percent = ?
+            "SELECT id FROM tax_rates WHERE rate_percent = ? AND is_enabled=1 AND effective_from <= CURRENT_DATE() AND (effective_to IS NULL OR effective_to >= CURRENT_DATE())
              ORDER BY is_enabled DESC, id LIMIT 1"
         );
         $rate->execute([$gst]);
@@ -104,12 +111,12 @@ try {
         }
         if ($productId) {
             $statement = $pdo->prepare(
-                'UPDATE products SET name=?, sku=?, category_id=?, hsn_code=?, unit=?,
+                'UPDATE products SET default_quantity=?, gst_region=?, name=?, sku=?, category_id=?, hsn_code=?, unit=?,
                  selling_price=?, default_discount_percent=?, tax_rate_id=?, description=?, status=?
                  WHERE id=?'
             );
             $statement->execute([
-                $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
+                $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
                 $taxRateId ?: null, trim((string) ($data['description'] ?? '')),
                 $status, $productId,
             ]);
@@ -121,12 +128,12 @@ try {
         }
         $statement = $pdo->prepare(
             'INSERT INTO products
-             (name, sku, category_id, hsn_code, unit, selling_price, default_discount_percent,
+             (default_quantity, gst_region, name, sku, category_id, hsn_code, unit, selling_price, default_discount_percent,
               tax_rate_id, description, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $statement->execute([
-            $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
+            $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
             $taxRateId ?: null, trim((string) ($data['description'] ?? '')), $status,
         ]);
         respond(['message' => 'Product saved.', 'id' => (int) $pdo->lastInsertId()], 201);
@@ -146,8 +153,8 @@ try {
 
     if ($resource === 'categories' && $method === 'GET') {
         $rows = $pdo->query(
-            'SELECT c.id, c.name, c.code, c.description, c.status,
-                    COUNT(p.id) AS products
+            'SELECT c.id, c.name, c.code, c.description, c.status, c.product_count,
+                    COUNT(p.id) AS linked_products, COALESCE(c.product_count, COUNT(p.id)) AS products
              FROM categories c LEFT JOIN products p ON p.category_id=c.id
              GROUP BY c.id ORDER BY c.id'
         )->fetchAll();
@@ -156,21 +163,27 @@ try {
 
     if ($resource === 'categories' && $method === 'POST') {
         $categoryId = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
+        $productCount = $data['product_count'] ?? null;
+        if ($productCount === '') $productCount = null;
+        if ($productCount !== null) {
+            $productCount = filter_var($productCount, FILTER_VALIDATE_INT);
+            if ($productCount === false || $productCount < 0 || $productCount > 1000000) respond(['error' => 'Product count must be a whole number from 0 to 1000000.'], 422);
+        }
         $name = required_text($data, 'name', 120);
         $code = strtoupper(required_text($data, 'code', 30));
         $description = trim((string) ($data['description'] ?? ''));
         $status = valid_status($data, 'status');
         if ($categoryId) {
             $statement = $pdo->prepare(
-                'UPDATE categories SET name=?, code=?, description=?, status=? WHERE id=?'
+                'UPDATE categories SET name=?, code=?, description=?, status=?, product_count=? WHERE id=?'
             );
-            $statement->execute([$name, $code, $description, $status, $categoryId]);
+            $statement->execute([$name, $code, $description, $status, $productCount, $categoryId]);
             respond(['message' => 'Category saved.', 'id' => $categoryId]);
         }
         $statement = $pdo->prepare(
-            'INSERT INTO categories (name, code, description, status) VALUES (?, ?, ?, ?)'
+            'INSERT INTO categories (name, code, description, status, product_count) VALUES (?, ?, ?, ?, ?)'
         );
-        $statement->execute([$name, $code, $description, $status]);
+        $statement->execute([$name, $code, $description, $status, $productCount]);
         respond(['message' => 'Category saved.', 'id' => (int) $pdo->lastInsertId()], 201);
     }
 
@@ -332,6 +345,21 @@ try {
         respond(['configuration' => $config, 'rates' => $rates]);
     }
 
+    if ($resource === 'tax_rates' && $method === 'POST') {
+        $name = required_text($data, 'name', 100);
+        $rate = filter_var($data['rate_percent'] ?? null, FILTER_VALIDATE_FLOAT);
+        $effective = (string) ($data['effective_from'] ?? '');
+        $date = DateTime::createFromFormat('!Y-m-d', $effective);
+        $treatment = (string) ($data['treatment'] ?? 'taxable');
+        if ($rate === false || $rate < 0 || $rate > 100 || !$date || $date->format('Y-m-d') !== $effective ||
+            !in_array($treatment, ['taxable','zero_rated','nil_rated','exempt','non_gst'], true) || ($treatment !== 'taxable' && $rate != 0)) {
+            respond(['error' => 'Enter a valid rate, treatment and effective date.'], 422);
+        }
+        $statement = $pdo->prepare('INSERT INTO tax_rates (name, rate_percent, treatment, effective_from, is_enabled) VALUES (?, ?, ?, ?, 1)');
+        $statement->execute([$name, $rate, $treatment, $effective]);
+        respond(['message' => 'GST rate saved.', 'id' => (int) $pdo->lastInsertId()], 201);
+    }
+
     if ($resource === 'tax' && $method === 'POST') {
         $state = trim((string) ($data['seller_state_name'] ?? ''));
         $code = state_code($state);
@@ -351,7 +379,7 @@ try {
 
     if ($resource === 'quotations' && $method === 'GET') {
         $sql = "SELECT q.id, q.quote_number, q.customer_id, c.name AS customer,
-                       q.issue_date, q.valid_until, q.status, q.grand_total,
+                       q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total,
                        i.id AS invoice_id,
                        GROUP_CONCAT(qi.product_name ORDER BY qi.line_no SEPARATOR ' | ') AS product_names
                 FROM quotations q
@@ -420,7 +448,11 @@ try {
             'SELECT seller_state_code, price_mode, tax_mode FROM gst_configuration WHERE id=1'
         )->fetch();
         $sellerCode = $configuration['seller_state_code'] ?? '37';
-        $placeCode = $customer['state_code'] ?: $sellerCode;
+        $placeCode = (string) ($data['place_of_supply_state_code'] ?? ($customer['state_code'] ?: $sellerCode));
+        if (!in_array($placeCode, ['37','36','29','33','27','32','21','07'], true)) {
+            $pdo->rollBack();
+            respond(['error' => 'Choose a valid place of supply.'], 422);
+        }
         $sameState = $sellerCode === $placeCode;
         $taxMode = $sameState ? 'cgst_sgst' : 'igst';
         $priceMode = in_array($configuration['price_mode'] ?? '', ['exclusive', 'inclusive'], true)
@@ -433,7 +465,7 @@ try {
         $preparedItems = [];
         $productStatement = $pdo->prepare(
             "SELECT p.id, p.name, p.sku, p.hsn_code, p.unit, p.selling_price,
-                    COALESCE(t.rate_percent, 0) AS gst_rate
+                    COALESCE(t.rate_percent, 0) AS gst_rate, t.is_enabled, t.effective_from, t.effective_to
              FROM products p LEFT JOIN tax_rates t ON t.id=p.tax_rate_id
              WHERE p.id=? AND p.status='active'"
         );
@@ -457,6 +489,10 @@ try {
             if (!$product) {
                 $pdo->rollBack();
                 respond(['error' => 'A selected product is missing or inactive.'], 422);
+            }
+            if (!$product['is_enabled'] || $product['effective_from'] > $issueDate || ($product['effective_to'] !== null && $product['effective_to'] < $issueDate)) {
+                $pdo->rollBack();
+                respond(['error' => 'A product GST rate is disabled or outside its effective dates. Update the product tax rate.'], 422);
             }
             $base = round($quantity * $unitPrice, 2);
             $discountAmount = round($base * $discountPercent / 100, 2);
@@ -611,6 +647,9 @@ try {
     if ($resource === 'invoices' && $method === 'GET') {
         $sql = "SELECT i.id, i.invoice_number, i.quotation_id, q.quote_number,
                        c.name AS customer, i.issue_date, i.status, i.grand_total,
+                       i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name,
+                       i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code,
+                       i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total,
                        (SELECT COALESCE(SUM(p.amount), 0) FROM invoice_payments p
                         WHERE p.invoice_id=i.id) AS paid_total,
                        GROUP_CONCAT(DISTINCT ii.product_name ORDER BY ii.line_no SEPARATOR ' | ') AS product_names
@@ -681,8 +720,9 @@ try {
             $pdo->rollBack();
             respond(['error' => 'This quotation has already been converted.'], 409);
         }
-        $financialYearStart = (int) substr($quote['issue_date'], 0, 4);
-        if ((int) substr($quote['issue_date'], 5, 2) < 4) {
+        $invoiceDate = date('Y-m-d');
+        $financialYearStart = (int) substr($invoiceDate, 0, 4);
+        if ((int) substr($invoiceDate, 5, 2) < 4) {
             $financialYearStart--;
         }
         $invoiceFy = sprintf('%d-%02d', $financialYearStart, ($financialYearStart + 1) % 100);
@@ -701,7 +741,7 @@ try {
             "UPDATE document_sequences SET last_number=?
              WHERE document_type='invoice' AND financial_year=?"
         )->execute([$invoiceSequence, $invoiceFy]);
-        $invoiceNumber = sprintf('INV-%s-%06d', $invoiceFy, $invoiceSequence);
+        $invoiceNumber = sprintf('I%s%06d', str_replace('-', '', substr($invoiceFy, 2)), $invoiceSequence);
         $company = $pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch();
         $configuration = $pdo->query('SELECT seller_state_name, seller_state_code FROM gst_configuration WHERE id=1')->fetch();
         $sellerStateName = $configuration['seller_state_name'] ?? 'Andhra Pradesh';
@@ -724,7 +764,7 @@ try {
             $company['company_name'] ?? 'Nivis Beauty Care',
             $company['gstin'] ?? null,
             $company['address'] ?? 'Business address not configured',
-            $company['state_code'] ?? $sellerStateCode,
+            $quote['supplier_state_code'],
             $quote['buyer_name'], $quote['buyer_gstin'],
             $buyerAddress ?: 'Billing address not provided',
             $quote['place_of_supply_state_code'], $quote['tax_mode'], $quote['price_mode'],
@@ -825,8 +865,8 @@ try {
     if ($resource === 'dashboard' && $method === 'GET') {
         $stats = $pdo->query(
             "SELECT
-                (SELECT COUNT(*) FROM customers WHERE status='active') AS customers,
-                (SELECT COUNT(*) FROM products WHERE status='active') AS products,
+                (SELECT COUNT(*) FROM customers) AS customers,
+                (SELECT COUNT(*) FROM products) AS products,
                 (SELECT COUNT(*) FROM quotations) AS quotations,
                 (SELECT COUNT(*) FROM quotations WHERE status IN ('draft','sent')) AS waiting,
                 (SELECT COALESCE(SUM(grand_total),0) FROM invoices
@@ -934,15 +974,18 @@ try {
                 [$from, $to],
             ],
             'customers' => [
-                'SELECT name, mobile, customer_type, gst_registration, status, created_at
-                 FROM customers WHERE DATE(created_at) BETWEEN ? AND ?
-                 ORDER BY created_at DESC',
+                "SELECT c.name, c.mobile, COUNT(i.id) AS invoices, COALESCE(SUM(i.grand_total),0) AS sales
+                 FROM customers c LEFT JOIN invoices i ON i.customer_id=c.id AND i.status='issued' AND i.issue_date BETWEEN ? AND ?
+                 GROUP BY c.id ORDER BY sales DESC, c.name",
                 [$from, $to],
             ],
             'products' => [
-                'SELECT p.name, p.sku, c.name AS category, p.selling_price, p.status, p.created_at
+                "SELECT p.name, p.sku, c.name AS category, p.hsn_code,
+                        COALESCE(SUM(s.quantity),0) AS quantity_sold, COALESCE(SUM(s.line_total),0) AS sales
                  FROM products p JOIN categories c ON c.id=p.category_id
-                 WHERE DATE(p.created_at) BETWEEN ? AND ? ORDER BY p.created_at DESC',
+                 LEFT JOIN (SELECT ii.product_id, ii.quantity, ii.line_total FROM invoice_items ii
+                    JOIN invoices i ON i.id=ii.invoice_id WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?) s ON s.product_id=p.id
+                 GROUP BY p.id ORDER BY sales DESC, p.name",
                 [$from, $to],
             ],
         ];

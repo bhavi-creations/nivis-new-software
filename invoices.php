@@ -2,6 +2,7 @@
 <?php
 // Common sidebar - include only once.
 // Remove this line if already included in parent layout.
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -45,7 +46,7 @@ include 'sidebar.php';
           <label for="nivisInvoiceCustomer">CUSTOMER</label>
           <select class="form-select"
                   id="nivisInvoiceCustomer">
-            <option value="all">All customers</option>
+            <option value="Draft">Draft</option><option value="Cancelled">Cancelled</option><option value="all" selected>All customers</option>
             <option value="Sri Lakshmi Traders">Sri Lakshmi Traders</option>
             <option value="Ravi Enterprises">Ravi Enterprises</option>
             <option value="Sree Agencies">Sree Agencies</option>
@@ -96,17 +97,10 @@ include 'sidebar.php';
       </div>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nivis-labs-invoice-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Auto-number invoices independently of quotation numbers; lock issued invoices.</p>
-      <p>• Invoice fields: date, due date, customer, supply state, items, tax, total.</p>
-      <p>• Track payments/receipts; outstanding = invoice total less net payments.</p>
-
-      <span class="nivis-labs-invoice-page">11</span>
-    </div>
 
   </div>
 </section>
 <!-- Invoice Page End -->
+
+<?php include 'footer.php'; ?>

@@ -2,6 +2,7 @@
 <?php
 // Include common sidebar only once.
 // Remove this if your main layout already includes it.
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -25,12 +26,12 @@ include 'sidebar.php';
 
       <!-- Invoice Heading -->
       <div class="nlidp-invoice-heading">
-        <h2>TAX INVOICE</h2>
+        <h2>TAX INVOICE <small id="nlidpDocumentStatus"></small></h2>
 
         <div class="nlidp-invoice-meta">
-          <strong id="nlidpInvoiceNumber">INV-0032</strong>
+          <strong id="nlidpInvoiceNumber">—</strong>
           <span>|</span>
-          <strong id="nlidpInvoiceDate">12-Oct-2026</strong>
+          <strong id="nlidpInvoiceDate">—</strong>
         </div>
       </div>
 
@@ -39,20 +40,20 @@ include 'sidebar.php';
 
         <div class="col-12 col-md-6">
           <h4><i class="fa-solid fa-store" aria-hidden="true"></i> FROM <span>|</span> YOUR BEAUTY BUSINESS</h4>
-          <p id="nlidpSellerName">Nivis Beauty Care</p>
-          <p id="nlidpSellerDetails">Skin-care and sun-protection essentials</p>
+          <p id="nlidpSellerName">—</p>
+          <p id="nlidpSellerDetails">—</p>
 
           <div class="nlidp-linked-quote">
             <a href="quotations.php?quote_id=26" id="nlidpQuotationLink">
-              Linked QT-0026
+              —
             </a>
           </div>
         </div>
 
         <div class="col-12 col-md-6">
           <h4><i class="fa-solid fa-user" aria-hidden="true"></i> BILL TO</h4>
-          <p id="nlidpCustomerName">Sri Lakshmi Traders, Kakinada, AP</p>
-          <p class="nlidp-product-intro">Product range: daily sunscreen, hydrating moisturizer and skin-care essentials.</p>
+          <p id="nlidpCustomerName">—</p>
+          
 
           <div class="nlidp-supply-state" id="nlidpSupplyState">
             Place of supply: Andhra Pradesh
@@ -67,13 +68,13 @@ include 'sidebar.php';
           <table class="table nlidp-table mb-0">
             <thead>
               <tr>
-                <th>Product</th>
+                <th>S.No</th><th>Product</th>
                 <th>HSN</th>
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Discount</th>
                 <th>Taxable</th>
-                <th>GST</th>
+                <th>GST</th><th>Total</th>
               </tr>
             </thead>
 
@@ -92,17 +93,17 @@ include 'sidebar.php';
         </div>
 
         <div id="nlidpCgstRow">
-          <span id="nlidpCgstLabel">CGST 9%:</span>
+          <span id="nlidpCgstLabel">CGST:</span>
           <span id="nlidpCgst">Rs 0.00</span>
         </div>
 
         <div id="nlidpSgstRow">
-          <span id="nlidpSgstLabel">SGST 9%:</span>
+          <span id="nlidpSgstLabel">SGST:</span>
           <span id="nlidpSgst">Rs 0.00</span>
         </div>
 
         <div id="nlidpIgstRow" class="d-none">
-          <span id="nlidpIgstLabel">IGST 18%:</span>
+          <span id="nlidpIgstLabel">IGST:</span>
           <span id="nlidpIgst">Rs 0.00</span>
         </div>
 
@@ -112,8 +113,9 @@ include 'sidebar.php';
         </div>
       </div>
 
+      <div class="nlidp-totals"><div>Paid: <span id="nlidpPaid">Rs 0.00</span></div><div>Outstanding: <span id="nlidpBalance">Rs 0.00</span></div></div>
       <!-- Action Buttons -->
-      <div class="nlidp-actions">
+      <div class="nlidp-actions" data-html2canvas-ignore="true">
         <button type="button"
                 class="nlidp-btn nlidp-btn-primary"
                 id="nlidpDownloadPDF">
@@ -138,14 +140,7 @@ include 'sidebar.php';
       <div class="nlidp-feedback" id="nlidpFeedback" role="status"></div>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nlidp-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
-      <p>• Invoice must carry legally required particulars, seller/buyer GSTIN as relevant.</p>
-      <p>• Cancellation, credit notes, numbering and e-invoicing need legal configuration.</p>
-      <p>• Amounts above illustrate intra-state 18% and two-decimal tax rounding.</p>
-      <span>12</span>
-    </div>
+
 
   </div>
 </section>
@@ -229,7 +224,9 @@ include 'sidebar.php';
 </div>
 
 <!-- Bootstrap Bundle - load once in your project -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 
 <!-- html2pdf for client-side demo PDF export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<?php include 'footer.php'; ?>

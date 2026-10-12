@@ -2,7 +2,7 @@
 <?php
 // Common sidebar - include only once.
 // If already included in your main layout, remove this line.
-include 'header.php';
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -35,6 +35,10 @@ include 'sidebar.php';
     <!-- Product Filters -->
     <div class="nivis-produdcts-filters">
       <div class="row g-3">
+            <div class="col-md-6"><label for="productSerial">S.NO</label><input id="productSerial" class="form-control" readonly></div>
+            <div class="col-md-6"><label for="productQuantity">QUANTITY</label><input id="productQuantity" class="form-control" readonly></div>
+            <div class="col-md-6"><label for="productRegion">GST REGION</label><input id="productRegion" class="form-control" readonly></div>
+            <div class="col-md-6"><label for="productTotal">TOTAL</label><input id="productTotal" class="form-control" readonly><small id="productTaxSplit"></small></div>
 
         <div class="col-12 col-md-5">
           <label for="nivisProductSearch">
@@ -107,16 +111,7 @@ include 'sidebar.php';
       </div>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nivis-produdcts-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Product list: SKU, name, category, HSN, unit, sell price, GST rate, status.</p>
-      <p>• Product category is chosen from Categories; GST is chosen from Tax setup.</p>
-      <p>• Search/filter, edit, activate/deactivate, duplicate and export products.</p>
-
-      <span class="nivis-produdcts-page">07</span>
-    </div>
 
   </div>
 </section>
@@ -263,4 +258,6 @@ include 'sidebar.php';
 </div>
 
 <!-- Include Bootstrap JS only if not included globally -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<?php include 'footer.php'; ?>

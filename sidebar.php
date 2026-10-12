@@ -1,4 +1,4 @@
-<?php include 'header.php' ; ?>
+
 
   <!-- Mobile Sidebar Button -->
   <button class="side-bar-toggle" id="sidebarToggle"
@@ -82,5 +82,5 @@
   </main> -->
 
 
-  <?php include 'footer.php' ; ?>
+  
 

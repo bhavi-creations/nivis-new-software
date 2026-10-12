@@ -2,7 +2,7 @@
 <?php
 // Include common sidebar only once.
 // Remove this line if your parent layout already includes it.
-include 'header.php';
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -26,17 +26,13 @@ include 'sidebar.php';
         <div class="col-12 col-sm-6 col-xl-3">
           <label class="nlcq-label" for="nlcqQuoteNumber">QUOTE NUMBER</label>
           <input type="text" class="form-control" id="nlcqQuoteNumber"
-                 value="QT-0026" readonly>
+                 value="Assigned when saved" readonly>
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
           <label class="nlcq-label" for="nlcqCustomer">CUSTOMER *</label>
           <select class="form-select" id="nlcqCustomer" required>
             <option value="">Select customer</option>
-            <option value="1" selected>Sri Lakshmi Traders</option>
-            <option value="2">Sree Agencies</option>
-            <option value="3">Ravi Enterprises</option>
-            <option value="4">Glow &amp; Co. Beauty Store</option>
           </select>
         </div>
 
@@ -54,6 +50,7 @@ include 'sidebar.php';
       </div>
     </div>
 
+    <div class="nlcq-card"><label for="nlcqSupplyState" class="nlcq-label">PLACE OF SUPPLY</label><select id="nlcqSupplyState" class="form-select"><option value="37">Andhra Pradesh — Inside AP</option><option value="36">Telangana — Outside AP</option><option value="29">Karnataka — Outside AP</option><option value="33">Tamil Nadu — Outside AP</option><option value="27">Maharashtra — Outside AP</option><option value="32">Kerala — Outside AP</option><option value="21">Odisha — Outside AP</option><option value="07">Delhi — Outside AP</option></select><small id="nlcqTaxTreatment"></small></div>
     <!-- Line Items -->
     <div class="nlcq-card nlcq-items-card">
       <h2><i class="fa-solid fa-spa" aria-hidden="true"></i> Beauty product line items</h2>
@@ -89,7 +86,7 @@ include 'sidebar.php';
         <div class="col-12 col-lg-7">
           <h2><i class="fa-regular fa-note-sticky" aria-hidden="true"></i> Notes / terms</h2>
           <textarea id="nlcqNotes" class="nlcq-notes-input"
-                    rows="2">Beauty care range: sunscreen, moisturizer and serum. Delivery: 7 working days; terms: 50% advance.</textarea>
+                    rows="2" placeholder="Enter delivery and payment terms"></textarea>
         </div>
 
         <div class="col-12 col-lg-5">
@@ -122,14 +119,9 @@ include 'sidebar.php';
       <div class="nlcq-feedback" id="nlcqFeedback" role="status"></div>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nlcq-developer-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
-      <p>• Rows are snapshots; compute discount before GST for percent line discounts.</p>
-      <p>• Recalculate on every edit; include subtotal, line discount, taxable, tax, round-off.</p>
-      <p>• Quote approval and invoice conversion are controlled and audit logged.</p>
-      <span>10</span>
-    </div>
+
 
   </div>
 </section>
+
+<?php include 'footer.php'; ?>

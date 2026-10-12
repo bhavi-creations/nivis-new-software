@@ -2,6 +2,7 @@
 <?php
 // Include sidebar only once.
 // Remove if already loaded by your common layout.
+include_once 'header.php';
 include 'sidebar.php';
 ?>
 
@@ -83,7 +84,7 @@ include 'sidebar.php';
 
       <div class="col-12 col-sm-12 col-lg-4">
         <div class="nlr-summary-card">
-          <h6>OUTSTANDING</h6>
+          <h6>OUTSTANDING ON PERIOD INVOICES</h6>
           <h2 id="nlrOutstanding">Rs 0</h2>
         </div>
       </div>
@@ -96,6 +97,7 @@ include 'sidebar.php';
       <div class="nlr-report-heading">
         <h2>Report preview</h2>
 
+        <button type="button" class="nlr-export-btn" id="nlrPrint">Print / Save PDF</button>
         <button type="button"
                 class="nlr-export-btn"
                 id="nlrExportCSV">
@@ -115,18 +117,11 @@ include 'sidebar.php';
       </div>
     </div>
 
-    <!-- Developer Notes -->
-    <div class="nlr-notes">
-      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
 
-      <p>• Reports: sales register, GST summary, outstanding, payment, customer, product.</p>
-      <p>• Date filters, customer filters, status filters, CSV/PDF downloads.</p>
-      <p>• Reconcile GST summaries with legally maintained records before filing.</p>
-
-      <span class="nlr-page">13</span>
-    </div>
 
   </div>
 </section>
 
 <script src="assets/js/nivis-labs-reports.js"></script>
+
+<?php include 'footer.php'; ?>
