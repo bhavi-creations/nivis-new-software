@@ -1,0 +1,269 @@
+
+<?php
+// Common sidebar - include only once.
+// If already included in your main layout, remove this line.
+include 'header.php';
+include 'sidebar.php';
+?>
+
+<link rel="stylesheet" href="assets/css/nivis-produdcts.css">
+
+<section class="nivis-produdcts" id="nivis-produdcts">
+  <div class="container-fluid p-0">
+
+    <!-- Page Header -->
+    <div class="nivis-produdcts-header">
+      <div>
+        <h1>Products</h1>
+        <p>Complete catalog with HSN, category, price and tax</p>
+      </div>
+
+      <div class="nivis-produdcts-account">
+        Admin <span>|</span> AP Business
+      </div>
+    </div>
+
+    <!-- Add Product Button -->
+    <div class="nivis-produdcts-toolbar">
+      <button type="button"
+              class="nivis-produdcts-add-btn"
+              id="nivisProductAddBtn"
+              data-bs-toggle="modal"
+              data-bs-target="#nivisProductModal">
+        + Add product
+      </button>
+    </div>
+
+    <!-- Product Filters -->
+    <div class="nivis-produdcts-filters">
+      <div class="row g-3">
+
+        <div class="col-12 col-md-5">
+          <label for="nivisProductSearch">
+            SEARCH PRODUCT
+          </label>
+
+          <input type="search"
+                 class="form-control"
+                 id="nivisProductSearch"
+                 placeholder="Name / SKU / HSN">
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label for="nivisProductCategoryFilter">
+            CATEGORY
+          </label>
+
+          <select class="form-select"
+                  id="nivisProductCategoryFilter">
+            <option value="all">All categories</option>
+            <option value="Electrical">Electrical</option>
+            <option value="Hardware">Hardware</option>
+            <option value="Plumbing">Plumbing</option>
+            <option value="Accessories">Accessories</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-3">
+          <label for="nivisProductGSTFilter">
+            GST RATE
+          </label>
+
+          <select class="form-select"
+                  id="nivisProductGSTFilter">
+            <option value="all">All GST rates</option>
+            <option value="0">0%</option>
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18">18%</option>
+            <option value="28">28%</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Product Directory -->
+    <div class="nivis-produdcts-table-card">
+      <div class="table-responsive">
+        <table class="table nivis-produdcts-table mb-0">
+          <thead>
+            <tr>
+              <th>Product / SKU</th>
+              <th>Category</th>
+              <th>HSN</th>
+              <th>Price</th>
+              <th>GST</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="nivisProductTableBody">
+            <!-- Products rendered by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="nivis-produdcts-empty d-none"
+           id="nivisProductEmpty">
+        No products found.
+      </div>
+    </div>
+
+    <!-- Developer Notes -->
+    <div class="nivis-produdcts-notes">
+      <h5>SCREEN RULES / DEVELOPER NOTES</h5>
+
+      <p>• Product list: SKU, name, category, HSN, unit, sell price, GST rate, status.</p>
+      <p>• Product category is chosen from Categories; GST is chosen from Tax setup.</p>
+      <p>• Search/filter, edit, activate/deactivate, duplicate and export products.</p>
+
+      <span class="nivis-produdcts-page">07</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- Add / Edit Product Modal -->
+<div class="modal fade" id="nivisProductModal"
+     tabindex="-1" aria-hidden="true"
+     aria-labelledby="nivisProductModalTitle">
+
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content nivis-produdcts-modal">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="nivisProductModalTitle">
+          Add product
+        </h5>
+
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+
+      <form id="nivisProductForm">
+        <div class="modal-body">
+          <div class="row g-3">
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productName">
+                PRODUCT NAME *
+              </label>
+              <input type="text" class="form-control"
+                     id="productName" required>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productSKU">
+                PRODUCT SKU *
+              </label>
+              <input type="text" class="form-control"
+                     id="productSKU" required>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productCategory">
+                CATEGORY *
+              </label>
+              <select class="form-select"
+                      id="productCategory" required>
+                <option value="">Select category</option>
+                <option>Electrical</option>
+                <option>Hardware</option>
+                <option>Plumbing</option>
+                <option>Accessories</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productHSN">
+                HSN CODE *
+              </label>
+              <input type="text" class="form-control"
+                     id="productHSN" maxlength="8"
+                     pattern="[0-9]{4,8}" required>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="productUnit">
+                UNIT *
+              </label>
+              <select class="form-select"
+                      id="productUnit" required>
+                <option value="Pcs">Pcs</option>
+                <option value="Box">Box</option>
+                <option value="Kg">Kg</option>
+                <option value="Meter">Meter</option>
+                <option value="Set">Set</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="productPrice">
+                SELLING PRICE *
+              </label>
+              <input type="number" class="form-control"
+                     id="productPrice" min="0"
+                     step="0.01" required>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="productGST">
+                GST RATE *
+              </label>
+              <select class="form-select"
+                      id="productGST" required>
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productStatus">
+                STATUS
+              </label>
+              <select class="form-select" id="productStatus">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productDescription">
+                DESCRIPTION
+              </label>
+              <input type="text" class="form-control"
+                     id="productDescription">
+            </div>
+
+          </div>
+
+          <div id="nivisProductMessage"
+               class="nivis-produdcts-message mt-3"
+               role="status"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light"
+                  data-bs-dismiss="modal">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="btn nivis-produdcts-save-btn">
+            Save product
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- Include Bootstrap JS only if not included globally -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/nivis-produdcts.js"></script>

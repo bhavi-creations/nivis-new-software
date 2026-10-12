@@ -1,0 +1,4470 @@
+
+
+    :root {
+      --sidebar-bg: #14233f;
+      --sidebar-active: #29476f;
+      --sidebar-text: #aab9d0;
+      --sidebar-width: 220px;
+      --sidebar-blue: #315cf5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f5f7fb;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    /* Main Sidebar */
+    .side-bar {
+      width: var(--sidebar-width);
+      height: 100vh;
+      height: 100dvh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      padding: 44px 13px 20px;
+      z-index: 1050;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #34486a transparent;
+      transition: transform 0.3s ease;
+    }
+
+    /* Brand */
+    .side-bar .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 0 7px 37px;
+      text-decoration: none;
+      min-width: 0;
+    }
+
+    .side-bar .brand-icon {
+      width: 41px;
+      height: 41px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      background: var(--sidebar-blue);
+      color: white;
+      font-size: 22px;
+      font-weight: 800;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .side-bar .brand-name {
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      line-height: 1.3;
+    }
+
+    .side-bar .brand-subtitle {
+      color: #9dacc5;
+      font-size: 9px;
+      letter-spacing: 0.6px;
+      margin-top: 3px;
+    }
+
+    /* Navigation */
+    .side-bar .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .side-bar .nav-link {
+      width: 100%;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 11px 16px;
+      border-radius: 9px;
+      color: var(--sidebar-text);
+      font-size: 12px;
+      font-weight: 400;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .side-bar .nav-link:hover {
+      background: #203a5e;
+      color: #fff;
+    }
+
+    .side-bar .nav-link.active {
+      background: var(--sidebar-active);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .side-bar .sidebar-footer {
+      margin-top: auto;
+      padding: 40px 13px 17px;
+      font-size: 9px;
+      color: #7f92b0;
+      letter-spacing: 0.15px;
+    }
+
+    /* Mobile Toggle */
+    .side-bar-toggle {
+      display: none;
+      position: fixed;
+      top: 14px;
+      left: 15px;
+      z-index: 1040;
+      background: var(--sidebar-bg);
+      color: white;
+      border: 0;
+      border-radius: 9px;
+      width: 42px;
+      height: 42px;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .side-bar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1045;
+    }
+
+    /* Main Page Content */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      padding: 30px;
+    }
+
+    @media (max-width: 991.98px) {
+      .side-bar {
+        transform: translateX(-100%);
+      }
+
+      .side-bar.show {
+        transform: translateX(0);
+      }
+
+      .side-bar-toggle {
+        display: flex;
+      }
+
+      .side-bar-overlay.show {
+        display: block;
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 76px 18px 25px;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .main-content {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+    }
+  
+
+    /* dash board stylingss  */
+    
+/* ======================================
+   NIVIS DASHBOARD
+   Screenshot-based UI/UX
+====================================== */
+
+.nivis_dashboard {
+  --nivis-sidebar-width: 214px;
+  --nivis-primary: #345cf6;
+  --nivis-heading: #1c2d49;
+  --nivis-muted: #7b8da9;
+  --nivis-border: #e1e8f3;
+  --nivis-background: #f4f6fc;
+
+  margin-left: var(--nivis-sidebar-width);
+  min-height: 100vh;
+  padding: 37px 29px 28px;
+  background: var(--nivis-background);
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--nivis-heading);
+}
+
+/* Page Header */
+.nivis_dashboard_header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 15px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--nivis-border);
+}
+
+.nivis_dashboard_header h1 {
+  margin: 0 0 6px;
+  color: var(--nivis-heading);
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 750;
+  letter-spacing: 0.1px;
+}
+
+.nivis_dashboard_header p {
+  color: var(--nivis-muted);
+  font-size: 11px;
+  margin: 0;
+  letter-spacing: 0.1px;
+}
+
+.nivis_dashboard_account {
+  color: var(--nivis-muted);
+  font-size: 10px;
+  white-space: nowrap;
+  padding-top: 7px;
+}
+
+.nivis_dashboard_account span {
+  margin: 0 9px;
+}
+
+/* Summary Cards */
+.nivis_dashboard_stats {
+  margin-bottom: 7px;
+}
+
+.nivis_dashboard_stat_card {
+  background: #fff;
+  height: 99px;
+  border-radius: 12px;
+  padding: 23px 14px 12px;
+  overflow: hidden;
+}
+
+.nivis_dashboard_stat_card h6 {
+  color: #7184a3;
+  font-size: 9px;
+  font-weight: 750;
+  text-transform: uppercase;
+  margin: 0 0 7px;
+}
+
+.nivis_dashboard_stat_card h2 {
+  color: var(--nivis-heading);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.1;
+  margin: 0 0 7px;
+  letter-spacing: 0.4px;
+}
+
+.nivis_dashboard_stat_card p {
+  font-size: 9px;
+  color: #04a883;
+  margin: 0;
+}
+
+/* Main Panels */
+.nivis_dashboard_middle {
+  margin-bottom: 7px;
+}
+
+.nivis_dashboard_panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 17px;
+}
+
+.nivis_dashboard_panel h3 {
+  font-size: 14px;
+  color: var(--nivis-heading);
+  font-weight: 750;
+  line-height: 1.35;
+  margin: 0 0 5px;
+}
+
+.nivis_dashboard_subtitle {
+  color: var(--nivis-muted);
+  font-size: 9px;
+  margin: 0;
+}
+
+/* Sales Chart */
+.nivis_dashboard_sales {
+  min-height: 224px;
+}
+
+.nivis_dashboard_chart {
+  height: 165px;
+  width: 100%;
+  margin-top: 4px;
+  position: relative;
+}
+
+/* Quick Actions */
+.nivis_dashboard_actions {
+  min-height: 224px;
+}
+
+.nivis_dashboard_action_list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 19px;
+}
+
+.nivis_dashboard_action_primary,
+.nivis_dashboard_action_btn {
+  display: flex;
+  align-items: center;
+  min-height: 31px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.nivis_dashboard_action_primary {
+  background: var(--nivis-primary);
+  color: white;
+}
+
+.nivis_dashboard_action_primary:hover {
+  background: #264ad4;
+  color: white;
+}
+
+.nivis_dashboard_action_btn {
+  border: 1px solid #e0e8f4;
+  background: white;
+  color: var(--nivis-heading);
+}
+
+.nivis_dashboard_action_btn:hover {
+  background: #f2f5ff;
+  color: var(--nivis-primary);
+}
+
+/* Recent Activity */
+.nivis_dashboard_recent {
+  margin-top: 6px;
+  padding: 9px 14px 11px;
+}
+
+.nivis_dashboard_recent h3 {
+  margin: 0 0 12px 3px;
+}
+
+.nivis_dashboard_table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 9px;
+}
+
+.nivis_dashboard_table thead th {
+  background: #f3f5fb;
+  color: #788aa6;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 13px 12px;
+  border: 0;
+  white-space: nowrap;
+}
+
+.nivis_dashboard_table thead th:first-child {
+  border-radius: 7px 0 0 7px;
+}
+
+.nivis_dashboard_table thead th:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.nivis_dashboard_table tbody td {
+  font-size: 9px;
+  color: var(--nivis-heading);
+  padding: 13px 12px;
+  border-bottom: 1px solid #edf0f6;
+  vertical-align: middle;
+}
+
+/* Developer Notes */
+.nivis_dashboard_notes {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 17px;
+  margin-top: 24px;
+}
+
+.nivis_dashboard_notes h5 {
+  color: var(--nivis-primary);
+  font-size: 10px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.nivis_dashboard_notes p {
+  color: var(--nivis-heading);
+  font-size: 9px;
+  line-height: 1.6;
+  margin: 0 0 3px;
+}
+
+/* ======================================
+   RESPONSIVE DESIGN
+====================================== */
+
+/* Medium Desktop / Laptop */
+@media (max-width: 1199.98px) {
+  .nivis_dashboard {
+    padding: 30px 22px;
+  }
+
+  .nivis_dashboard_stat_card {
+    padding: 19px 14px;
+  }
+}
+
+/* Tablet - Mobile Sidebar Mode */
+@media (max-width: 991.98px) {
+  .nivis_dashboard {
+    margin-left: 0;
+    padding: 77px 22px 25px;
+  }
+
+  .nivis_dashboard_sales,
+  .nivis_dashboard_actions {
+    min-height: 230px;
+  }
+}
+
+/* Small Tablet */
+@media (max-width: 767.98px) {
+  .nivis_dashboard_header h1 {
+    font-size: 23px;
+  }
+
+  .nivis_dashboard_stats {
+    margin-bottom: 6px;
+  }
+
+  .nivis_dashboard_stat_card {
+    height: auto;
+    min-height: 100px;
+  }
+
+  .nivis_dashboard_chart {
+    height: 195px;
+  }
+
+  .nivis_dashboard_sales {
+    min-height: 270px;
+  }
+
+  .nivis_dashboard_actions {
+    min-height: auto;
+  }
+
+  .nivis_dashboard_action_list {
+    margin-top: 18px;
+  }
+
+  .nivis_dashboard_action_primary,
+  .nivis_dashboard_action_btn {
+    min-height: 40px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+  .nivis_dashboard {
+    padding: 73px 14px 20px;
+  }
+
+  .nivis_dashboard_header {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .nivis_dashboard_header h1 {
+    font-size: 23px;
+  }
+
+  .nivis_dashboard_account {
+    padding: 0;
+  }
+
+  .nivis_dashboard_stat_card h2 {
+    font-size: 24px;
+  }
+
+  .nivis_dashboard_panel {
+    padding: 16px 13px;
+  }
+
+  .nivis_dashboard_recent {
+    padding: 15px 12px;
+  }
+
+  .nivis_dashboard_table {
+    min-width: 550px;
+  }
+
+  .nivis_dashboard_notes {
+    padding: 15px;
+    margin-top: 16px;
+  }
+
+  .nivis_dashboard_notes p {
+    font-size: 10px;
+  }
+}
+
+/* nivis labs customer  */
+
+.nivis_customer {
+  --nivis-customer-sidebar-width: 208px;
+  --nivis-customer-primary: #345cf6;
+  --nivis-customer-heading: #1c2e4c;
+  --nivis-customer-muted: #7a8ca8;
+  --nivis-customer-bg: #f4f6fc;
+
+  margin-left: var(--nivis-customer-sidebar-width);
+  min-height: 100vh;
+  padding: 36px 28px 27px;
+  background: var(--nivis-customer-bg);
+  color: var(--nivis-customer-heading);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.nivis_customer * {
+  box-sizing: border-box;
+}
+
+.nivis_customer_header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 0 15px 2px;
+  border-bottom: 1px solid #e0e7f2;
+}
+
+.nivis_customer_heading h1 {
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 750;
+  margin: 0 0 7px;
+}
+
+.nivis_customer_heading p {
+  color: var(--nivis-customer-muted);
+  font-size: 11px;
+  margin: 0;
+}
+
+.nivis_customer_account {
+  padding-top: 7px;
+  color: var(--nivis-customer-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.nivis_customer_account span {
+  margin: 0 9px;
+}
+
+.nivis_customer_toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 7px 5px 17px;
+}
+
+.nivis_customer_add_btn {
+  width: 144px;
+  min-height: 31px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--nivis-customer-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.nivis_customer_add_btn:hover {
+  background: #264bde;
+}
+
+/* Search Filters */
+.nivis_customer_filters {
+  border-radius: 11px;
+  background: #fff;
+  padding: 0 15px 9px;
+  margin: 0 4px 19px 2px;
+}
+
+.nivis_customer_filters label {
+  display: block;
+  font-size: 9px;
+  color: #7284a3;
+  font-weight: 750;
+  margin-bottom: 7px;
+}
+
+.nivis_customer_filters .form-control,
+.nivis_customer_filters .form-select {
+  height: 35px;
+  border: 1px solid #dfe7f4;
+  border-radius: 7px;
+  box-shadow: none;
+  color: var(--nivis-customer-heading);
+  font-size: 11px;
+  padding: 8px 11px;
+}
+
+.nivis_customer_filters .form-control:focus,
+.nivis_customer_filters .form-select:focus {
+  border-color: #8eaaff;
+  box-shadow: 0 0 0 3px rgba(52,92,246,.08);
+}
+
+.nivis_customer_filter_btn {
+  min-width: 96px;
+  height: 32px;
+  border: 1px solid #dfe7f4;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--nivis-customer-heading);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Customer Table */
+.nivis_customer_table_card {
+  margin: 0 4px 0 2px;
+  min-height: 287px;
+  padding: 16px 11px;
+  background: #fff;
+  border-radius: 11px;
+}
+
+.nivis_customer_table {
+  width: 100%;
+  font-size: 9px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.nivis_customer_table thead th {
+  padding: 12px 11px;
+  background: #f3f5fa;
+  color: #7386a4;
+  font-weight: 750;
+  font-size: 9px;
+  border: 0;
+  white-space: nowrap;
+}
+
+.nivis_customer_table thead th:first-child {
+  border-radius: 7px 0 0 7px;
+}
+
+.nivis_customer_table thead th:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.nivis_customer_table tbody td {
+  padding: 14px 11px;
+  background: #fff;
+  color: #1d3051;
+  font-size: 9px;
+  border-bottom: 1px solid #e9eef6;
+  vertical-align: middle;
+}
+
+.nivis_customer_table tbody tr:nth-child(even) td {
+  background: #fcfdff;
+}
+
+.nivis_customer_text_btn {
+  padding: 0;
+  margin-right: 5px;
+  border: 0;
+  background: transparent;
+  font-size: 9px;
+  color: #203554;
+  cursor: pointer;
+}
+
+.nivis_customer_text_btn:hover {
+  color: var(--nivis-customer-primary);
+}
+
+.nivis_customer_empty {
+  text-align: center;
+  font-size: 12px;
+  color: #788aa5;
+  padding: 35px;
+}
+
+/* Bottom Developer Notes */
+.nivis_customer_notes {
+  position: relative;
+  margin: 120px 0 0;
+  padding: 12px 17px 8px;
+  background: #fff;
+  border-radius: 9px;
+  min-height: 73px;
+}
+
+.nivis_customer_notes h5 {
+  font-size: 10px;
+  font-weight: 800;
+  color: #345cf6;
+  margin: 0 0 6px;
+}
+
+.nivis_customer_notes p {
+  font-size: 9px;
+  color: #243754;
+  line-height: 1.5;
+  margin: 0 0 2px;
+}
+
+.nivis_customer_page_num {
+  position: absolute;
+  right: 11px;
+  bottom: 9px;
+  color: #6f829e;
+  font-size: 9px;
+}
+
+.nivis_customer_modal {
+  border: 0;
+  border-radius: 14px;
+}
+
+.nivis_customer_modal .modal-title {
+  color: #1c2e4c;
+  font-weight: 750;
+}
+
+.nivis_customer_modal .form-label {
+  color: #566c8e;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.nivis_customer_modal .form-control,
+.nivis_customer_modal .form-select {
+  font-size: 13px;
+  border-color: #dfe7f4;
+}
+
+.nivis_customer_modal .btn-primary {
+  background: #345cf6;
+  border-color: #345cf6;
+}
+
+.nivis_customer_form_message {
+  font-size: 12px;
+  color: #ba3030;
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+  .nivis_customer {
+    padding: 31px 23px;
+  }
+}
+
+/* Tablet and Mobile */
+@media (max-width: 991.98px) {
+  .nivis_customer {
+    margin-left: 0;
+    padding: 76px 22px 28px;
+  }
+
+  .nivis_customer_notes {
+    margin-top: 45px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+  .nivis_customer {
+    padding: 74px 14px 20px;
+  }
+
+  .nivis_customer_header {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .nivis_customer_heading h1 {
+    font-size: 23px;
+  }
+
+  .nivis_customer_account {
+    padding: 0;
+  }
+
+  .nivis_customer_toolbar {
+    margin: 16px 0;
+  }
+
+  .nivis_customer_add_btn {
+    min-height: 39px;
+  }
+
+  .nivis_customer_filters {
+    padding: 15px;
+    margin: 0 0 18px;
+  }
+
+  .nivis_customer_filter_btn {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .nivis_customer_table_card {
+    margin: 0;
+    min-height: 260px;
+    padding: 12px;
+  }
+
+  .nivis_customer_table {
+    min-width: 690px;
+  }
+
+  .nivis_customer_notes {
+    margin-top: 25px;
+    padding: 14px 18px;
+  }
+
+  .nivis_customer_notes p {
+    font-size: 10px;
+    padding-right: 16px;
+  }
+}
+
+
+
+/* =====================================
+   NIVIS CUSTOMER - FONT SIZE UPDATE
+   Only Typography Changes
+===================================== */
+
+/* Page Heading */
+.nivis_customer_heading h1 {
+    font-size: 28px;
+}
+
+.nivis_customer_heading p {
+    font-size: 14px;
+}
+
+/* Admin Information */
+.nivis_customer_account {
+    font-size: 13px;
+}
+
+/* Add Customer Button */
+.nivis_customer_add_btn {
+    font-size: 13px;
+}
+
+/* Search & Filter Labels */
+.nivis_customer_filters label {
+    font-size: 12px;
+}
+
+/* Search Input & Dropdown */
+.nivis_customer_filters .form-control,
+.nivis_customer_filters .form-select {
+    font-size: 13px;
+}
+
+/* Filter Button */
+.nivis_customer_filter_btn {
+    font-size: 13px;
+}
+
+/* Customer Table Headings */
+.nivis_customer_table thead th {
+    font-size: 12px;
+}
+
+/* Customer Table Data */
+.nivis_customer_table tbody td {
+    font-size: 13px;
+}
+
+/* View & Edit Buttons */
+.nivis_customer_text_btn {
+    font-size: 12px;
+}
+
+/* Developer Notes */
+.nivis_customer_notes h5 {
+    font-size: 12px;
+}
+
+.nivis_customer_notes p {
+    font-size: 12px;
+}
+
+.nivis_customer_page_num {
+    font-size: 11px;
+}
+
+/* Mobile Responsive Typography */
+@media (max-width: 575.98px) {
+
+    .nivis_customer_heading h1 {
+        font-size: 25px;
+    }
+
+    .nivis_customer_heading p {
+        font-size: 13px;
+    }
+
+    .nivis_customer_table thead th {
+        font-size: 12px;
+    }
+
+    .nivis_customer_table tbody td {
+        font-size: 12px;
+    }
+
+    .nivis_customer_notes p {
+        font-size: 12px;
+    }
+}
+
+/* add-edit customer  stylings */
+
+/* ==========================================
+   ADD / EDIT CUSTOMER
+   Screenshot UI/UX + Readable Typography
+========================================== */
+
+.add-edit-customer {
+  --customer-sidebar-width: 215px;
+  --customer-primary: #345cff;
+  --customer-text: #1e304d;
+  --customer-muted: #7b8da9;
+  --customer-bg: #f4f6fc;
+
+  margin-left: var(--customer-sidebar-width);
+  min-height: 100vh;
+  padding: 35px 28px 27px;
+  background: var(--customer-bg);
+  color: var(--customer-text);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.add-edit-customer * {
+  box-sizing: border-box;
+}
+
+/* Header */
+.add-edit-customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e7f2;
+}
+
+.add-edit-customer-header h1 {
+  font-size: 27px;
+  font-weight: 750;
+  margin: 0 0 7px;
+  line-height: 1.2;
+}
+
+.add-edit-customer-header p {
+  color: var(--customer-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.add-edit-customer-account {
+  padding-top: 8px;
+  color: var(--customer-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.add-edit-customer-account span {
+  margin: 0 9px;
+}
+
+/* Form Card */
+.add-edit-customer-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 22px 22px;
+  margin-top: 21px;
+  min-height: 460px;
+}
+
+.add-edit-customer-card h3 {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--customer-text);
+  margin: 0 0 16px;
+}
+
+.add-edit-customer-subheading {
+  margin-top: 24px !important;
+}
+
+/* Form Labels */
+.add-edit-customer .form-label {
+  display: block;
+  margin-bottom: 7px;
+  color: #7184a4;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.2px;
+}
+
+/* Inputs & Dropdowns */
+.add-edit-customer .form-control,
+.add-edit-customer .form-select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #dce5f3;
+  border-radius: 7px;
+  background-color: #fff;
+  font-size: 13px;
+  color: var(--customer-text);
+  padding: 7px 11px;
+  box-shadow: none;
+}
+
+.add-edit-customer .form-control::placeholder {
+  color: #526680;
+  opacity: 1;
+}
+
+.add-edit-customer .form-control:focus,
+.add-edit-customer .form-select:focus {
+  border-color: #7496ff;
+  box-shadow: 0 0 0 3px rgba(52,92,255,0.08);
+}
+
+.add-edit-customer .form-control[readonly] {
+  background: #fff;
+}
+
+/* Shipping Checkbox */
+.add-edit-customer-shipping {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #dce5f3;
+  border-radius: 7px;
+  padding: 0 11px;
+  font-size: 13px;
+  color: var(--customer-text);
+}
+
+.add-edit-customer-shipping input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--customer-primary);
+}
+
+.add-edit-customer-shipping label {
+  cursor: pointer;
+}
+
+/* Bottom Actions */
+.add-edit-customer-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 52px;
+}
+
+.add-edit-customer-cancel,
+.add-edit-customer-save {
+  min-width: 124px;
+  min-height: 35px;
+  padding: 8px 17px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-edit-customer-cancel {
+  border: 1px solid #dce5f3;
+  background: #fff;
+  color: var(--customer-text);
+}
+
+.add-edit-customer-save {
+  min-width: 151px;
+  border: 0;
+  background: var(--customer-primary);
+  color: #fff;
+}
+
+.add-edit-customer-save:hover {
+  background: #244adf;
+}
+
+.add-edit-customer-message {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #bf3434;
+}
+
+.add-edit-customer-message:empty {
+  display: none;
+}
+
+/* Notes */
+.add-edit-customer-notes {
+  position: relative;
+  margin-top: 58px;
+  padding: 13px 17px;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.add-edit-customer-notes h5 {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--customer-primary);
+  margin: 0 0 8px;
+}
+
+.add-edit-customer-notes p {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0 0 3px;
+}
+
+.add-edit-customer-page {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: 10px;
+  color: var(--customer-muted);
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+  .add-edit-customer {
+    margin-left: 0;
+    padding: 76px 22px 25px;
+  }
+
+  .add-edit-customer-card {
+    min-height: auto;
+  }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+  .add-edit-customer {
+    padding: 74px 14px 20px;
+  }
+
+  .add-edit-customer-header {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .add-edit-customer-header h1 {
+    font-size: 24px;
+  }
+
+  .add-edit-customer-header p {
+    font-size: 12px;
+  }
+
+  .add-edit-customer-account {
+    padding: 0;
+  }
+
+  .add-edit-customer-card {
+    padding: 20px 15px;
+    margin-top: 17px;
+  }
+
+  .add-edit-customer .form-label {
+    font-size: 12px;
+  }
+
+  .add-edit-customer .form-control,
+  .add-edit-customer .form-select {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .add-edit-customer-actions {
+    margin-top: 30px;
+    flex-direction: column-reverse;
+  }
+
+  .add-edit-customer-cancel,
+  .add-edit-customer-save {
+    width: 100%;
+    min-height: 42px;
+    font-size: 13px;
+  }
+
+  .add-edit-customer-notes {
+    margin-top: 25px;
+  }
+
+  .add-edit-customer-notes p {
+    padding-right: 12px;
+  }
+}
+
+
+/* nivis labs category stylings */
+
+/* =========================================
+   NIVIS LABS CATEGORY PAGE
+   Screenshot Based UI/UX
+   Main Class: nivis_labs_category
+========================================= */
+
+.nivis_labs_category {
+    --category-sidebar-width: 208px;
+    --category-bg: #f4f6fc;
+    --category-primary: #345cff;
+    --category-text: #1d304e;
+    --category-muted: #7689a7;
+    --category-border: #e0e7f3;
+
+    margin-left: var(--category-sidebar-width);
+    min-height: 100vh;
+    padding: 37px 28px 27px;
+    background: var(--category-bg);
+    color: var(--category-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.nivis_labs_category * {
+    box-sizing: border-box;
+}
+
+/* Header */
+.nivis_labs_category_header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--category-border);
+}
+
+.nivis_labs_category_header h1 {
+    color: var(--category-text);
+    font-size: 27px;
+    line-height: 1.2;
+    font-weight: 750;
+    margin: 0 0 7px;
+}
+
+.nivis_labs_category_header p {
+    color: var(--category-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+.nivis_labs_category_account {
+    padding-top: 9px;
+    color: var(--category-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.nivis_labs_category_account span {
+    margin: 0 9px;
+}
+
+/* Main Content */
+.nivis_labs_category_content {
+    margin-top: 5px;
+}
+
+.nivis_labs_category_card {
+    min-height: 429px;
+    height: 100%;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 11px 15px 20px;
+}
+
+.nivis_labs_category_card_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 0 2px;
+}
+
+.nivis_labs_category_card h2 {
+    font-size: 16px;
+    font-weight: 750;
+    color: var(--category-text);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.nivis_labs_category_new_btn {
+    min-width: 123px;
+    min-height: 32px;
+    border: none;
+    border-radius: 7px;
+    background: var(--category-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 13px;
+}
+
+.nivis_labs_category_new_btn:hover {
+    background: #244cdb;
+}
+
+/* Category Table */
+.nivis_labs_category_table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.nivis_labs_category_table thead th {
+    padding: 13px 12px;
+    background: #f3f5fb;
+    color: #7083a2;
+    font-size: 12px;
+    font-weight: 750;
+    border: 0;
+    white-space: nowrap;
+}
+
+.nivis_labs_category_table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.nivis_labs_category_table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.nivis_labs_category_table tbody td {
+    padding: 13px 12px;
+    font-size: 13px;
+    color: var(--category-text);
+    border-bottom: 1px solid #eaf0f7;
+    vertical-align: middle;
+}
+
+.nivis_labs_category_table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+.nivis_labs_category_table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.nivis_labs_category_table tbody tr:hover td {
+    background: #f1f5ff;
+}
+
+.nivis_labs_category_table tbody tr.selected td {
+    background: #edf2ff;
+}
+
+.nivis_labs_category_empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--category-muted);
+    font-size: 13px;
+}
+
+/* Category Form */
+.nivis_labs_category_form_card {
+    padding: 14px 18px 22px;
+}
+
+.nivis_labs_category_form_card h2 {
+    margin-bottom: 21px;
+}
+
+.nivis_labs_category_field {
+    margin-bottom: 23px;
+}
+
+.nivis_labs_category_field label {
+    display: block;
+    margin-bottom: 9px;
+    font-size: 11px;
+    font-weight: 750;
+    color: #7083a2;
+    letter-spacing: 0.15px;
+}
+
+.nivis_labs_category_field .form-control,
+.nivis_labs_category_field .form-select {
+    height: 36px;
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    background-color: #fff;
+    box-shadow: none;
+    color: var(--category-text);
+    font-size: 13px;
+}
+
+.nivis_labs_category_field .form-control:focus,
+.nivis_labs_category_field .form-select:focus {
+    border-color: #82a0ff;
+    box-shadow: 0 0 0 3px rgba(52,92,255,.08);
+}
+
+/* Save Button */
+.nivis_labs_category_actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 9px;
+    padding-right: 4px;
+}
+
+.nivis_labs_category_save_btn {
+    min-width: 147px;
+    min-height: 32px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--category-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 13px;
+}
+
+.nivis_labs_category_save_btn:hover {
+    background: #244cdb;
+}
+
+.nivis_labs_category_message {
+    font-size: 12px;
+    margin-top: 5px;
+    color: #15845c;
+}
+
+.nivis_labs_category_message:empty {
+    display: none;
+}
+
+/* Developer Notes */
+.nivis_labs_category_notes {
+    position: relative;
+    margin-top: 89px;
+    padding: 13px 17px;
+    min-height: 75px;
+    background: #fff;
+    border-radius: 9px;
+}
+
+.nivis_labs_category_notes h5 {
+    color: var(--category-primary);
+    font-size: 11px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.nivis_labs_category_notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.nivis_labs_category_page {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    font-size: 10px;
+    color: var(--category-muted);
+}
+
+/* Large Laptop */
+@media (max-width: 1199.98px) {
+    .nivis_labs_category {
+        padding: 30px 22px;
+    }
+
+    .nivis_labs_category_card {
+        padding-left: 13px;
+        padding-right: 13px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .nivis_labs_category {
+        margin-left: 0;
+        padding: 76px 20px 25px;
+    }
+
+    .nivis_labs_category_card {
+        min-height: auto;
+    }
+
+    .nivis_labs_category_notes {
+        margin-top: 28px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .nivis_labs_category {
+        padding: 74px 14px 20px;
+    }
+
+    .nivis_labs_category_header {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .nivis_labs_category_header h1 {
+        font-size: 24px;
+    }
+
+    .nivis_labs_category_header p {
+        font-size: 12px;
+    }
+
+    .nivis_labs_category_account {
+        padding: 0;
+    }
+
+    .nivis_labs_category_card {
+        padding: 16px 12px;
+        border-radius: 10px;
+    }
+
+    .nivis_labs_category_card_header {
+        flex-wrap: wrap;
+    }
+
+    .nivis_labs_category_card h2 {
+        font-size: 16px;
+    }
+
+    .nivis_labs_category_new_btn {
+        min-height: 38px;
+    }
+
+    .nivis_labs_category_table {
+        min-width: 380px;
+    }
+
+    .nivis_labs_category_table thead th {
+        font-size: 12px;
+    }
+
+    .nivis_labs_category_table tbody td {
+        font-size: 12px;
+    }
+
+    .nivis_labs_category_form_card {
+        margin-top: 0;
+    }
+
+    .nivis_labs_category_field .form-control,
+    .nivis_labs_category_field .form-select {
+        min-height: 42px;
+        font-size: 14px;
+    }
+
+    .nivis_labs_category_save_btn {
+        min-height: 42px;
+        font-size: 13px;
+    }
+
+    .nivis_labs_category_notes {
+        margin-top: 25px;
+        padding: 14px 17px;
+    }
+
+    .nivis_labs_category_notes p {
+        font-size: 11px;
+        padding-right: 10px;
+    }
+}
+
+
+/* tax stylings */
+
+/* ========================================
+   TAX & GST PAGE
+   Screenshot Based Bootstrap UI/UX
+   Main Class: tax-gst
+======================================== */
+
+.tax-gst {
+    --tax-sidebar-width: 211px;
+    --tax-primary: #345cff;
+    --tax-background: #f4f6fc;
+    --tax-text: #1d304e;
+    --tax-muted: #7689a7;
+    --tax-border: #e1e8f3;
+
+    margin-left: var(--tax-sidebar-width);
+    min-height: 100vh;
+    padding: 36px 28px 27px;
+    background: var(--tax-background);
+    color: var(--tax-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.tax-gst * {
+    box-sizing: border-box;
+}
+
+/* Header */
+.tax-gst-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--tax-border);
+}
+
+.tax-gst-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.tax-gst-header p {
+    color: var(--tax-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+.tax-gst-account {
+    color: var(--tax-muted);
+    font-size: 12px;
+    padding-top: 8px;
+    white-space: nowrap;
+}
+
+.tax-gst-account span {
+    margin: 0 9px;
+}
+
+/* Shared Cards */
+.tax-gst-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 19px 21px;
+}
+
+.tax-gst-card h2 {
+    font-size: 16px;
+    font-weight: 750;
+    margin: 0;
+    color: var(--tax-text);
+}
+
+/* GST Configuration */
+.tax-gst-config {
+    margin-top: 24px;
+    min-height: 233px;
+}
+
+.tax-gst-fields {
+    margin-top: 14px;
+}
+
+.tax-gst-fields label {
+    display: block;
+    margin-bottom: 8px;
+    color: #7285a4;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.2px;
+}
+
+.tax-gst-fields .form-select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    font-size: 13px;
+    color: var(--tax-text);
+    padding: 7px 11px;
+    box-shadow: none;
+    background-color: #fff;
+}
+
+.tax-gst-fields .form-select:focus {
+    border-color: #83a1ff;
+    box-shadow: 0 0 0 3px rgba(52,92,255,0.08);
+}
+
+/* GST Indicators */
+.tax-gst-indicators {
+    margin-top: 43px;
+}
+
+.tax-gst-inside,
+.tax-gst-outside {
+    min-height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.tax-gst-inside {
+    background: #e2f7ee;
+    color: #00a47c;
+}
+
+.tax-gst-outside {
+    background: #edf2ff;
+    color: #345cff;
+}
+
+/* GST Rates */
+.tax-gst-rates {
+    margin-top: 21px;
+    min-height: 222px;
+    padding: 15px 15px 0;
+}
+
+.tax-gst-rates h2 {
+    margin: 0 0 14px 3px;
+}
+
+/* Table */
+.tax-gst-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.tax-gst-table thead th {
+    padding: 13px 12px;
+    background: #f3f5fb;
+    color: #7284a3;
+    font-size: 12px;
+    font-weight: 750;
+    border: 0;
+    white-space: nowrap;
+}
+
+.tax-gst-table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.tax-gst-table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.tax-gst-table tbody td {
+    padding: 13px 12px;
+    font-size: 13px;
+    color: var(--tax-text);
+    vertical-align: middle;
+    border-bottom: 1px solid #e9eef6;
+}
+
+.tax-gst-table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+/* Developer Notes */
+.tax-gst-notes {
+    position: relative;
+    margin-top: 40px;
+    background: #fff;
+    border-radius: 9px;
+    padding: 13px 17px;
+}
+
+.tax-gst-notes h5 {
+    color: var(--tax-primary);
+    font-size: 11px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.tax-gst-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.tax-gst-page {
+    position: absolute;
+    right: 11px;
+    bottom: 10px;
+    color: var(--tax-muted);
+    font-size: 10px;
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+    .tax-gst {
+        padding: 30px 22px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .tax-gst {
+        margin-left: 0;
+        padding: 77px 20px 25px;
+    }
+
+    .tax-gst-config,
+    .tax-gst-rates {
+        min-height: auto;
+    }
+
+    .tax-gst-indicators {
+        margin-top: 28px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .tax-gst {
+        padding: 74px 14px 20px;
+    }
+
+    .tax-gst-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .tax-gst-header h1 {
+        font-size: 24px;
+    }
+
+    .tax-gst-header p {
+        font-size: 12px;
+    }
+
+    .tax-gst-account {
+        padding-top: 0;
+    }
+
+    .tax-gst-card {
+        padding: 17px 14px;
+        border-radius: 10px;
+    }
+
+    .tax-gst-config {
+        margin-top: 18px;
+    }
+
+    .tax-gst-card h2 {
+        font-size: 16px;
+    }
+
+    .tax-gst-fields label {
+        font-size: 12px;
+    }
+
+    .tax-gst-fields .form-select {
+        height: 42px;
+        font-size: 14px;
+    }
+
+    .tax-gst-indicators {
+        margin-top: 23px;
+    }
+
+    .tax-gst-inside,
+    .tax-gst-outside {
+        min-height: 30px;
+        font-size: 12px;
+    }
+
+    .tax-gst-rates {
+        margin-top: 18px;
+    }
+
+    .tax-gst-table {
+        min-width: 640px;
+    }
+
+    .tax-gst-table thead th,
+    .tax-gst-table tbody td {
+        font-size: 12px;
+    }
+
+    .tax-gst-notes {
+        margin-top: 24px;
+        padding: 14px;
+    }
+
+    .tax-gst-notes p {
+        font-size: 11px;
+        padding-right: 12px;
+    }
+}
+
+
+/* products stylings  */
+
+/* =======================================
+   NIVIS LABS PRODUCTS PAGE
+   Main Class: nivis-produdcts
+======================================= */
+
+.nivis-produdcts {
+    --product-sidebar-width: 214px;
+    --product-primary: #345cff;
+    --product-bg: #f4f6fc;
+    --product-text: #1d304e;
+    --product-muted: #778aa8;
+    --product-border: #dfe7f3;
+
+    margin-left: var(--product-sidebar-width);
+    min-height: 100vh;
+    padding: 36px 28px 27px;
+    background: var(--product-bg);
+    color: var(--product-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.nivis-produdcts * {
+    box-sizing: border-box;
+}
+
+/* Header */
+.nivis-produdcts-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--product-border);
+}
+
+.nivis-produdcts-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.nivis-produdcts-header p {
+    font-size: 13px;
+    color: var(--product-muted);
+    margin: 0;
+}
+
+.nivis-produdcts-account {
+    color: var(--product-muted);
+    font-size: 12px;
+    padding-top: 8px;
+    white-space: nowrap;
+}
+
+.nivis-produdcts-account span {
+    margin: 0 9px;
+}
+
+/* Toolbar */
+.nivis-produdcts-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 8px 5px 16px;
+}
+
+.nivis-produdcts-add-btn {
+    width: 142px;
+    min-height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--product-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 12px;
+}
+
+.nivis-produdcts-add-btn:hover {
+    background: #254cde;
+}
+
+/* Filters */
+.nivis-produdcts-filters {
+    padding: 10px 16px;
+    background: #fff;
+    border-radius: 11px;
+    margin: 0 5px 18px 2px;
+}
+
+.nivis-produdcts-filters label {
+    display: block;
+    font-size: 11px;
+    color: #7185a4;
+    font-weight: 750;
+    margin-bottom: 7px;
+}
+
+.nivis-produdcts-filters .form-control,
+.nivis-produdcts-filters .form-select {
+    height: 36px;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    box-shadow: none;
+    font-size: 13px;
+    color: var(--product-text);
+    padding: 7px 11px;
+}
+
+.nivis-produdcts-filters .form-control:focus,
+.nivis-produdcts-filters .form-select:focus {
+    border-color: #83a1ff;
+    box-shadow: 0 0 0 3px rgba(52,92,255,.08);
+}
+
+/* Product Table Card */
+.nivis-produdcts-table-card {
+    min-height: 300px;
+    padding: 15px 11px;
+    background: #fff;
+    border-radius: 11px;
+    margin: 0 5px 0 2px;
+}
+
+.nivis-produdcts-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.nivis-produdcts-table thead th {
+    background: #f3f5fa;
+    color: #7184a3;
+    padding: 13px 12px;
+    font-size: 12px;
+    font-weight: 750;
+    border: 0;
+    white-space: nowrap;
+}
+
+.nivis-produdcts-table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.nivis-produdcts-table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.nivis-produdcts-table tbody td {
+    padding: 13px 12px;
+    font-size: 13px;
+    color: var(--product-text);
+    border-bottom: 1px solid #eaf0f7;
+    vertical-align: middle;
+}
+
+.nivis-produdcts-table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+.nivis-produdcts-edit-btn {
+    border: 0;
+    padding: 0;
+    color: var(--product-text);
+    background: transparent;
+    font-size: 12px;
+}
+
+.nivis-produdcts-edit-btn:hover {
+    color: var(--product-primary);
+}
+
+.nivis-produdcts-empty {
+    text-align: center;
+    padding: 35px 10px;
+    color: var(--product-muted);
+    font-size: 13px;
+}
+
+/* Developer Notes */
+.nivis-produdcts-notes {
+    position: relative;
+    margin-top: 98px;
+    padding: 13px 17px;
+    background: #fff;
+    border-radius: 9px;
+}
+
+.nivis-produdcts-notes h5 {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--product-primary);
+    margin: 0 0 8px;
+}
+
+.nivis-produdcts-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.nivis-produdcts-page {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    color: var(--product-muted);
+    font-size: 10px;
+}
+
+/* Modal */
+.nivis-produdcts-modal {
+    border: 0;
+    border-radius: 13px;
+}
+
+.nivis-produdcts-modal .modal-title {
+    font-size: 18px;
+    font-weight: 750;
+    color: var(--product-text);
+}
+
+.nivis-produdcts-modal .form-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #7184a3;
+}
+
+.nivis-produdcts-modal .form-control,
+.nivis-produdcts-modal .form-select {
+    min-height: 39px;
+    font-size: 13px;
+    border-color: #dce5f3;
+}
+
+.nivis-produdcts-save-btn {
+    background: var(--product-primary);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.nivis-produdcts-save-btn:hover {
+    background: #254cde;
+    color: white;
+}
+
+.nivis-produdcts-message {
+    font-size: 12px;
+    color: #078966;
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+    .nivis-produdcts {
+        padding: 30px 22px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .nivis-produdcts {
+        margin-left: 0;
+        padding: 76px 20px 25px;
+    }
+
+    .nivis-produdcts-notes {
+        margin-top: 35px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .nivis-produdcts {
+        padding: 74px 14px 20px;
+    }
+
+    .nivis-produdcts-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .nivis-produdcts-header h1 {
+        font-size: 24px;
+    }
+
+    .nivis-produdcts-header p {
+        font-size: 12px;
+    }
+
+    .nivis-produdcts-account {
+        padding-top: 0;
+    }
+
+    .nivis-produdcts-toolbar {
+        margin: 16px 0;
+    }
+
+    .nivis-produdcts-add-btn {
+        min-height: 40px;
+    }
+
+    .nivis-produdcts-filters {
+        margin: 0 0 18px;
+        padding: 15px;
+    }
+
+    .nivis-produdcts-filters .form-control,
+    .nivis-produdcts-filters .form-select {
+        height: 42px;
+        font-size: 14px;
+    }
+
+    .nivis-produdcts-table-card {
+        margin: 0;
+        padding: 12px;
+        min-height: 260px;
+    }
+
+    .nivis-produdcts-table {
+        min-width: 730px;
+    }
+
+    .nivis-produdcts-table tbody td {
+        font-size: 12px;
+    }
+
+    .nivis-produdcts-notes {
+        margin-top: 25px;
+        padding: 14px;
+    }
+
+    .nivis-produdcts-notes p {
+        font-size: 11px;
+        padding-right: 13px;
+    }
+}
+
+
+/* add edit product stylings  */
+
+/* =========================================
+   ADD / EDIT PRODUCT PAGE
+   Screenshot-Based UI/UX
+   Main Class: add-edit-product
+========================================= */
+
+.add-edit-product {
+    --aep-sidebar-width: 214px;
+    --aep-primary: #345cff;
+    --aep-background: #f4f6fc;
+    --aep-text: #1d304e;
+    --aep-muted: #778aa8;
+    --aep-border: #dfe7f3;
+
+    margin-left: var(--aep-sidebar-width);
+    min-height: 100vh;
+    padding: 36px 28px 27px;
+    background: var(--aep-background);
+    color: var(--aep-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.add-edit-product * {
+    box-sizing: border-box;
+}
+
+/* Header */
+.add-edit-product-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--aep-border);
+}
+
+.add-edit-product-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.add-edit-product-header p {
+    font-size: 13px;
+    color: var(--aep-muted);
+    margin: 0;
+}
+
+.add-edit-product-account {
+    padding-top: 8px;
+    color: var(--aep-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.add-edit-product-account span {
+    margin: 0 9px;
+}
+
+/* Product Details Card */
+.add-edit-product-card {
+    margin-top: 25px;
+    padding: 16px 20px 23px;
+    background: #fff;
+    border-radius: 12px;
+    min-height: 451px;
+}
+
+.add-edit-product-card h2 {
+    font-size: 17px;
+    font-weight: 750;
+    margin: 0 0 19px;
+    color: var(--aep-text);
+}
+
+/* Form Labels */
+.add-edit-product .form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 750;
+    color: #7185a4;
+    letter-spacing: 0.2px;
+    margin-bottom: 8px;
+}
+
+/* Inputs */
+.add-edit-product .form-control,
+.add-edit-product .form-select {
+    width: 100%;
+    height: 36px;
+    background-color: #fff;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    box-shadow: none;
+    padding: 7px 11px;
+    color: var(--aep-text);
+    font-size: 13px;
+}
+
+.add-edit-product .form-control:focus,
+.add-edit-product .form-select:focus {
+    border-color: #83a1ff;
+    box-shadow: 0 0 0 3px rgba(52,92,255,.08);
+}
+
+.add-edit-product .form-control::placeholder {
+    color: #526680;
+    opacity: 1;
+}
+
+/* Discount Input */
+.add-edit-product-discount {
+    position: relative;
+}
+
+.add-edit-product-discount input {
+    padding-right: 30px !important;
+}
+
+.add-edit-product-discount span {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    color: #7185a4;
+    font-size: 13px;
+    pointer-events: none;
+}
+
+/* Action Buttons */
+.add-edit-product-actions {
+    margin-top: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+}
+
+.add-edit-product-cancel,
+.add-edit-product-save {
+    min-width: 120px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.add-edit-product-cancel {
+    border: 1px solid #dce5f3;
+    color: var(--aep-text);
+    background: #fff;
+}
+
+.add-edit-product-save {
+    min-width: 132px;
+    border: 0;
+    color: #fff;
+    background: var(--aep-primary);
+}
+
+.add-edit-product-save:hover {
+    background: #254bde;
+}
+
+/* Form Message */
+.add-edit-product-message {
+    font-size: 12px;
+    margin-top: 13px;
+}
+
+.add-edit-product-message:empty {
+    display: none;
+}
+
+/* Developer Notes */
+.add-edit-product-notes {
+    position: relative;
+    background: #fff;
+    border-radius: 9px;
+    padding: 13px 17px;
+    margin-top: 63px;
+}
+
+.add-edit-product-notes h5 {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--aep-primary);
+    margin: 0 0 8px;
+}
+
+.add-edit-product-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.add-edit-product-page {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    font-size: 10px;
+    color: var(--aep-muted);
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+    .add-edit-product {
+        padding: 30px 22px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .add-edit-product {
+        margin-left: 0;
+        padding: 77px 20px 25px;
+    }
+
+    .add-edit-product-card {
+        min-height: auto;
+    }
+
+    .add-edit-product-notes {
+        margin-top: 30px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .add-edit-product {
+        padding: 74px 14px 20px;
+    }
+
+    .add-edit-product-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .add-edit-product-header h1 {
+        font-size: 24px;
+    }
+
+    .add-edit-product-header p {
+        font-size: 12px;
+    }
+
+    .add-edit-product-account {
+        padding-top: 0;
+    }
+
+    .add-edit-product-card {
+        margin-top: 18px;
+        padding: 18px 15px;
+    }
+
+    .add-edit-product .form-label {
+        font-size: 12px;
+    }
+
+    .add-edit-product .form-control,
+    .add-edit-product .form-select {
+        min-height: 42px;
+        font-size: 14px;
+    }
+
+    .add-edit-product-actions {
+        flex-direction: column-reverse;
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .add-edit-product-cancel,
+    .add-edit-product-save {
+        width: 100%;
+        min-height: 42px;
+        font-size: 13px;
+    }
+
+    .add-edit-product-notes {
+        margin-top: 25px;
+        padding: 14px;
+    }
+
+    .add-edit-product-notes p {
+        font-size: 11px;
+        padding-right: 12px;
+    }
+}
+
+
+/* quotations stylings  */
+
+/* ========================================
+   NIVIS LABS - QUOTATIONS
+   Screenshot-based Bootstrap UI/UX
+   Main Class: nivis-labs-quotation
+======================================== */
+
+.nivis-labs-quotation {
+    --quotation-sidebar-width: 220px;
+    --quotation-primary: #345cff;
+    --quotation-bg: #f4f6fc;
+    --quotation-text: #1d304e;
+    --quotation-muted: #788ba9;
+    --quotation-border: #dfe7f3;
+
+    margin-left: var(--quotation-sidebar-width);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 36px 28px 27px;
+    background: var(--quotation-bg);
+    color: var(--quotation-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.nivis-labs-quotation * {
+    box-sizing: border-box;
+}
+
+/* Header */
+.nivis-labs-quotation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--quotation-border);
+}
+
+.nivis-labs-quotation-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.nivis-labs-quotation-header p {
+    font-size: 13px;
+    color: var(--quotation-muted);
+    margin: 0;
+}
+
+.nivis-labs-quotation-account {
+    padding-top: 8px;
+    color: var(--quotation-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.nivis-labs-quotation-account span {
+    margin: 0 9px;
+}
+
+/* Toolbar */
+.nivis-labs-quotation-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 8px 6px 16px;
+}
+
+.nivis-labs-quotation-new-btn {
+    width: 158px;
+    min-height: 32px;
+    padding: 8px 12px;
+    display: inline-flex;
+    justify-content: flex-start;
+    align-items: center;
+    border-radius: 7px;
+    background: var(--quotation-primary);
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.nivis-labs-quotation-new-btn:hover {
+    background: #254bdf;
+    color: #fff;
+}
+
+/* Status Cards */
+.nivis-labs-quotation-stats {
+    margin: 0 0 15px;
+}
+
+.nivis-labs-quotation-stat-card {
+    min-height: 62px;
+    padding: 17px 15px 10px;
+    border-radius: 11px;
+    background: #fff;
+}
+
+.nivis-labs-quotation-stat-card h6 {
+    font-size: 11px;
+    font-weight: 750;
+    color: #7184a3;
+    margin: 0 0 5px;
+}
+
+.nivis-labs-quotation-stat-card h2 {
+    font-size: 21px;
+    font-weight: 750;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--quotation-text);
+}
+
+/* Quotation Table Card */
+.nivis-labs-quotation-table-card {
+    min-height: 309px;
+    padding: 14px 11px;
+    background: #fff;
+    border-radius: 11px;
+}
+
+.nivis-labs-quotation-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.nivis-labs-quotation-table thead th {
+    padding: 13px 12px;
+    background: #f3f5fa;
+    color: #7184a3;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+    border: 0;
+}
+
+.nivis-labs-quotation-table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.nivis-labs-quotation-table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.nivis-labs-quotation-table tbody td {
+    padding: 13px 12px;
+    color: var(--quotation-text);
+    font-size: 13px;
+    border-bottom: 1px solid #eaf0f7;
+    vertical-align: middle;
+}
+
+.nivis-labs-quotation-table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+.nivis-labs-quotation-action {
+    border: 0;
+    background: transparent;
+    color: var(--quotation-text);
+    padding: 0;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.nivis-labs-quotation-action:hover {
+    color: var(--quotation-primary);
+}
+
+.nivis-labs-quotation-empty {
+    text-align: center;
+    color: var(--quotation-muted);
+    font-size: 13px;
+    padding: 35px 12px;
+}
+
+/* Developer Notes */
+.nivis-labs-quotation-notes {
+    position: relative;
+    margin-top: auto;
+    padding: 13px 17px;
+    background: #fff;
+    border-radius: 9px;
+}
+
+.nivis-labs-quotation-notes h5 {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--quotation-primary);
+    margin: 0 0 8px;
+}
+
+.nivis-labs-quotation-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.nivis-labs-quotation-page {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    font-size: 10px;
+    color: var(--quotation-muted);
+}
+
+/* Convert Modal */
+.nivis-labs-quotation-modal {
+    border: 0;
+    border-radius: 13px;
+}
+
+.nivis-labs-quotation-modal .modal-title {
+    color: var(--quotation-text);
+    font-weight: 750;
+    font-size: 18px;
+}
+
+.nivis-labs-quotation-modal .modal-body {
+    font-size: 14px;
+    color: var(--quotation-text);
+}
+
+.nivis-labs-quotation-confirm-btn {
+    background: var(--quotation-primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.nivis-labs-quotation-confirm-btn:hover {
+    background: #254bdf;
+    color: #fff;
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+    .nivis-labs-quotation {
+        padding: 30px 22px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .nivis-labs-quotation {
+        margin-left: 0;
+        padding: 76px 20px 25px;
+    }
+
+    .nivis-labs-quotation-table-card {
+        min-height: 280px;
+    }
+
+    .nivis-labs-quotation-notes {
+        margin-top: 35px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .nivis-labs-quotation {
+        padding: 74px 14px 20px;
+    }
+
+    .nivis-labs-quotation-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .nivis-labs-quotation-header h1 {
+        font-size: 24px;
+    }
+
+    .nivis-labs-quotation-header p {
+        font-size: 12px;
+    }
+
+    .nivis-labs-quotation-account {
+        padding: 0;
+    }
+
+    .nivis-labs-quotation-toolbar {
+        margin: 16px 0;
+    }
+
+    .nivis-labs-quotation-new-btn {
+        min-height: 40px;
+    }
+
+    .nivis-labs-quotation-stats {
+        margin-bottom: 16px;
+    }
+
+    .nivis-labs-quotation-stat-card {
+        min-height: 74px;
+        padding: 15px 12px;
+    }
+
+    .nivis-labs-quotation-stat-card h2 {
+        font-size: 23px;
+    }
+
+    .nivis-labs-quotation-table-card {
+        padding: 12px;
+        min-height: 270px;
+    }
+
+    .nivis-labs-quotation-table {
+        min-width: 700px;
+    }
+
+    .nivis-labs-quotation-table tbody td {
+        font-size: 12px;
+    }
+
+    .nivis-labs-quotation-notes {
+        margin-top: 26px;
+        padding: 14px;
+    }
+
+    .nivis-labs-quotation-notes p {
+        font-size: 11px;
+        padding-right: 13px;
+    }
+}
+
+
+/* addd quotations stylings  */
+
+/* =========================================
+   NIVIS LABS CREATE QUOTATION
+   Main Class: nivis-labs-creat-quotation
+========================================= */
+
+.nivis-labs-creat-quotation {
+  --nlcq-sidebar-width: 216px;
+  --nlcq-blue: #345cff;
+  --nlcq-navy: #1d304e;
+  --nlcq-muted: #778aa8;
+  --nlcq-border: #dfe7f3;
+  --nlcq-bg: #f4f6fc;
+
+  margin-left: var(--nlcq-sidebar-width);
+  min-height: 100vh;
+  padding: 36px 28px 26px;
+  background: var(--nlcq-bg);
+  color: var(--nlcq-navy);
+  font-family: "Segoe UI", Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.nivis-labs-creat-quotation *,
+.nivis-labs-creat-quotation *::before,
+.nivis-labs-creat-quotation *::after {
+  box-sizing: border-box;
+}
+
+/* Header */
+.nlcq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--nlcq-border);
+}
+
+.nlcq-header h1 {
+  margin: 0 0 7px;
+  color: var(--nlcq-navy);
+  font-size: 27px;
+  font-weight: 750;
+}
+
+.nlcq-header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--nlcq-muted);
+}
+
+.nlcq-account {
+  color: var(--nlcq-muted);
+  padding-top: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nlcq-account span {
+  margin: 0 9px;
+}
+
+/* Cards */
+.nlcq-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 18px 20px;
+  margin-top: 19px;
+}
+
+.nlcq-card h2 {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--nlcq-navy);
+  margin: 0 0 20px;
+}
+
+.nlcq-info-card {
+  min-height: 142px;
+}
+
+.nlcq-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #7084a3;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.nivis-labs-creat-quotation .form-control,
+.nivis-labs-creat-quotation .form-select {
+  min-height: 36px;
+  border: 1px solid #dce5f3;
+  border-radius: 7px;
+  color: var(--nlcq-navy);
+  background-color: #fff;
+  padding: 7px 11px;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.nivis-labs-creat-quotation .form-control:focus,
+.nivis-labs-creat-quotation .form-select:focus {
+  border-color: #85a1ff;
+  box-shadow: 0 0 0 3px rgba(52,92,255,.08);
+}
+
+/* Line Items */
+.nlcq-items-card {
+  min-height: 183px;
+}
+
+.nlcq-items-card h2 {
+  margin-bottom: 16px;
+}
+
+.nlcq-items-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.nlcq-items-table thead th {
+  padding: 12px 10px;
+  background: #f3f5fa;
+  color: #7285a4;
+  font-size: 11px;
+  font-weight: 750;
+  border: 0;
+  white-space: nowrap;
+}
+
+.nlcq-items-table thead th:first-child {
+  border-radius: 7px 0 0 7px;
+}
+
+.nlcq-items-table thead th:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.nlcq-items-table tbody td {
+  padding: 8px 10px;
+  color: var(--nlcq-navy);
+  border-bottom: 1px solid #eaf0f7;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.nlcq-items-table tbody tr:nth-child(even) td {
+  background: #fbfcfe;
+}
+
+.nlcq-items-table .nlcq-cell-input,
+.nlcq-items-table .nlcq-cell-select {
+  width: 100%;
+  min-width: 63px;
+  height: 31px;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--nlcq-navy);
+  font-size: 12px;
+}
+
+.nlcq-items-table .nlcq-cell-select {
+  min-width: 125px;
+}
+
+.nlcq-items-table .nlcq-cell-input:focus,
+.nlcq-items-table .nlcq-cell-select:focus {
+  border-color: #a3b6ff;
+  background: #fff;
+  outline: none;
+}
+
+.nlcq-items-table .nlcq-row-remove {
+  border: 0;
+  background: transparent;
+  color: #b34e57;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.nlcq-items-table .nlcq-row-total {
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.nlcq-add-line {
+  margin-top: 7px;
+  min-width: 112px;
+  min-height: 31px;
+  border: 1px solid var(--nlcq-border);
+  border-radius: 7px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nlcq-navy);
+  padding: 7px 12px;
+}
+
+.nlcq-add-line:hover {
+  background: #f1f5ff;
+}
+
+/* Summary */
+.nlcq-summary-card {
+  padding-top: 11px;
+}
+
+.nlcq-summary-card h2 {
+  margin-bottom: 5px;
+}
+
+.nlcq-notes-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--nlcq-muted);
+  font-size: 12px;
+  resize: vertical;
+  padding: 4px 0;
+  background: transparent;
+}
+
+.nlcq-notes-input:focus {
+  outline: none;
+  border-color: #cbd8ff;
+  padding-left: 8px;
+}
+
+.nlcq-totals {
+  text-align: right;
+  font-size: 13px;
+}
+
+.nlcq-totals > div:not(.nlcq-grand-total) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 5px 0;
+}
+
+.nlcq-grand-total {
+  color: var(--nlcq-blue);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.nlcq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.nlcq-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 33px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.nlcq-btn-outline {
+  background: #fff;
+  border: 1px solid var(--nlcq-border);
+  color: var(--nlcq-navy);
+}
+
+.nlcq-btn-outline:hover {
+  background: #f4f6fc;
+}
+
+.nlcq-btn-primary {
+  min-width: 180px;
+  background: var(--nlcq-blue);
+  border: 1px solid var(--nlcq-blue);
+  color: #fff;
+}
+
+.nlcq-btn-primary:hover {
+  background: #254cde;
+}
+
+.nlcq-feedback {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #14835e;
+}
+
+.nlcq-feedback:empty {
+  display: none;
+}
+
+/* Developer Notes */
+.nlcq-developer-notes {
+  position: relative;
+  margin-top: 15px;
+  padding: 12px 17px;
+  background: #fff;
+  border-radius: 9px;
+}
+
+.nlcq-developer-notes h5 {
+  color: var(--nlcq-blue);
+  font-size: 11px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.nlcq-developer-notes p {
+  color: var(--nlcq-navy);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0 0 3px;
+}
+
+.nlcq-developer-notes > span {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: var(--nlcq-muted);
+  font-size: 10px;
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+  .nivis-labs-creat-quotation {
+    padding: 30px 22px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+  .nivis-labs-creat-quotation {
+    margin-left: 0;
+    padding: 76px 20px 25px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+  .nivis-labs-creat-quotation {
+    padding: 74px 14px 20px;
+  }
+
+  .nlcq-header {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .nlcq-header h1 {
+    font-size: 24px;
+  }
+
+  .nlcq-header p {
+    font-size: 12px;
+  }
+
+  .nlcq-account {
+    padding: 0;
+  }
+
+  .nlcq-card {
+    padding: 16px 13px;
+    margin-top: 16px;
+  }
+
+  .nlcq-label {
+    font-size: 12px;
+  }
+
+  .nivis-labs-creat-quotation .form-control,
+  .nivis-labs-creat-quotation .form-select {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .nlcq-items-table {
+    min-width: 780px;
+  }
+
+  .nlcq-grand-total {
+    font-size: 14px;
+    flex-wrap: wrap;
+  }
+
+  .nlcq-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nlcq-btn {
+    min-height: 42px;
+    font-size: 12px;
+  }
+
+  .nlcq-btn-primary {
+    min-width: 0;
+    grid-column: 1 / -1;
+  }
+
+  .nlcq-developer-notes p {
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .nlcq-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .nlcq-btn-primary {
+    grid-column: auto;
+  }
+}
+
+
+/* invoice  stylings */
+
+
+/* =========================================
+   NIVIS LABS - INVOICE PAGE
+   Screenshot-Based Bootstrap UI/UX
+   Main Class: nivis-labs-invoice
+========================================= */
+
+.nivis-labs-invoice {
+    --invoice-sidebar-width: 215px;
+    --invoice-primary: #345cff;
+    --invoice-background: #f4f6fc;
+    --invoice-text: #1d304e;
+    --invoice-muted: #778aa8;
+    --invoice-border: #dfe7f3;
+
+    margin-left: var(--invoice-sidebar-width);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 36px 28px 27px;
+    background: var(--invoice-background);
+    color: var(--invoice-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.nivis-labs-invoice * {
+    box-sizing: border-box;
+}
+
+/* Page Header */
+.nivis-labs-invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--invoice-border);
+}
+
+.nivis-labs-invoice-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.nivis-labs-invoice-header p {
+    font-size: 13px;
+    color: var(--invoice-muted);
+    margin: 0;
+}
+
+.nivis-labs-invoice-account {
+    padding-top: 8px;
+    color: var(--invoice-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.nivis-labs-invoice-account span {
+    margin: 0 9px;
+}
+
+/* Add Invoice Button */
+.nivis-labs-invoice-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 8px 6px 12px;
+}
+
+.nivis-labs-invoice-add-btn {
+    min-width: 152px;
+    min-height: 32px;
+    padding: 8px 13px;
+    border-radius: 7px;
+    background: var(--invoice-primary);
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nivis-labs-invoice-add-btn:hover {
+    background: #254bdf;
+    color: #fff;
+}
+
+/* Filter Card */
+.nivis-labs-invoice-filters {
+    background: #fff;
+    border-radius: 11px;
+    padding: 13px 16px 15px;
+    margin: 0 6px 16px 2px;
+}
+
+.nivis-labs-invoice-filters label {
+    display: block;
+    color: #7184a3;
+    font-size: 11px;
+    font-weight: 750;
+    margin-bottom: 8px;
+}
+
+.nivis-labs-invoice-filters .form-control,
+.nivis-labs-invoice-filters .form-select {
+    height: 36px;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    color: var(--invoice-text);
+    font-size: 13px;
+    padding: 7px 11px;
+    background-color: #fff;
+    box-shadow: none;
+}
+
+.nivis-labs-invoice-filters .form-control:focus,
+.nivis-labs-invoice-filters .form-select:focus {
+    border-color: #83a1ff;
+    box-shadow: 0 0 0 3px rgba(52,92,255,.08);
+}
+
+/* Invoice Table Card */
+.nivis-labs-invoice-table-card {
+    min-height: 273px;
+    padding: 18px 11px;
+    border-radius: 11px;
+    background: #fff;
+    margin: 0 6px 0 2px;
+}
+
+.nivis-labs-invoice-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.nivis-labs-invoice-table thead th {
+    background: #f3f5fa;
+    color: #7184a3;
+    padding: 13px 12px;
+    font-size: 12px;
+    font-weight: 750;
+    border: 0;
+    white-space: nowrap;
+}
+
+.nivis-labs-invoice-table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.nivis-labs-invoice-table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.nivis-labs-invoice-table tbody td {
+    padding: 13px 12px;
+    font-size: 13px;
+    color: var(--invoice-text);
+    vertical-align: middle;
+    border-bottom: 1px solid #eaf0f7;
+}
+
+.nivis-labs-invoice-table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+.nivis-labs-invoice-table tbody tr {
+    cursor: pointer;
+}
+
+.nivis-labs-invoice-table tbody tr:hover td {
+    background: #f1f5ff;
+}
+
+.nivis-labs-invoice-empty {
+    text-align: center;
+    padding: 35px 12px;
+    color: var(--invoice-muted);
+    font-size: 13px;
+}
+
+/* Bottom Notes */
+.nivis-labs-invoice-notes {
+    position: relative;
+    margin-top: auto;
+    padding: 13px 17px;
+    background: #fff;
+    border-radius: 9px;
+}
+
+.nivis-labs-invoice-notes h5 {
+    color: var(--invoice-primary);
+    font-size: 11px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.nivis-labs-invoice-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.nivis-labs-invoice-page {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    color: var(--invoice-muted);
+    font-size: 10px;
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+    .nivis-labs-invoice {
+        padding: 30px 22px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .nivis-labs-invoice {
+        margin-left: 0;
+        padding: 76px 20px 25px;
+    }
+
+    .nivis-labs-invoice-notes {
+        margin-top: 35px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .nivis-labs-invoice {
+        padding: 74px 14px 20px;
+    }
+
+    .nivis-labs-invoice-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .nivis-labs-invoice-header h1 {
+        font-size: 24px;
+    }
+
+    .nivis-labs-invoice-header p {
+        font-size: 12px;
+    }
+
+    .nivis-labs-invoice-account {
+        padding: 0;
+    }
+
+    .nivis-labs-invoice-toolbar {
+        margin: 16px 0;
+    }
+
+    .nivis-labs-invoice-add-btn {
+        min-height: 40px;
+    }
+
+    .nivis-labs-invoice-filters {
+        margin: 0 0 17px;
+        padding: 15px;
+    }
+
+    .nivis-labs-invoice-filters label {
+        font-size: 12px;
+    }
+
+    .nivis-labs-invoice-filters .form-control,
+    .nivis-labs-invoice-filters .form-select {
+        min-height: 42px;
+        font-size: 14px;
+    }
+
+    .nivis-labs-invoice-table-card {
+        margin: 0;
+        padding: 12px;
+        min-height: 250px;
+    }
+
+    .nivis-labs-invoice-table {
+        min-width: 690px;
+    }
+
+    .nivis-labs-invoice-table tbody td {
+        font-size: 12px;
+    }
+
+    .nivis-labs-invoice-notes {
+        margin-top: 26px;
+        padding: 14px;
+    }
+
+    .nivis-labs-invoice-notes p {
+        font-size: 11px;
+        padding-right: 12px;
+    }
+}
+
+
+/* preview invoice  */
+
+/* ============================================
+   NIVIS LABS - INVOICE DETAIL / PREVIEW
+   Main Class: nivis-labs-invoice-detail-preview
+============================================ */
+
+.nivis-labs-invoice-detail-preview {
+    --nlidp-sidebar-width: 216px;
+    --nlidp-primary: #345cff;
+    --nlidp-text: #1d304e;
+    --nlidp-muted: #778aa8;
+    --nlidp-border: #dfe7f3;
+    --nlidp-bg: #f4f6fc;
+
+    margin-left: var(--nlidp-sidebar-width);
+    min-height: 100vh;
+    padding: 37px 28px 26px;
+    background: var(--nlidp-bg);
+    color: var(--nlidp-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.nivis-labs-invoice-detail-preview * {
+    box-sizing: border-box;
+}
+
+/* Page Header */
+.nlidp-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--nlidp-border);
+}
+
+.nlidp-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.nlidp-header p {
+    color: var(--nlidp-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+.nlidp-account {
+    color: var(--nlidp-muted);
+    font-size: 12px;
+    padding-top: 8px;
+    white-space: nowrap;
+}
+
+.nlidp-account span {
+    margin: 0 9px;
+}
+
+/* Invoice Card */
+.nlidp-invoice-card {
+    position: relative;
+    background: #fff;
+    border-radius: 12px;
+    padding: 17px 21px 18px;
+    margin-top: 25px;
+    min-height: 458px;
+}
+
+/* Invoice Heading */
+.nlidp-invoice-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    border-bottom: 1px solid var(--nlidp-border);
+    padding-bottom: 10px;
+}
+
+.nlidp-invoice-heading h2 {
+    color: var(--nlidp-text);
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.nlidp-invoice-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--nlidp-text);
+}
+
+/* Seller / Customer */
+.nlidp-parties {
+    padding-top: 17px;
+    margin-bottom: 23px;
+}
+
+.nlidp-parties h4 {
+    color: var(--nlidp-primary);
+    font-size: 12px;
+    font-weight: 800;
+    margin: 0 0 10px;
+}
+
+.nlidp-parties h4 span {
+    padding: 0 5px;
+}
+
+.nlidp-parties p {
+    color: var(--nlidp-text);
+    font-size: 13px;
+    margin: 0 0 5px;
+}
+
+.nlidp-linked-quote,
+.nlidp-supply-state {
+    margin-top: 16px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 750;
+    padding: 5px 12px;
+}
+
+.nlidp-linked-quote {
+    background: #edf2ff;
+}
+
+.nlidp-linked-quote a {
+    color: var(--nlidp-primary);
+    text-decoration: none;
+}
+
+.nlidp-supply-state {
+    color: #00a47a;
+    background: #e3f7ee;
+    min-width: 230px;
+}
+
+/* Product Table */
+.nlidp-items {
+    margin-top: 11px;
+}
+
+.nlidp-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.nlidp-table thead th {
+    background: #f3f5fa;
+    color: #7284a3;
+    font-size: 11px;
+    font-weight: 750;
+    padding: 13px 11px;
+    border: 0;
+    white-space: nowrap;
+}
+
+.nlidp-table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.nlidp-table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.nlidp-table tbody td {
+    color: var(--nlidp-text);
+    font-size: 13px;
+    padding: 15px 11px;
+    border-bottom: 1px solid #eaf0f7;
+    vertical-align: middle;
+}
+
+.nlidp-table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+/* Invoice Totals */
+.nlidp-totals {
+    margin-top: 43px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.nlidp-totals > div:not(.nlidp-grand-total) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.nlidp-grand-total {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 11px;
+    color: var(--nlidp-primary);
+    font-size: 17px;
+    font-weight: 800;
+}
+
+/* Actions */
+.nlidp-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 11px;
+    margin-top: -10px;
+}
+
+.nlidp-btn {
+    min-height: 33px;
+    padding: 8px 13px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.nlidp-btn-primary {
+    min-width: 140px;
+    border: 1px solid var(--nlidp-primary);
+    background: var(--nlidp-primary);
+    color: #fff;
+}
+
+.nlidp-btn-primary:hover {
+    background: #244bdc;
+}
+
+.nlidp-btn-outline {
+    min-width: 145px;
+    border: 1px solid var(--nlidp-border);
+    background: #fff;
+    color: var(--nlidp-text);
+}
+
+.nlidp-btn-outline:hover {
+    background: #f2f5ff;
+}
+
+.nlidp-feedback {
+    font-size: 12px;
+    color: #128360;
+    margin-top: 10px;
+}
+
+.nlidp-feedback:empty {
+    display: none;
+}
+
+/* Developer Notes */
+.nlidp-notes {
+    position: relative;
+    background: #fff;
+    border-radius: 9px;
+    padding: 13px 17px;
+    margin-top: 58px;
+}
+
+.nlidp-notes h5 {
+    color: var(--nlidp-primary);
+    font-size: 11px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.nlidp-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.nlidp-notes > span {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    color: var(--nlidp-muted);
+    font-size: 10px;
+}
+
+/* Payment Modal */
+.nlidp-payment-modal {
+    border: 0;
+    border-radius: 13px;
+}
+
+.nlidp-payment-modal .modal-title {
+    font-size: 18px;
+    font-weight: 750;
+    color: var(--nlidp-text);
+}
+
+.nlidp-payment-modal .form-label {
+    font-size: 12px;
+    font-weight: 750;
+    color: #7184a3;
+}
+
+.nlidp-payment-modal .form-control,
+.nlidp-payment-modal .form-select {
+    min-height: 40px;
+    font-size: 13px;
+    border-color: #dce5f3;
+}
+
+.nlidp-save-payment {
+    color: #fff;
+    background: var(--nlidp-primary, #345cff);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .nivis-labs-invoice-detail-preview {
+        margin-left: 0;
+        padding: 77px 20px 25px;
+    }
+
+    .nlidp-actions {
+        margin-top: 20px;
+    }
+
+    .nlidp-notes {
+        margin-top: 32px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .nivis-labs-invoice-detail-preview {
+        padding: 74px 14px 20px;
+    }
+
+    .nlidp-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .nlidp-header h1 {
+        font-size: 24px;
+    }
+
+    .nlidp-header p {
+        font-size: 12px;
+    }
+
+    .nlidp-account {
+        padding: 0;
+    }
+
+    .nlidp-invoice-card {
+        padding: 18px 13px;
+        margin-top: 18px;
+        min-height: auto;
+    }
+
+    .nlidp-invoice-heading h2 {
+        font-size: 21px;
+    }
+
+    .nlidp-invoice-meta {
+        font-size: 12px;
+    }
+
+    .nlidp-parties p {
+        font-size: 13px;
+    }
+
+    .nlidp-supply-state {
+        min-width: 0;
+    }
+
+    .nlidp-table {
+        min-width: 650px;
+    }
+
+    .nlidp-table tbody td {
+        font-size: 12px;
+    }
+
+    .nlidp-totals {
+        margin-top: 25px;
+    }
+
+    .nlidp-grand-total {
+        font-size: 15px;
+        flex-wrap: wrap;
+    }
+
+    .nlidp-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: 25px;
+    }
+
+    .nlidp-btn {
+        width: 100%;
+        min-height: 42px;
+        font-size: 13px;
+    }
+
+    .nlidp-notes {
+        margin-top: 25px;
+        padding: 14px;
+    }
+
+    .nlidp-notes p {
+        padding-right: 12px;
+    }
+}
+
+/* PDF Export */
+@media print {
+    .side-bar,
+    .nlidp-header,
+    .nlidp-notes,
+    .nlidp-actions,
+    .nlidp-feedback {
+        display: none !important;
+    }
+
+    .nivis-labs-invoice-detail-preview {
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+
+    .nlidp-invoice-card {
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+    }
+}
+
+
+
+/* reports stylings  */
+
+/* =========================================
+   NIVIS LABS REPORTS
+   Main Class: nivis-labs-reports
+   Screenshot-Based Bootstrap UI/UX
+========================================= */
+
+.nivis-labs-reports {
+    --nlr-sidebar-width: 230px;
+    --nlr-primary: #345cff;
+    --nlr-bg: #f4f6fc;
+    --nlr-text: #1d304e;
+    --nlr-muted: #778aa8;
+    --nlr-border: #dfe7f3;
+
+    margin-left: var(--nlr-sidebar-width);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 36px 28px 27px;
+    background: var(--nlr-bg);
+    color: var(--nlr-text);
+    font-family: "Segoe UI", Arial, sans-serif;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.nivis-labs-reports * {
+    box-sizing: border-box;
+}
+
+/* Header */
+.nlr-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--nlr-border);
+}
+
+.nlr-header h1 {
+    font-size: 27px;
+    font-weight: 750;
+    line-height: 1.2;
+    margin: 0 0 7px;
+}
+
+.nlr-header p {
+    color: var(--nlr-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+.nlr-account {
+    padding-top: 8px;
+    color: var(--nlr-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.nlr-account span {
+    margin: 0 9px;
+}
+
+/* Filter Card */
+.nlr-filter-card {
+    background: #fff;
+    border-radius: 11px;
+    padding: 18px 15px 19px;
+    margin: 30px 5px 17px 2px;
+}
+
+.nlr-filter-card label {
+    display: block;
+    color: #7184a3;
+    font-size: 11px;
+    font-weight: 750;
+    margin-bottom: 8px;
+}
+
+.nlr-filter-card .form-control,
+.nlr-filter-card .form-select {
+    min-height: 36px;
+    width: 100%;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    background-color: #fff;
+    color: var(--nlr-text);
+    padding: 7px 11px;
+    font-size: 13px;
+    box-shadow: none;
+}
+
+.nlr-filter-card .form-control:focus,
+.nlr-filter-card .form-select:focus {
+    border-color: #83a1ff;
+    box-shadow: 0 0 0 3px rgba(52,92,255,.08);
+}
+
+.nlr-apply-btn {
+    width: 100%;
+    min-height: 36px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--nlr-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+}
+
+.nlr-apply-btn:hover {
+    background: #254bdf;
+}
+
+/* Summary Cards */
+.nlr-summary-row {
+    margin: 0 0 16px;
+}
+
+.nlr-summary-card {
+    min-height: 83px;
+    background: #fff;
+    border-radius: 11px;
+    padding: 16px 15px;
+}
+
+.nlr-summary-card h6 {
+    font-size: 11px;
+    font-weight: 750;
+    color: #7184a3;
+    margin: 0 0 13px;
+}
+
+.nlr-summary-card h2 {
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 750;
+    margin: 0;
+    color: var(--nlr-text);
+}
+
+/* Report Preview */
+.nlr-report-card {
+    background: #fff;
+    border-radius: 11px;
+    padding: 13px 15px 17px;
+    min-height: 200px;
+}
+
+.nlr-report-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 11px;
+}
+
+.nlr-report-heading h2 {
+    color: var(--nlr-text);
+    font-size: 15px;
+    font-weight: 750;
+    margin: 0;
+}
+
+.nlr-export-btn {
+    min-width: 116px;
+    min-height: 32px;
+    border: 1px solid #dce5f3;
+    border-radius: 7px;
+    background: #fff;
+    font-size: 12px;
+    color: var(--nlr-text);
+    font-weight: 700;
+    padding: 7px 11px;
+}
+
+.nlr-export-btn:hover {
+    background: #f2f5ff;
+}
+
+/* Table */
+.nlr-report-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.nlr-report-table thead th {
+    background: #f3f5fa;
+    color: #7184a3;
+    padding: 13px 12px;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+    border: 0;
+}
+
+.nlr-report-table thead th:first-child {
+    border-radius: 7px 0 0 7px;
+}
+
+.nlr-report-table thead th:last-child {
+    border-radius: 0 7px 7px 0;
+}
+
+.nlr-report-table tbody td {
+    font-size: 13px;
+    color: var(--nlr-text);
+    padding: 13px 12px;
+    border-bottom: 1px solid #eaf0f7;
+    vertical-align: middle;
+}
+
+.nlr-report-table tbody tr:nth-child(even) td {
+    background: #fbfcfe;
+}
+
+.nlr-empty {
+    padding: 35px 12px;
+    font-size: 13px;
+    text-align: center;
+    color: var(--nlr-muted);
+}
+
+/* Developer Notes */
+.nlr-notes {
+    position: relative;
+    margin-top: auto;
+    padding: 13px 17px;
+    background: #fff;
+    border-radius: 9px;
+}
+
+.nlr-notes h5 {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--nlr-primary);
+    margin: 0 0 8px;
+}
+
+.nlr-notes p {
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0 0 3px;
+}
+
+.nlr-page {
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    font-size: 10px;
+    color: var(--nlr-muted);
+}
+
+/* Laptop */
+@media (max-width: 1199.98px) {
+    .nivis-labs-reports {
+        padding: 30px 22px;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    .nivis-labs-reports {
+        margin-left: 0;
+        padding: 76px 20px 25px;
+    }
+
+    .nlr-notes {
+        margin-top: 35px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .nivis-labs-reports {
+        padding: 74px 14px 20px;
+    }
+
+    .nlr-header {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .nlr-header h1 {
+        font-size: 24px;
+    }
+
+    .nlr-header p {
+        font-size: 12px;
+    }
+
+    .nlr-account {
+        padding: 0;
+    }
+
+    .nlr-filter-card {
+        margin: 18px 0 17px;
+        padding: 15px;
+    }
+
+    .nlr-filter-card label {
+        font-size: 12px;
+    }
+
+    .nlr-filter-card .form-control,
+    .nlr-filter-card .form-select {
+        min-height: 42px;
+        font-size: 14px;
+    }
+
+    .nlr-apply-btn {
+        min-height: 42px;
+        font-size: 13px;
+    }
+
+    .nlr-summary-card {
+        min-height: 85px;
+    }
+
+    .nlr-summary-card h2 {
+        font-size: 23px;
+    }
+
+    .nlr-report-card {
+        padding: 14px 12px;
+    }
+
+    .nlr-report-table {
+        min-width: 660px;
+    }
+
+    .nlr-report-table tbody td {
+        font-size: 12px;
+    }
+
+    .nlr-notes {
+        margin-top: 26px;
+        padding: 14px;
+    }
+
+    .nlr-notes p {
+        font-size: 11px;
+        padding-right: 12px;
+    }
+}
