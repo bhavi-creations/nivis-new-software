@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/schema.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -56,6 +57,9 @@ function state_code(string $state): string
 try {
     $pdo = database_connection();
     $resource = (string) ($_GET['resource'] ?? '');
+    if (in_array($resource, ['products', 'categories'], true)) {
+        ensure_billing_columns($pdo, $resource);
+    }
     $method = $_SERVER['REQUEST_METHOD'];
     $data = request_data();
     $id = filter_var($_GET['id'] ?? $data['id'] ?? null, FILTER_VALIDATE_INT);
@@ -1004,7 +1008,19 @@ try {
     if (in_array($mysqlError, [1062, 1451, 1452], true)) {
         respond(['error' => 'This record is linked to other data or duplicates an existing value. Resolve the links or use a unique value.'], 409);
     }
-    respond(['error' => 'Database operation failed. Check the database connection and schema.'], 500);
+    $messages = [
+        1045 => 'Database login failed. Check NIVIS_DB_USER and NIVIS_DB_PASSWORD in hosting settings or config/database.php.',
+        1044 => 'Database access denied. Assign the database user to this database in your hosting panel.',
+        1049 => 'Database not found. Check NIVIS_DB_NAME, including the hosting account prefix.',
+        2002 => 'Cannot reach the database server. Check NIVIS_DB_HOST and NIVIS_DB_PORT.',
+        2003 => 'Cannot reach the database server. Check the database host and port.',
+        1146 => 'A required database table or view is missing. Import the application schema into the selected live database.',
+        1054 => 'The live database schema is outdated. Run database/migrate_product_defaults.php on the server and verify all application tables were imported.',
+        1142 => 'Database permission denied. Read/write access is required; adding missing columns requires ALTER permission. Ask your hosting administrator to run database/migrate_product_defaults.php.',
+        1143 => 'Database column access denied. Check database user permissions in the hosting panel.',
+        1055 => 'A database query is incompatible with the server grouping rules. Check the hosting PHP error log for the failing query.',
+    ];
+    respond(['error' => $messages[$mysqlError] ?? 'Database operation failed. Check the hosting PHP error log for the Nivis database API error entry.', 'code' => 'DB_' . $mysqlError], 500);
 } catch (Throwable $error) {
     error_log('Nivis API error: ' . $error->getMessage());
     respond(['error' => 'The request could not be completed.'], 500);

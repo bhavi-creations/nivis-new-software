@@ -18,6 +18,10 @@ try {
   sql=sql.replace(/CREATE DATABASE IF NOT EXISTS nivis_labs_billing[^;]*;/g,'').replace(/USE nivis_labs_billing;/g,'USE '+db+';');
   run('require "config/database.php"; $p=database_connection(); $p->exec($argv[1]);', [sql], true);
  }
+ // Simulate an older hosting database and verify automatic migration preserves data.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE products DROP COLUMN default_quantity, DROP COLUMN gst_region"); $p->exec("ALTER TABLE categories DROP COLUMN product_count");', [], true);
+ ok(api('products')); ok(api('categories'));
+ ok(api('products')); ok(api('categories')); // Repeated checks must be safe.
  ok(api('tax_rates','POST',{name:'Test 18%',rate_percent:18,treatment:'taxable',effective_from:'2020-01-01'}));
  const cat=ok(api('categories','POST',{name:'Test category',code:'TEST',status:'active'})).id;
  const product={name:'Test product',sku:'TEST-1',category_id:cat,hsn:'330499',unit:'PCS',price:100,gst:18,discount:10,quantity:2,gst_region:'inside_ap',status:'active'};
