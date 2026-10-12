@@ -4468,3 +4468,874 @@
         padding-right: 12px;
     }
 }
+
+/* Beauty catalog refinements: clearer type, status chips and touch-friendly actions. */
+.nivis-labs-quotation,
+.nivis-labs-invoice,
+.nivis-labs-invoice-detail-preview,
+.nivis-labs-creat-quotation,
+.nivis-produdcts,
+.add-edit-product,
+.nivis_customer,
+.nivis_labs_category {
+    --beauty-rose: #a94468;
+    --beauty-rose-soft: #fff1f5;
+    --beauty-green-soft: #e8f6ef;
+}
+
+.nivis-labs-quotation-header p,
+.nivis-labs-invoice-header p,
+.nlidp-header p,
+.nlcq-header p,
+.nivis-produdcts-header p {
+    font-size: 14px;
+}
+
+.nivis-labs-quotation-header h1,
+.nivis-labs-invoice-header h1,
+.nlidp-header h1,
+.nlcq-header h1,
+.nivis-produdcts-header h1 {
+    font-size: clamp(25px, 2.2vw, 30px);
+}
+
+.nivis-labs-quotation-stat-card {
+    width: 100%;
+    min-height: 110px;
+    padding: 16px 17px;
+    border: 1px solid #f1dbe3;
+    border-top: 4px solid #d995ad;
+    text-align: left;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.nivis-labs-quotation-stat-card:hover,
+.nivis-labs-quotation-stat-card[aria-pressed="true"] {
+    transform: translateY(-2px);
+    border-color: #cc7895;
+    box-shadow: 0 8px 22px rgba(139, 54, 86, .12);
+}
+
+.nivis-labs-quotation-stat-card h6 {
+    color: #87405b;
+    font-size: 12px;
+    letter-spacing: .06em;
+}
+
+.nivis-labs-quotation-stat-card h2 {
+    font-size: 26px;
+}
+
+.nivis-labs-quotation-stat-card > span {
+    display: block;
+    margin-top: 4px;
+    color: #77839a;
+    font-size: 12px;
+}
+
+.quote-status-draft { border-top-color: #d6a847; }
+.quote-status-sent { border-top-color: #7c91d4; }
+.quote-status-approved { border-top-color: #4da983; }
+.quote-status-converted { border-top-color: #a06bc1; }
+
+.nivis-labs-quotation-filters {
+    margin: 0 2px 17px;
+    padding: 16px;
+    border: 1px solid #f0e0e6;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.nivis-labs-quotation-filters label {
+    display: block;
+    margin-bottom: 7px;
+    color: #785a68;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.nivis-labs-quotation-filters .form-control,
+.nivis-labs-quotation-filters .form-select {
+    min-height: 42px;
+    border-color: #eadde2;
+    font-size: 15px;
+}
+
+.nivis-labs-quotation-table-title {
+    margin: 0 0 13px;
+    padding: 0 2px 10px;
+    border-bottom: 1px solid #f0e0e6;
+    color: #69374c;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.nivis-labs-quotation-table,
+.nivis-labs-invoice-table {
+    min-width: 940px;
+}
+
+.nivis-labs-quotation-table thead th,
+.nivis-labs-invoice-table thead th,
+.nlcq-items-table thead th,
+.nlidp-table thead th {
+    background: #fff0f4;
+    color: #79485b;
+    font-size: 13px;
+}
+
+.nivis-labs-quotation-table tbody td,
+.nivis-labs-invoice-table tbody td,
+.nlcq-items-table tbody td,
+.nlidp-table tbody td {
+    font-size: 14px;
+}
+
+.nivis-labs-quotation-status,
+.nivis-labs-invoice-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 27px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.status-draft { background: #fff4d8; color: #8c6517; }
+.status-sent { background: #edf1ff; color: #435ca8; }
+.status-approved,
+.status-paid { background: #e5f6ed; color: #25734e; }
+.status-converted { background: #f3eafa; color: #77429a; }
+.status-partpaid { background: #fff0dc; color: #965b14; }
+.status-unpaid { background: #ffeaeb; color: #a23c45; }
+
+.nivis-labs-quotation-actions,
+.nivis-labs-invoice-actions,
+.nivis-produdcts-actions,
+.nivis_customer_actions {
+    white-space: nowrap;
+}
+
+.nivis-labs-quotation-icon-action,
+.nivis-labs-invoice-icon-action,
+.nivis-produdcts-icon-action,
+.nivis_customer_icon_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin: 2px;
+    border: 1px solid #eadde2;
+    border-radius: 10px;
+    background: #fff;
+    color: #70495a;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, transform .15s ease;
+}
+
+.nivis-labs-quotation-icon-action:hover,
+.nivis-labs-invoice-icon-action:hover,
+.nivis-produdcts-icon-action:hover,
+.nivis_customer_icon_btn:hover {
+    transform: translateY(-1px);
+    background: #fff0f4;
+    color: #a94468;
+}
+
+.nivis-labs-quotation-icon-action.action-delete,
+.nivis-labs-invoice-icon-action.action-delete,
+.nivis-produdcts-icon-action.action-delete,
+.nivis_customer_icon_btn.action-delete {
+    color: #bb4653;
+}
+
+.nivis-labs-quotation-convert {
+    min-height: 36px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: #f5eafb;
+    color: #754394;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.nivis-labs-invoice-table tbody tr,
+.nivis-labs-invoice-table tbody tr:hover {
+    cursor: default;
+}
+
+.nivis-labs-invoice-table-card,
+.nivis-labs-quotation-table-card,
+.nlcq-card,
+.nlidp-invoice-card,
+.add-edit-product-card,
+.nivis_labs_category_card {
+    border: 1px solid #efe3e7;
+    box-shadow: 0 8px 24px rgba(72, 40, 51, .045);
+}
+
+.nivis-labs-quotation-filters .form-control:focus,
+.nivis-labs-quotation-filters .form-select:focus,
+.nivis-labs-invoice-filters .form-control:focus,
+.nivis-labs-invoice-filters .form-select:focus,
+.nlcq-card .form-control:focus,
+.nlcq-card .form-select:focus {
+    border-color: #d78aa3;
+    box-shadow: 0 0 0 3px rgba(169, 68, 104, .12);
+}
+
+.nlcq-card h2,
+.add-edit-product-card h2,
+.nivis_labs_category_card h2 {
+    padding: 0 0 10px;
+    border-bottom: 1px solid #f0e0e6;
+    color: #69374c;
+    font-size: 19px;
+}
+
+.nlcq-card h2 i {
+    margin-right: 7px;
+    color: #b55777;
+}
+
+.nlcq-label,
+.add-edit-product .form-label,
+.nlidp-payment-modal .form-label {
+    font-size: 13px;
+}
+
+.nlcq-card .form-control,
+.nlcq-card .form-select,
+.add-edit-product .form-control,
+.add-edit-product .form-select {
+    min-height: 42px;
+    font-size: 15px;
+}
+
+.nlcq-items-table .nlcq-cell-input,
+.nlcq-items-table .nlcq-cell-select {
+    min-height: 38px;
+    font-size: 14px;
+}
+
+.nlidp-parties h4 {
+    display: inline-block;
+    padding: 7px 11px;
+    border-radius: 8px;
+    background: #fff0f4;
+    font-size: 13px;
+}
+
+.nlidp-product-intro {
+    max-width: 460px;
+    color: #77839a;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.nivis-labs-quotation-view-details {
+    display: grid;
+    grid-template-columns: minmax(110px, .7fr) 1.5fr;
+    gap: 10px 16px;
+    font-size: 14px;
+}
+
+.nivis-labs-quotation-view-details dt {
+    color: #785a68;
+    font-weight: 750;
+}
+
+.nivis-labs-quotation-view-details dd {
+    margin: 0;
+    color: #263753;
+}
+
+.nlidp-table {
+    min-width: 720px;
+}
+
+.nlidp-table .nlidp-product-name {
+    font-weight: 700;
+}
+
+@media (max-width: 767.98px) {
+    .nivis-labs-quotation-header p,
+    .nivis-labs-invoice-header p,
+    .nlidp-header p,
+    .nlcq-header p,
+    .nivis-produdcts-header p {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .nivis-labs-quotation-table tbody td,
+    .nivis-labs-invoice-table tbody td,
+    .nlcq-items-table tbody td,
+    .nlidp-table tbody td {
+        font-size: 14px;
+    }
+
+    .nivis-labs-quotation-filters {
+        margin-right: 0;
+        margin-left: 0;
+    }
+
+    .nivis-labs-quotation-stat-card {
+        min-height: 112px;
+        padding: 13px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .nivis-labs-quotation-table {
+        min-width: 960px;
+    }
+
+    .nivis-labs-invoice-table {
+        min-width: 1050px;
+    }
+
+    .nlcq-items-table {
+        min-width: 800px;
+    }
+
+    .nlidp-table {
+        min-width: 720px;
+    }
+
+    .nivis-labs-quotation-icon-action,
+    .nivis-labs-invoice-icon-action,
+    .nivis-produdcts-icon-action,
+    .nivis_customer_icon_btn {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* Shared beauty styling for dashboard and customer/catalog settings screens. */
+.nivis_dashboard,
+.nivis_customer,
+.add-edit-customer,
+.nivis_labs_category,
+.tax-gst,
+.nivis-produdcts {
+    --beauty-primary: #a94468;
+    --beauty-heading: #65394c;
+    --beauty-muted: #756875;
+    --beauty-border: #efdee5;
+    --beauty-tint: #fff1f5;
+}
+
+.nivis_dashboard_header h1,
+.nivis_customer_heading h1,
+.add-edit-customer-header h1,
+.nivis_labs_category_header h1,
+.tax-gst-header h1,
+.nivis-produdcts-header h1 {
+    color: var(--beauty-heading);
+    font-size: clamp(25px, 2.2vw, 30px);
+    letter-spacing: -.02em;
+}
+
+.nivis_dashboard_header p,
+.nivis_customer_heading p,
+.add-edit-customer-header p,
+.nivis_labs_category_header p,
+.tax-gst-header p,
+.nivis-produdcts-header p {
+    color: var(--beauty-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.nivis_dashboard_account,
+.nivis_customer_account,
+.add-edit-customer-account,
+.nivis_labs_category_account,
+.tax-gst-account,
+.nivis-produdcts-account {
+    color: var(--beauty-muted);
+    font-size: 13px;
+}
+
+.nivis_dashboard_stat_card,
+.nivis_dashboard_panel,
+.nivis_customer_filters,
+.nivis_customer_table_card,
+.add-edit-customer-card,
+.nivis_labs_category_card,
+.tax-gst-card,
+.nivis-produdcts-filters,
+.nivis-produdcts-table-card {
+    border: 1px solid var(--beauty-border);
+    box-shadow: 0 8px 24px rgba(72, 40, 51, .045);
+}
+
+.nivis_dashboard_stat_card {
+    position: relative;
+    min-height: 122px;
+    height: auto;
+    padding: 20px 18px 16px;
+    border-top: 4px solid #d995ad;
+    border-radius: 13px;
+    background: linear-gradient(145deg, #fff 68%, #fff7f9);
+}
+
+.nivis_dashboard_stats > div:nth-child(2) .nivis_dashboard_stat_card {
+    border-top-color: #c5a1cc;
+}
+
+.nivis_dashboard_stats > div:nth-child(3) .nivis_dashboard_stat_card {
+    border-top-color: #e2b566;
+}
+
+.nivis_dashboard_stats > div:nth-child(4) .nivis_dashboard_stat_card {
+    border-top-color: #85bda4;
+}
+
+.nivis_dashboard_stat_card h6 {
+    color: #785a68;
+    font-size: 12px;
+    letter-spacing: .04em;
+}
+
+.nivis_dashboard_stat_card h2 {
+    font-size: clamp(22px, 2vw, 27px);
+}
+
+.nivis_dashboard_stat_card p {
+    color: #56846e;
+    font-size: 12px;
+}
+
+.nivis_dashboard_panel h3,
+.nivis_dashboard_recent h3 {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--beauty-border);
+    color: var(--beauty-heading);
+    font-size: 18px;
+}
+
+.nivis_dashboard_panel h3 i,
+.nivis_dashboard_recent h3 i {
+    margin-right: 7px;
+    color: var(--beauty-primary);
+}
+
+.nivis_dashboard_subtitle {
+    color: var(--beauty-muted);
+    font-size: 13px;
+}
+
+.nivis_dashboard_action_primary,
+.nivis_dashboard_action_btn {
+    min-height: 42px;
+    padding: 9px 13px;
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.nivis_dashboard_action_primary {
+    background: var(--beauty-primary);
+}
+
+.nivis_dashboard_action_btn {
+    border-color: var(--beauty-border);
+}
+
+.nivis_dashboard_recent {
+    padding: 16px;
+}
+
+.nivis_dashboard_table {
+    min-width: 560px;
+}
+
+.nivis_dashboard_table thead th,
+.nivis_customer_table thead th,
+.nivis_labs_category_table thead th,
+.tax-gst-table thead th,
+.nivis-produdcts-table thead th {
+    padding: 14px 13px;
+    border: 0;
+    background: var(--beauty-tint);
+    color: #79485b;
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: .015em;
+}
+
+.nivis_dashboard_table tbody td,
+.nivis_customer_table tbody td,
+.nivis_labs_category_table tbody td,
+.tax-gst-table tbody td,
+.nivis-produdcts-table tbody td {
+    padding: 14px 13px;
+    color: #263753;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.nivis_dashboard_table tbody tr:nth-child(even) td,
+.nivis_customer_table tbody tr:nth-child(even) td,
+.nivis_labs_category_table tbody tr:nth-child(even) td,
+.tax-gst-table tbody tr:nth-child(even) td,
+.nivis-produdcts-table tbody tr:nth-child(even) td {
+    background: #fffafb;
+}
+
+.nivis_dashboard_notes,
+.nivis_customer_notes,
+.add-edit-customer-notes,
+.nivis_labs_category_notes,
+.tax-gst-notes,
+.nivis-produdcts-notes {
+    border: 1px solid var(--beauty-border);
+    border-radius: 12px;
+}
+
+.nivis_dashboard_notes h5,
+.nivis_customer_notes h5,
+.add-edit-customer-notes h5,
+.nivis_labs_category_notes h5,
+.tax-gst-notes h5,
+.nivis-produdcts-notes h5 {
+    color: var(--beauty-primary);
+    font-size: 12px;
+}
+
+.nivis_dashboard_notes p,
+.nivis_customer_notes p,
+.add-edit-customer-notes p,
+.nivis_labs_category_notes p,
+.tax-gst-notes p,
+.nivis-produdcts-notes p {
+    color: #554b54;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.nivis_customer_heading h1,
+.add-edit-customer-header h1,
+.nivis_labs_category_header h1,
+.tax-gst-header h1,
+.nivis-produdcts-header h1 {
+    margin-bottom: 7px;
+}
+
+.nivis_customer_add_btn,
+.nivis_labs_category_new_btn,
+.nivis_labs_category_save_btn,
+.nivis-produdcts-add-btn,
+.add-edit-customer-save {
+    background: var(--beauty-primary);
+    font-size: 14px;
+}
+
+.nivis_customer_add_btn:hover,
+.nivis_labs_category_new_btn:hover,
+.nivis_labs_category_save_btn:hover,
+.nivis-produdcts-add-btn:hover,
+.add-edit-customer-save:hover {
+    background: #893754;
+}
+
+.nivis_customer_filters {
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.nivis_customer_filters label,
+.nivis_labs_category_field label,
+.tax-gst-fields label,
+.nivis-produdcts-filters label {
+    color: #785a68;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.nivis_customer_filters .form-control,
+.nivis_customer_filters .form-select,
+.nivis_labs_category_field .form-control,
+.nivis_labs_category_field .form-select,
+.tax-gst-fields .form-select,
+.nivis-produdcts-filters .form-control,
+.nivis-produdcts-filters .form-select,
+.add-edit-customer .form-control,
+.add-edit-customer .form-select {
+    min-height: 42px;
+    height: auto;
+    border-color: #eadde2;
+    border-radius: 9px;
+    color: #263753;
+    font-size: 15px;
+}
+
+.nivis_customer_filters .form-control:focus,
+.nivis_customer_filters .form-select:focus,
+.nivis_labs_category_field .form-control:focus,
+.nivis_labs_category_field .form-select:focus,
+.tax-gst-fields .form-select:focus,
+.nivis-produdcts-filters .form-control:focus,
+.nivis-produdcts-filters .form-select:focus,
+.add-edit-customer .form-control:focus,
+.add-edit-customer .form-select:focus {
+    border-color: #d78aa3;
+    box-shadow: 0 0 0 3px rgba(169, 68, 104, .12);
+}
+
+.nivis_customer_table_title,
+.nivis-produdcts-table-title {
+    margin: 0 0 13px;
+    padding: 0 2px 11px;
+    border-bottom: 1px solid var(--beauty-border);
+    color: var(--beauty-heading);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.nivis_customer_table_title i,
+.nivis-produdcts-table-title i,
+.nivis_labs_category_card h2 i,
+.tax-gst-card h2 i {
+    margin-right: 7px;
+    color: var(--beauty-primary);
+}
+
+.nivis_customer_table_card,
+.nivis-produdcts-table-card {
+    padding: 17px;
+    border-radius: 13px;
+}
+
+.nivis_customer_filter_btn {
+    min-height: 42px;
+    border-color: var(--beauty-border);
+    border-radius: 9px;
+    color: var(--beauty-heading);
+    font-size: 14px;
+}
+
+.nivis_labs_category_card h2,
+.tax-gst-card h2 {
+    margin-bottom: 16px;
+    padding: 0 0 11px;
+    border-bottom: 1px solid var(--beauty-border);
+    color: var(--beauty-heading);
+    font-size: 19px;
+}
+
+.nivis_labs_category_card_header h2 {
+    margin-bottom: 0;
+}
+
+.nivis_labs_category_card_header {
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--beauty-border);
+}
+
+.nivis_labs_category_form_card h2 {
+    margin-bottom: 22px;
+}
+
+.add-edit-customer-card {
+    padding: 26px;
+    border-radius: 14px;
+}
+
+.add-edit-customer-card h3 {
+    margin: 0 0 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--beauty-border);
+    border-left: 4px solid #c66f8c;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #fff1f5, #fff 78%);
+    color: var(--beauty-heading);
+    font-size: 18px;
+}
+
+.add-edit-customer-card h3 i {
+    margin-right: 7px;
+    color: var(--beauty-primary);
+}
+
+.add-edit-customer-subheading {
+    margin-top: 28px !important;
+}
+
+.add-edit-customer .form-label {
+    color: #785a68;
+    font-size: 13px;
+}
+
+.tax-gst-config,
+.tax-gst-rates {
+    border-radius: 13px;
+}
+
+.tax-gst-fields .form-select {
+    padding: 9px 13px;
+}
+
+.tax-gst-inside,
+.tax-gst-outside {
+    min-height: 38px;
+    padding: 8px 13px;
+    font-size: 13px;
+}
+
+.tax-gst-inside {
+    background: #e8f6ef;
+    color: #367353;
+}
+
+.tax-gst-outside {
+    background: #fff1f5;
+    color: #8e405d;
+}
+
+.tax-gst-table {
+    min-width: 600px;
+}
+
+.tax-gst-rates,
+.nivis-produdcts-table-card,
+.nivis_customer_table_card {
+    background: #fff;
+}
+
+.nivis-produdcts-table {
+    min-width: 760px;
+}
+
+.nivis-produdcts-modal,
+.nivis_customer_modal {
+    overflow: hidden;
+    border: 1px solid var(--beauty-border);
+    border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(72, 40, 51, .16);
+}
+
+.nivis-produdcts-modal .modal-header,
+.nivis_customer_modal .modal-header {
+    border-bottom: 1px solid var(--beauty-border);
+    background: linear-gradient(110deg, #fff1f5, #fff);
+}
+
+.nivis-produdcts-modal .modal-title,
+.nivis_customer_modal .modal-title {
+    color: var(--beauty-heading);
+}
+
+.nivis-produdcts-modal .form-label,
+.nivis_customer_modal .form-label {
+    color: #785a68;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.nivis-produdcts-modal .form-control,
+.nivis-produdcts-modal .form-select,
+.nivis_customer_modal .form-control,
+.nivis_customer_modal .form-select {
+    min-height: 42px;
+    border-color: #eadde2;
+    border-radius: 9px;
+    font-size: 15px;
+}
+
+.tax-gst-table tbody tr:hover td,
+.nivis-produdcts-table tbody tr:hover td,
+.nivis_customer_table tbody tr:hover td,
+.nivis_labs_category_table tbody tr:hover td {
+    background: #fff1f5;
+}
+
+@media (max-width: 767.98px) {
+    .nivis_dashboard_header p,
+    .nivis_customer_heading p,
+    .add-edit-customer-header p,
+    .nivis_labs_category_header p,
+    .tax-gst-header p,
+    .nivis-produdcts-header p {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .nivis_dashboard_stat_card {
+        min-height: 115px;
+        padding: 17px 14px;
+    }
+
+    .nivis_customer_table thead th,
+    .nivis_labs_category_table thead th,
+    .tax-gst-table thead th,
+    .nivis-produdcts-table thead th,
+    .nivis_dashboard_table thead th {
+        font-size: 13px;
+    }
+
+    .nivis_customer_table tbody td,
+    .nivis_labs_category_table tbody td,
+    .tax-gst-table tbody td,
+    .nivis-produdcts-table tbody td,
+    .nivis_dashboard_table tbody td {
+        font-size: 14px;
+    }
+
+    .add-edit-customer-card {
+        padding: 19px 15px;
+    }
+
+    .nivis_labs_category_notes,
+    .nivis-produdcts-notes,
+    .nivis_customer_notes,
+    .add-edit-customer-notes,
+    .tax-gst-notes {
+        margin-top: 25px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .nivis_dashboard_table {
+        min-width: 560px;
+    }
+
+    .nivis_customer_table {
+        min-width: 700px;
+    }
+
+    .nivis_labs_category_table {
+        min-width: 400px;
+    }
+
+    .tax-gst-table {
+        min-width: 600px;
+    }
+
+    .nivis-produdcts-table {
+        min-width: 760px;
+    }
+
+    .nivis_customer_table_title,
+    .nivis-produdcts-table-title,
+    .nivis_labs_category_card h2,
+    .tax-gst-card h2,
+    .add-edit-customer-card h3,
+    .nivis_dashboard_panel h3,
+    .nivis_dashboard_recent h3 {
+        font-size: 17px;
+    }
+
+    .nivis_customer_table_card,
+    .nivis-produdcts-table-card,
+    .tax-gst-card {
+        padding: 14px;
+    }
+}

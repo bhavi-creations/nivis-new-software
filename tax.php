@@ -6,8 +6,6 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/tax-gst.css">
-
 <section class="tax-gst" id="tax-gst">
   <div class="container-fluid p-0">
 
@@ -15,7 +13,7 @@ include 'sidebar.php';
     <div class="tax-gst-header">
       <div>
         <h1>Tax &amp; GST</h1>
-        <p>Configure GST rates and route intra/inter-state tax</p>
+        <p>Configure tax settings for beauty and skin-care product sales</p>
       </div>
 
       <div class="tax-gst-account">
@@ -25,7 +23,7 @@ include 'sidebar.php';
 
     <!-- GST Configuration -->
     <div class="tax-gst-card tax-gst-config">
-      <h2>GST configuration</h2>
+      <h2><i class="fa-solid fa-sliders" aria-hidden="true"></i> GST configuration</h2>
 
       <div class="row g-3 tax-gst-fields">
 
@@ -78,7 +76,7 @@ include 'sidebar.php';
 
     <!-- GST Rates -->
     <div class="tax-gst-card tax-gst-rates">
-      <h2>Available rates - illustration</h2>
+      <h2><i class="fa-solid fa-table-list" aria-hidden="true"></i> Available rates - illustration</h2>
 
       <div class="table-responsive">
         <table class="table tax-gst-table mb-0">
@@ -137,5 +135,3 @@ include 'sidebar.php';
 
   </div>
 </section>
-
-<script src="assets/js/tax-gst.js"></script>

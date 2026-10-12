@@ -4,8 +4,6 @@
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/add-edit-product.css">
-
 <section class="add-edit-product" id="add-edit-product">
   <div class="container-fluid p-0">
 
@@ -41,7 +39,7 @@ include 'sidebar.php';
                    class="form-control"
                    id="editProductName"
                    name="product_name"
-                   placeholder="LED Panel Light"
+                   placeholder="Daily Shield SPF 50 Sunscreen"
                    maxlength="150"
                    required>
           </div>
@@ -55,7 +53,7 @@ include 'sidebar.php';
                    class="form-control"
                    id="editProductSKU"
                    name="sku"
-                   placeholder="ELE-001"
+                   placeholder="SUN-050"
                    maxlength="50">
           </div>
 
@@ -69,10 +67,10 @@ include 'sidebar.php';
                     name="category_id"
                     required>
               <option value="">Select category</option>
-              <option value="1">Electrical</option>
-              <option value="2">Hardware</option>
-              <option value="3">Plumbing</option>
-              <option value="4">Accessories</option>
+              <option value="1">Sun Care</option>
+              <option value="2">Moisturizers</option>
+              <option value="3">Serums</option>
+              <option value="4">Cleansers</option>
             </select>
           </div>
 
@@ -85,7 +83,7 @@ include 'sidebar.php';
                    class="form-control"
                    id="editProductHSN"
                    name="hsn_code"
-                   placeholder="9405"
+                   placeholder="330499"
                    inputmode="numeric"
                    pattern="[0-9]{4,8}"
                    maxlength="8"
@@ -119,7 +117,7 @@ include 'sidebar.php';
                    class="form-control"
                    id="editProductPrice"
                    name="selling_price"
-                   placeholder="850.00"
+                   placeholder="799.00"
                    min="0"
                    step="0.01"
                    required>
@@ -182,7 +180,7 @@ include 'sidebar.php';
                    class="form-control"
                    id="editProductDescription"
                    name="description"
-                   placeholder="Short description or internal notes"
+                   placeholder="Daily skin-care product details"
                    maxlength="500">
           </div>
 
@@ -222,5 +220,3 @@ include 'sidebar.php';
 
   </div>
 </section>
-
-<script src="assets/js/add-edit-product.js"></script>

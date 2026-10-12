@@ -5,8 +5,6 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis_labs_category.css">
-
 <section class="nivis_labs_category" id="nivis_labs_category">
   <div class="container-fluid p-0">
 
@@ -14,7 +12,7 @@ include 'sidebar.php';
     <div class="nivis_labs_category_header">
       <div>
         <h1>Categories</h1>
-        <p>Organize your product catalog using categories</p>
+        <p>Organize sunscreen, moisturizers, serums and cleanser ranges</p>
       </div>
 
       <div class="nivis_labs_category_account">
@@ -30,7 +28,7 @@ include 'sidebar.php';
         <div class="nivis_labs_category_card">
 
           <div class="nivis_labs_category_card_header">
-            <h2>Category directory</h2>
+            <h2><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Category directory</h2>
 
             <button type="button"
                     class="nivis_labs_category_new_btn"
@@ -51,26 +49,26 @@ include 'sidebar.php';
 
               <tbody id="nivisCategoryTableBody">
                 <tr data-id="1">
-                  <td>Electrical</td>
-                  <td>142</td>
+                  <td>Sun Care</td>
+                  <td>24</td>
                   <td>Active</td>
                 </tr>
 
                 <tr data-id="2">
-                  <td>Hardware</td>
-                  <td>96</td>
+                  <td>Moisturizers</td>
+                  <td>38</td>
                   <td>Active</td>
                 </tr>
 
                 <tr data-id="3">
-                  <td>Plumbing</td>
-                  <td>58</td>
+                  <td>Serums</td>
+                  <td>21</td>
                   <td>Active</td>
                 </tr>
 
                 <tr data-id="4">
-                  <td>Accessories</td>
-                  <td>90</td>
+                  <td>Cleansers</td>
+                  <td>17</td>
                   <td>Active</td>
                 </tr>
               </tbody>
@@ -89,7 +87,7 @@ include 'sidebar.php';
       <div class="col-12 col-lg-5">
         <div class="nivis_labs_category_card nivis_labs_category_form_card">
 
-          <h2>Add / Edit category</h2>
+          <h2><i class="fa-solid fa-folder-plus" aria-hidden="true"></i> Add / Edit category</h2>
 
           <form id="nivisCategoryForm" novalidate>
 
@@ -106,7 +104,7 @@ include 'sidebar.php';
                      class="form-control"
                      id="nivisCategoryName"
                      name="category_name"
-                     placeholder="Electrical"
+                     placeholder="Sun Care"
                      maxlength="100"
                      required>
             </div>
@@ -120,7 +118,7 @@ include 'sidebar.php';
                      class="form-control"
                      id="nivisCategoryCode"
                      name="category_code"
-                     placeholder="ELEC"
+                     placeholder="SUN"
                      maxlength="20">
             </div>
 
@@ -133,7 +131,7 @@ include 'sidebar.php';
                      class="form-control"
                      id="nivisCategoryDescription"
                      name="description"
-                     placeholder="Electrical items"
+                     placeholder="Daily sunscreen and sun-protection products"
                      maxlength="255">
             </div>
 
@@ -182,5 +180,3 @@ include 'sidebar.php';
 
   </div>
 </section>
-
-<script src="assets/js/nivis_labs_category.js"></script>

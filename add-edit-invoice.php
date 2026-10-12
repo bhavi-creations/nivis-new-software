@@ -5,8 +5,6 @@
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis-labs-invoice-detail-preview.css">
-
 <section class="nivis-labs-invoice-detail-preview" id="nivisInvoicePreview">
   <div class="container-fluid p-0">
 
@@ -14,7 +12,7 @@ include 'sidebar.php';
     <div class="nlidp-header">
       <div>
         <h1>Invoice Detail / Preview</h1>
-        <p>Quotation-linked invoice with payment records</p>
+        <p>Beauty-care products supplied with clear tax and payment details</p>
       </div>
 
       <div class="nlidp-account">
@@ -40,22 +38,21 @@ include 'sidebar.php';
       <div class="row g-3 nlidp-parties">
 
         <div class="col-12 col-md-6">
-          <h4>FROM <span>|</span> YOUR BUSINESS</h4>
-          <p id="nlidpSellerName">Nivis Labs International</p>
-          <p id="nlidpSellerDetails">AP-based registered seller</p>
+          <h4><i class="fa-solid fa-store" aria-hidden="true"></i> FROM <span>|</span> YOUR BEAUTY BUSINESS</h4>
+          <p id="nlidpSellerName">Nivis Beauty Care</p>
+          <p id="nlidpSellerDetails">Skin-care and sun-protection essentials</p>
 
           <div class="nlidp-linked-quote">
-            <a href="view-quotation.php?id=26" id="nlidpQuotationLink">
+            <a href="quotations.php?quote_id=26" id="nlidpQuotationLink">
               Linked QT-0026
             </a>
           </div>
         </div>
 
         <div class="col-12 col-md-6">
-          <h4>BILL TO</h4>
-          <p id="nlidpCustomerName">
-            Sri Lakshmi Traders, Kakinada, AP
-          </p>
+          <h4><i class="fa-solid fa-user" aria-hidden="true"></i> BILL TO</h4>
+          <p id="nlidpCustomerName">Sri Lakshmi Traders, Kakinada, AP</p>
+          <p class="nlidp-product-intro">Product range: daily sunscreen, hydrating moisturizer and skin-care essentials.</p>
 
           <div class="nlidp-supply-state" id="nlidpSupplyState">
             Place of supply: Andhra Pradesh
@@ -236,5 +233,3 @@ include 'sidebar.php';
 
 <!-- html2pdf for client-side demo PDF export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-<script src="assets/js/nivis-labs-invoice-detail-preview.js"></script>

@@ -16,7 +16,7 @@ include 'sidebar.php';
     <div class="nivis_dashboard_header">
       <div>
         <h1>Dashboard</h1>
-        <p>Live business overview and shortcuts</p>
+        <p>Beauty business overview, customer activity and quick actions</p>
       </div>
 
       <div class="nivis_dashboard_account">
@@ -67,7 +67,7 @@ include 'sidebar.php';
       <div class="col-12 col-lg-8">
         <div class="nivis_dashboard_panel nivis_dashboard_sales">
 
-          <h3>Sales overview</h3>
+          <h3><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Sales overview</h3>
           <p class="nivis_dashboard_subtitle">
             Monthly invoice totals
           </p>
@@ -82,7 +82,7 @@ include 'sidebar.php';
       <div class="col-12 col-lg-4">
         <div class="nivis_dashboard_panel nivis_dashboard_actions">
 
-          <h3>Quick actions</h3>
+          <h3><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Quick actions</h3>
 
           <div class="nivis_dashboard_action_list">
             <a href="quotations.php?action=create"
@@ -114,7 +114,7 @@ include 'sidebar.php';
     <!-- Recent Activity -->
     <div class="nivis_dashboard_panel nivis_dashboard_recent">
 
-      <h3>Recent activity</h3>
+      <h3><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Recent activity</h3>
 
       <div class="table-responsive">
         <table class="table nivis_dashboard_table mb-0">

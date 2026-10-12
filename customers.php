@@ -6,8 +6,6 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis_customer.css">
-
 <section class="nivis_customer" id="nivis_customer">
   <div class="container-fluid p-0">
 
@@ -15,7 +13,7 @@ include 'sidebar.php';
     <div class="nivis_customer_header">
       <div class="nivis_customer_heading">
         <h1>Customers</h1>
-        <p>Customer list, billing identity and address records</p>
+        <p>Beauty retailers, billing identity and delivery details</p>
       </div>
       <div class="nivis_customer_account">
         Admin <span>|</span> AP Business
@@ -63,6 +61,10 @@ include 'sidebar.php';
 
     <!-- Customer Table -->
     <div class="nivis_customer_table_card">
+      <h2 class="nivis_customer_table_title">
+        <i class="fa-solid fa-address-book" aria-hidden="true"></i>
+        Beauty customer directory
+      </h2>
       <div class="table-responsive">
         <table class="table nivis_customer_table mb-0">
           <thead>
@@ -81,8 +83,9 @@ include 'sidebar.php';
               <td>37ABCDE1234F1Z5</td>
               <td>Andhra Pradesh</td>
               <td>
-                <button class="nivis_customer_text_btn" data-action="view">View</button>
-                <button class="nivis_customer_text_btn" data-action="edit">Edit</button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
               </td>
             </tr>
             <tr>
@@ -91,8 +94,9 @@ include 'sidebar.php';
               <td>29ABCDE5678A1Z4</td>
               <td>Karnataka</td>
               <td>
-                <button class="nivis_customer_text_btn" data-action="view">View</button>
-                <button class="nivis_customer_text_btn" data-action="edit">Edit</button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
               </td>
             </tr>
             <tr>
@@ -101,18 +105,20 @@ include 'sidebar.php';
               <td>Unregistered</td>
               <td>Telangana</td>
               <td>
-                <button class="nivis_customer_text_btn" data-action="view">View</button>
-                <button class="nivis_customer_text_btn" data-action="edit">Edit</button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
               </td>
             </tr>
             <tr>
-              <td>Kiran Electricals</td>
+              <td>Glow &amp; Co. Beauty Store</td>
               <td>98440 30010</td>
               <td>37ABCDE9999K1Z3</td>
               <td>Andhra Pradesh</td>
               <td>
-                <button class="nivis_customer_text_btn" data-action="view">View</button>
-                <button class="nivis_customer_text_btn" data-action="edit">Edit</button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
+                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
               </td>
             </tr>
           </tbody>
@@ -212,4 +218,3 @@ include 'sidebar.php';
 
 <!-- Bootstrap JS: include once if not already in common layout -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/nivis_customer.js"></script>

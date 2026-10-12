@@ -5,8 +5,6 @@
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis-labs-invoice.css">
-
 <!-- Invoice Page Start -->
 <section class="nivis-labs-invoice" id="nivis-labs-invoice">
   <div class="container-fluid p-0">
@@ -15,7 +13,7 @@ include 'sidebar.php';
     <div class="nivis-labs-invoice-header">
       <div>
         <h1>Invoices</h1>
-        <p>Issued invoices, payment status and print-ready documents</p>
+        <p>Beauty-care orders: sunscreen, moisturizers and skin-care essentials</p>
       </div>
 
       <div class="nivis-labs-invoice-account">
@@ -36,11 +34,11 @@ include 'sidebar.php';
       <div class="row g-3">
 
         <div class="col-12 col-md-4">
-          <label for="nivisInvoiceSearch">INVOICE NUMBER</label>
+          <label for="nivisInvoiceSearch">SEARCH INVOICE / PRODUCT</label>
           <input type="search"
                  class="form-control"
                  id="nivisInvoiceSearch"
-                 placeholder="INV-0032">
+                 placeholder="Invoice number or sunscreen">
         </div>
 
         <div class="col-12 col-md-4">
@@ -48,9 +46,10 @@ include 'sidebar.php';
           <select class="form-select"
                   id="nivisInvoiceCustomer">
             <option value="all">All customers</option>
-            <option value="Sree Agencies">Sree Agencies</option>
             <option value="Sri Lakshmi Traders">Sri Lakshmi Traders</option>
             <option value="Ravi Enterprises">Ravi Enterprises</option>
+            <option value="Sree Agencies">Sree Agencies</option>
+            <option value="Glow &amp; Co. Beauty Store">Glow &amp; Co. Beauty Store</option>
           </select>
         </div>
 
@@ -77,9 +76,11 @@ include 'sidebar.php';
               <th>Invoice #</th>
               <th>Quotation #</th>
               <th>Customer</th>
+              <th>Products</th>
               <th>Total</th>
               <th>Paid</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -109,5 +110,3 @@ include 'sidebar.php';
   </div>
 </section>
 <!-- Invoice Page End -->
-
-<script src="assets/js/nivis-labs-invoice.js"></script>

@@ -6,8 +6,6 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis-labs-creat-quotation.css">
-
 <section class="nivis-labs-creat-quotation" id="nivis-labs-creat-quotation">
   <div class="container-fluid p-0">
 
@@ -15,14 +13,14 @@ include 'sidebar.php';
     <div class="nlcq-header">
       <div>
         <h1>Create Quotation</h1>
-        <p>Customer selection, line items, discount, tax &amp; approval</p>
+        <p>Build a beauty-care quote for sunscreen, moisturizers, serums and more</p>
       </div>
       <div class="nlcq-account">Admin <span>|</span> AP Business</div>
     </div>
 
     <!-- Quotation Information -->
     <div class="nlcq-card nlcq-info-card">
-      <h2>Quotation information</h2>
+      <h2><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Quotation information</h2>
 
       <div class="row g-3">
         <div class="col-12 col-sm-6 col-xl-3">
@@ -38,7 +36,7 @@ include 'sidebar.php';
             <option value="1" selected>Sri Lakshmi Traders</option>
             <option value="2">Sree Agencies</option>
             <option value="3">Ravi Enterprises</option>
-            <option value="4">Kiran Electricals</option>
+            <option value="4">Glow &amp; Co. Beauty Store</option>
           </select>
         </div>
 
@@ -58,7 +56,7 @@ include 'sidebar.php';
 
     <!-- Line Items -->
     <div class="nlcq-card nlcq-items-card">
-      <h2>Line items</h2>
+      <h2><i class="fa-solid fa-spa" aria-hidden="true"></i> Beauty product line items</h2>
 
       <div class="table-responsive">
         <table class="table nlcq-items-table mb-0">
@@ -89,9 +87,9 @@ include 'sidebar.php';
     <div class="nlcq-card nlcq-summary-card">
       <div class="row g-3">
         <div class="col-12 col-lg-7">
-          <h2>Notes / terms</h2>
+          <h2><i class="fa-regular fa-note-sticky" aria-hidden="true"></i> Notes / terms</h2>
           <textarea id="nlcqNotes" class="nlcq-notes-input"
-                    rows="2">Delivery: 7 working days; terms: 50% advance.</textarea>
+                    rows="2">Beauty care range: sunscreen, moisturizer and serum. Delivery: 7 working days; terms: 50% advance.</textarea>
         </div>
 
         <div class="col-12 col-lg-5">
@@ -135,5 +133,3 @@ include 'sidebar.php';
 
   </div>
 </section>
-
-<script src="assets/js/nivis-labs-creat-quotation.js"></script>

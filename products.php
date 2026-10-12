@@ -6,8 +6,6 @@ include 'header.php';
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis-produdcts.css">
-
 <section class="nivis-produdcts" id="nivis-produdcts">
   <div class="container-fluid p-0">
 
@@ -15,7 +13,7 @@ include 'sidebar.php';
     <div class="nivis-produdcts-header">
       <div>
         <h1>Products</h1>
-        <p>Complete catalog with HSN, category, price and tax</p>
+        <p>Skin-care catalog featuring sunscreen, moisturizers, serums and cleansers</p>
       </div>
 
       <div class="nivis-produdcts-account">
@@ -57,10 +55,10 @@ include 'sidebar.php';
           <select class="form-select"
                   id="nivisProductCategoryFilter">
             <option value="all">All categories</option>
-            <option value="Electrical">Electrical</option>
-            <option value="Hardware">Hardware</option>
-            <option value="Plumbing">Plumbing</option>
-            <option value="Accessories">Accessories</option>
+            <option value="Sun Care">Sun Care</option>
+            <option value="Moisturizers">Moisturizers</option>
+            <option value="Serums">Serums</option>
+            <option value="Cleansers">Cleansers</option>
           </select>
         </div>
 
@@ -85,6 +83,10 @@ include 'sidebar.php';
 
     <!-- Product Directory -->
     <div class="nivis-produdcts-table-card">
+      <h2 class="nivis-produdcts-table-title">
+        <i class="fa-solid fa-spa" aria-hidden="true"></i>
+        Skin-care product catalogue
+      </h2>
       <div class="table-responsive">
         <table class="table nivis-produdcts-table mb-0">
           <thead>
@@ -169,10 +171,10 @@ include 'sidebar.php';
               <select class="form-select"
                       id="productCategory" required>
                 <option value="">Select category</option>
-                <option>Electrical</option>
-                <option>Hardware</option>
-                <option>Plumbing</option>
-                <option>Accessories</option>
+                <option>Sun Care</option>
+                <option>Moisturizers</option>
+                <option>Serums</option>
+                <option>Cleansers</option>
               </select>
             </div>
 
@@ -266,4 +268,3 @@ include 'sidebar.php';
 
 <!-- Include Bootstrap JS only if not included globally -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/nivis-produdcts.js"></script>

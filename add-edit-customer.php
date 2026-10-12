@@ -4,8 +4,6 @@
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/add-edit-customer.css">
-
 <section class="add-edit-customer">
   <div class="container-fluid p-0">
 
@@ -13,7 +11,7 @@ include 'sidebar.php';
     <div class="add-edit-customer-header">
       <div>
         <h1>Add / Edit Customer</h1>
-        <p>Clean 2-column entry form with clear mandatory indicators</p>
+        <p>Manage beauty retailers and their billing and delivery details</p>
       </div>
 
       <div class="add-edit-customer-account">
@@ -27,7 +25,7 @@ include 'sidebar.php';
       <form id="customerForm" action="#" method="post">
 
         <!-- Basic Information -->
-        <h3>Basic information</h3>
+        <h3><i class="fa-solid fa-user-tag" aria-hidden="true"></i> Basic information</h3>
 
         <div class="row g-3">
 
@@ -102,7 +100,7 @@ include 'sidebar.php';
 
         <!-- Billing Address -->
         <h3 class="add-edit-customer-subheading">
-          Billing address
+          <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Billing address
         </h3>
 
         <div class="row g-3">
@@ -159,7 +157,7 @@ include 'sidebar.php';
 
         <!-- Separate Shipping Address -->
         <div id="shippingAddressFields" class="d-none mt-3">
-          <h3>Shipping address</h3>
+          <h3><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Shipping address</h3>
 
           <div class="row g-3">
             <div class="col-12 col-md-8">
@@ -241,5 +239,3 @@ include 'sidebar.php';
 
   </div>
 </section>
-
-<script src="assets/js/add-edit-customer.js"></script>

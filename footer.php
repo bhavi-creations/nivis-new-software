@@ -166,13 +166,21 @@
 
         function createActionButtons() {
             const cell = document.createElement("td");
+            cell.className = "nivis_customer_actions";
 
-            ["View", "Edit"].forEach(label => {
+            [
+                ["view", "fa-eye", "View customer"],
+                ["edit", "fa-pen-to-square", "Edit customer"],
+                ["delete", "fa-trash-can", "Delete customer"]
+            ].forEach(([action, icon, label]) => {
                 const button = document.createElement("button");
                 button.type = "button";
-                button.className = "nivis_customer_text_btn";
-                button.dataset.action = label.toLowerCase();
-                button.textContent = label;
+                button.className = "nivis_customer_icon_btn action-" + action;
+                button.dataset.action = action;
+                button.title = label;
+                button.setAttribute("aria-label", label);
+                button.innerHTML =
+                    '<i class="fa-solid ' + icon + '" aria-hidden="true"></i>';
                 cell.appendChild(button);
             });
 
@@ -188,6 +196,14 @@
             if (!button) return;
 
             const row = button.closest("tr");
+            if (button.dataset.action === "delete") {
+                const customerName = row.cells[0].textContent.trim();
+                if (window.confirm("Delete " + customerName + "?")) {
+                    row.remove();
+                    filterCustomers();
+                }
+                return;
+            }
             openCustomer(button.dataset.action, row);
         });
 
@@ -385,34 +401,34 @@
         // Demo category data.
         const categories = [{
                 id: 1,
-                name: "Electrical",
-                code: "ELEC",
-                description: "Electrical items",
-                products: 142,
+                name: "Sun Care",
+                code: "SUN",
+                description: "Daily sunscreen and sun-protection products",
+                products: 24,
                 status: "Active"
             },
             {
                 id: 2,
-                name: "Hardware",
-                code: "HARD",
-                description: "Hardware items",
-                products: 96,
+                name: "Moisturizers",
+                code: "MOI",
+                description: "Hydrating and barrier-care products",
+                products: 38,
                 status: "Active"
             },
             {
                 id: 3,
-                name: "Plumbing",
-                code: "PLUM",
-                description: "Plumbing items",
-                products: 58,
+                name: "Serums",
+                code: "SER",
+                description: "Targeted face serums and treatments",
+                products: 21,
                 status: "Active"
             },
             {
                 id: 4,
-                name: "Accessories",
-                code: "ACC",
-                description: "Accessories",
-                products: 90,
+                name: "Cleansers",
+                code: "CLE",
+                description: "Gentle daily skin cleansers",
+                products: 17,
                 status: "Active"
             }
         ];
@@ -622,63 +638,63 @@
 
         const products = [{
                 id: 1,
-                name: "LED Panel",
-                sku: "ELE-001",
-                category: "Electrical",
-                hsn: "9405",
+                name: "Daily Shield SPF 50 Sunscreen",
+                sku: "SUN-050",
+                category: "Sun Care",
+                hsn: "330499",
                 unit: "Pcs",
-                price: 850,
+                price: 799,
                 gst: 18,
                 status: "Active",
-                description: ""
+                description: "Broad-spectrum daily sun protection."
             },
             {
                 id: 2,
-                name: "Copper Wire",
-                sku: "ELE-002",
-                category: "Electrical",
-                hsn: "8544",
-                unit: "Meter",
-                price: 1250,
+                name: "Hydra Cloud Moisturizer",
+                sku: "MOI-010",
+                category: "Moisturizers",
+                hsn: "330499",
+                unit: "Pcs",
+                price: 649,
                 gst: 18,
                 status: "Active",
-                description: ""
+                description: "Lightweight daily hydration."
             },
             {
                 id: 3,
-                name: "Pipe Fitting",
-                sku: "PL-007",
-                category: "Plumbing",
-                hsn: "3917",
+                name: "Vitamin C Brightening Serum",
+                sku: "SER-020",
+                category: "Serums",
+                hsn: "330499",
                 unit: "Pcs",
-                price: 320,
+                price: 899,
                 gst: 18,
                 status: "Active",
-                description: ""
+                description: "Daily brightening skin-care serum."
             },
             {
                 id: 4,
-                name: "Switch Board",
-                sku: "ELE-003",
-                category: "Electrical",
-                hsn: "8536",
+                name: "Gentle Foaming Cleanser",
+                sku: "CLE-015",
+                category: "Cleansers",
+                hsn: "340130",
                 unit: "Pcs",
-                price: 420,
+                price: 499,
                 gst: 18,
                 status: "Active",
-                description: ""
+                description: "Gentle everyday face cleanser."
             },
             {
                 id: 5,
-                name: "Tool Set",
-                sku: "HW-004",
-                category: "Hardware",
-                hsn: "8206",
-                unit: "Set",
-                price: 1800,
+                name: "Barrier Repair Moisturizer",
+                sku: "MOI-025",
+                category: "Moisturizers",
+                hsn: "330499",
+                unit: "Pcs",
+                price: 749,
                 gst: 18,
                 status: "Active",
-                description: ""
+                description: "Rich moisturizer for skin barrier support."
             }
         ];
 
@@ -699,6 +715,7 @@
         let editingId = null;
 
         const get = id => document.getElementById(id);
+        const saveButton = form.querySelector('button[type="submit"]');
 
         function formatPrice(amount) {
             return "Rs " + Number(amount).toLocaleString("en-IN", {
@@ -747,14 +764,24 @@
                 });
 
                 const actions = document.createElement("td");
-                const editButton = document.createElement("button");
-
-                editButton.type = "button";
-                editButton.className = "nivis-produdcts-edit-btn";
-                editButton.textContent = "Edit";
-                editButton.dataset.id = product.id;
-
-                actions.appendChild(editButton);
+                actions.className = "nivis-produdcts-actions";
+                [
+                    ["view", "fa-eye", "View product"],
+                    ["edit", "fa-pen-to-square", "Edit product"],
+                    ["delete", "fa-trash-can", "Delete product"]
+                ].forEach(([action, icon, label]) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className =
+                        "nivis-produdcts-icon-action action-" + action;
+                    button.dataset.action = action;
+                    button.dataset.id = product.id;
+                    button.title = label;
+                    button.setAttribute("aria-label", label + ": " + product.name);
+                    button.innerHTML =
+                        '<i class="fa-solid ' + icon + '" aria-hidden="true"></i>';
+                    actions.appendChild(button);
+                });
                 row.appendChild(actions);
                 tableBody.appendChild(row);
             });
@@ -768,6 +795,10 @@
             editingId = null;
             form.reset();
             message.textContent = "";
+            form.querySelectorAll("input, select, textarea").forEach(field => {
+                field.disabled = false;
+            });
+            saveButton.classList.remove("d-none");
             modalTitle.textContent = "Add product";
             get("productGST").value = "18";
             get("productStatus").value = "Active";
@@ -780,6 +811,13 @@
             editingId = id;
             form.reset();
             message.textContent = "";
+            form.querySelectorAll("input, select, textarea").forEach(field => {
+                field.disabled = false;
+            });
+            saveButton.classList.remove("d-none");
+            form.querySelectorAll("input, select, textarea").forEach(field => {
+                field.disabled = false;
+            });
 
             modalTitle.textContent = "Edit product";
             get("productName").value = product.name;
@@ -795,13 +833,33 @@
             modal.show();
         }
 
+        function openViewForm(id) {
+            openEditForm(id);
+            modalTitle.textContent = "Product details";
+            form.querySelectorAll("input, select, textarea").forEach(field => {
+                field.disabled = true;
+            });
+            saveButton.classList.add("d-none");
+        }
+
         addButton.addEventListener("click", openAddForm);
 
         tableBody.addEventListener("click", function(event) {
-            const button = event.target.closest("[data-id]");
+            const button = event.target.closest("[data-action][data-id]");
             if (!button) return;
 
-            openEditForm(Number(button.dataset.id));
+            const id = Number(button.dataset.id);
+            if (button.dataset.action === "view") {
+                openViewForm(id);
+            } else if (button.dataset.action === "edit") {
+                openEditForm(id);
+            } else if (button.dataset.action === "delete") {
+                const product = products.find(item => item.id === id);
+                if (product && window.confirm("Delete " + product.name + "?")) {
+                    products.splice(products.indexOf(product), 1);
+                    renderProducts();
+                }
+            }
         });
 
         [search, categoryFilter, gstFilter].forEach(control => {
@@ -958,11 +1016,12 @@
     document.addEventListener("DOMContentLoaded", function() {
 
         const quotations = [{
-                id: 25,
-                number: "QT-0025",
+            id: 26,
+            number: "QT-0026",
                 customer: "Sri Lakshmi Traders",
-                date: "12-Oct-2026",
-                total: 22000,
+            products: ["Daily Shield SPF 50 Sunscreen", "Hydra Cloud Moisturizer"],
+            date: "12-Oct-2026",
+            total: 22000,
                 status: "Approved",
                 invoiceId: null
             },
@@ -970,6 +1029,7 @@
                 id: 24,
                 number: "QT-0024",
                 customer: "Sree Agencies",
+                products: ["Vitamin C Brightening Serum", "Daily Shield SPF 50 Sunscreen"],
                 date: "10-Oct-2026",
                 total: 14868,
                 status: "Sent",
@@ -978,7 +1038,8 @@
             {
                 id: 23,
                 number: "QT-0023",
-                customer: "Kiran Electricals",
+                customer: "Glow & Co. Beauty Store",
+                products: ["Barrier Repair Moisturizer"],
                 date: "08-Oct-2026",
                 total: 9440,
                 status: "Draft",
@@ -988,6 +1049,7 @@
                 id: 22,
                 number: "QT-0022",
                 customer: "Ravi Enterprises",
+                products: ["Gentle Foaming Cleanser", "Hydra Cloud Moisturizer"],
                 date: "03-Oct-2026",
                 total: 18000,
                 status: "Converted",
@@ -995,21 +1057,22 @@
             }
         ];
 
-        const counts = {
-            Draft: 12,
-            Sent: 25,
-            Approved: 18,
-            Converted: 29
-        };
-
         const tableBody =
             document.getElementById("nivisQuotationTableBody");
 
         const emptyMessage =
             document.getElementById("nivisQuotationEmpty");
+        const searchInput =
+            document.getElementById("nivisQuotationSearch");
+        const customerFilter =
+            document.getElementById("nivisQuotationCustomer");
+        const statusFilter =
+            document.getElementById("nivisQuotationStatus");
 
         const convertModalElement =
             document.getElementById("nivisQuotationConvertModal");
+        const viewModalElement =
+            document.getElementById("nivisQuotationViewModal");
 
         const convertText =
             document.getElementById("nivisQuotationConvertText");
@@ -1020,9 +1083,20 @@
         if (!tableBody) return;
 
         let selectedQuotation = null;
+        const linkedQuoteId =
+            new URLSearchParams(window.location.search).get("quote_id");
+        if (linkedQuoteId) {
+            const linkedQuote = quotations.find(
+                quote => String(quote.id) === linkedQuoteId
+            );
+            if (linkedQuote) searchInput.value = linkedQuote.number;
+        }
 
         const modal = window.bootstrap ?
             bootstrap.Modal.getOrCreateInstance(convertModalElement) :
+            null;
+        const quotationViewModal = window.bootstrap ?
+            bootstrap.Modal.getOrCreateInstance(viewModalElement) :
             null;
 
         function formatCurrency(amount) {
@@ -1033,42 +1107,13 @@
 
         function renderCounts() {
             document.getElementById("quoteDraftCount").textContent =
-                counts.Draft;
+                quotations.filter(quote => quote.status === "Draft").length;
             document.getElementById("quoteSentCount").textContent =
-                counts.Sent;
+                quotations.filter(quote => quote.status === "Sent").length;
             document.getElementById("quoteApprovedCount").textContent =
-                counts.Approved;
+                quotations.filter(quote => quote.status === "Approved").length;
             document.getElementById("quoteConvertedCount").textContent =
-                counts.Converted;
-        }
-
-        function getAction(quotation) {
-            switch (quotation.status) {
-                case "Approved":
-                    return {
-                        label: "Convert", action: "convert"
-                    };
-
-                case "Sent":
-                    return {
-                        label: "View", action: "view"
-                    };
-
-                case "Draft":
-                    return {
-                        label: "Edit", action: "edit"
-                    };
-
-                case "Converted":
-                    return {
-                        label: "Invoice", action: "invoice"
-                    };
-
-                default:
-                    return {
-                        label: "View", action: "view"
-                    };
-            }
+                quotations.filter(quote => quote.status === "Converted").length;
         }
 
         function makeCell(value) {
@@ -1078,34 +1123,88 @@
         }
 
         function renderTable() {
+            const query = searchInput.value.toLowerCase().trim();
+            const customer = customerFilter.value;
+            const status = statusFilter.value;
+            const filtered = quotations.filter(quotation => {
+                const searchable = [
+                    quotation.number,
+                    quotation.customer,
+                    ...(quotation.products || [])
+                ].join(" ").toLowerCase();
+                return searchable.includes(query) &&
+                    (customer === "all" || quotation.customer === customer) &&
+                    (status === "all" || quotation.status === status);
+            });
+
             tableBody.replaceChildren();
 
-            quotations.forEach(quotation => {
+            filtered.forEach(quotation => {
                 const row = document.createElement("tr");
 
                 row.appendChild(makeCell(quotation.number));
                 row.appendChild(makeCell(quotation.customer));
+                row.appendChild(makeCell((quotation.products || []).join(", ")));
                 row.appendChild(makeCell(quotation.date));
                 row.appendChild(makeCell(formatCurrency(quotation.total)));
-                row.appendChild(makeCell(quotation.status));
+                const statusCell = makeCell("");
+                const statusBadge = document.createElement("span");
+                statusBadge.className =
+                    "nivis-labs-quotation-status status-" +
+                    quotation.status.toLowerCase();
+                statusBadge.textContent = quotation.status;
+                statusCell.appendChild(statusBadge);
+                row.appendChild(statusCell);
 
-                const action = getAction(quotation);
                 const actionCell = document.createElement("td");
+                actionCell.className = "nivis-labs-quotation-actions";
 
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "nivis-labs-quotation-action";
-                button.textContent = action.label;
-                button.dataset.action = action.action;
-                button.dataset.id = quotation.id;
+                [
+                    ["view", "fa-eye", "View quotation"],
+                    ["edit", "fa-pen-to-square", "Edit quotation"],
+                    ["delete", "fa-trash-can", "Delete quotation"]
+                ].forEach(([action, icon, label]) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className =
+                        "nivis-labs-quotation-icon-action action-" + action;
+                    button.dataset.action = action;
+                    button.dataset.id = quotation.id;
+                    button.setAttribute("aria-label", label + " " + quotation.number);
+                    button.title = label;
+                    button.innerHTML =
+                        '<i class="fa-solid ' + icon + '" aria-hidden="true"></i>';
+                    actionCell.appendChild(button);
+                });
 
-                actionCell.appendChild(button);
+                if (quotation.status === "Approved" &&
+                    quotation.invoiceId === null) {
+                    const convertButton = document.createElement("button");
+                    convertButton.type = "button";
+                    convertButton.className =
+                        "nivis-labs-quotation-action nivis-labs-quotation-convert";
+                    convertButton.textContent = "Convert";
+                    convertButton.dataset.action = "convert";
+                    convertButton.dataset.id = quotation.id;
+                    actionCell.appendChild(convertButton);
+                } else if (quotation.status === "Converted" &&
+                    quotation.invoiceId !== null) {
+                    const invoiceButton = document.createElement("button");
+                    invoiceButton.type = "button";
+                    invoiceButton.className =
+                        "nivis-labs-quotation-action nivis-labs-quotation-convert";
+                    invoiceButton.textContent = "Invoice";
+                    invoiceButton.dataset.action = "invoice";
+                    invoiceButton.dataset.id = quotation.id;
+                    actionCell.appendChild(invoiceButton);
+                }
+
                 row.appendChild(actionCell);
                 tableBody.appendChild(row);
             });
 
             emptyMessage.classList.toggle(
-                "d-none", quotations.length > 0
+                "d-none", filtered.length > 0
             );
         }
 
@@ -1118,6 +1217,14 @@
             if (!quotation) return;
 
             switch (button.dataset.action) {
+
+                case "delete":
+                    if (window.confirm("Delete " + quotation.number + "?")) {
+                        quotations.splice(quotations.indexOf(quotation), 1);
+                        renderCounts();
+                        renderTable();
+                    }
+                    break;
 
                 case "convert":
                     if (quotation.status !== "Approved" ||
@@ -1137,25 +1244,58 @@
                     break;
 
                 case "view":
-                    window.location.href =
-                        "view-quotation.php?id=" +
-                        encodeURIComponent(id);
+                    if (quotationViewModal) {
+                        document.getElementById("nivisQuotationViewNumber")
+                            .textContent = quotation.number;
+                        document.getElementById("nivisQuotationViewCustomer")
+                            .textContent = quotation.customer;
+                        document.getElementById("nivisQuotationViewProducts")
+                            .textContent = (quotation.products || []).join(", ");
+                        document.getElementById("nivisQuotationViewDate")
+                            .textContent = quotation.date;
+                        document.getElementById("nivisQuotationViewTotal")
+                            .textContent = formatCurrency(quotation.total);
+                        document.getElementById("nivisQuotationViewStatus")
+                            .textContent = quotation.status;
+                        quotationViewModal.show();
+                    }
                     break;
 
                 case "edit":
                     window.location.href =
-                        "add-edit-quotation.php?id=" +
+                        "create-quotation.php?id=" +
                         encodeURIComponent(id);
                     break;
 
                 case "invoice":
                     if (quotation.invoiceId !== null) {
                         window.location.href =
-                            "view-invoice.php?id=" +
+                            "add-edit-invoice.php?id=" +
                             encodeURIComponent(quotation.invoiceId);
                     }
                     break;
             }
+        });
+
+        [searchInput, customerFilter, statusFilter].forEach(control => {
+            control.addEventListener(
+                control === searchInput ? "input" : "change",
+                renderTable
+            );
+        });
+
+        document.querySelectorAll("[data-quote-status]").forEach(card => {
+            card.addEventListener("click", function() {
+                const selected = statusFilter.value === card.dataset.quoteStatus;
+                statusFilter.value = selected ? "all" : card.dataset.quoteStatus;
+                document.querySelectorAll("[data-quote-status]").forEach(item => {
+                    item.setAttribute(
+                        "aria-pressed",
+                        String(!selected && item === card)
+                    );
+                });
+                renderTable();
+            });
         });
 
         confirmButton.addEventListener("click", function() {
@@ -1187,41 +1327,41 @@
     document.addEventListener("DOMContentLoaded", function() {
         const products = [{
                 id: 1,
-                name: "LED Panel",
-                hsn: "9405",
-                price: 850,
+                name: "Daily Shield SPF 50 Sunscreen",
+                hsn: "330499",
+                price: 799,
                 gst: 18,
                 discount: 0
             },
             {
                 id: 2,
-                name: "Copper Wire",
-                hsn: "8544",
-                price: 1250,
+                name: "Hydra Cloud Moisturizer",
+                hsn: "330499",
+                price: 649,
                 gst: 18,
                 discount: 5
             },
             {
                 id: 3,
-                name: "Pipe Fitting",
-                hsn: "3917",
-                price: 320,
+                name: "Vitamin C Brightening Serum",
+                hsn: "330499",
+                price: 899,
                 gst: 18,
                 discount: 0
             },
             {
                 id: 4,
-                name: "Switch Board",
-                hsn: "8536",
-                price: 420,
+                name: "Gentle Foaming Cleanser",
+                hsn: "340130",
+                price: 499,
                 gst: 18,
                 discount: 0
             },
             {
                 id: 5,
-                name: "Tool Set",
-                hsn: "8206",
-                price: 1800,
+                name: "Barrier Repair Moisturizer",
+                hsn: "330499",
+                price: 749,
                 gst: 18,
                 discount: 0
             }
@@ -1247,14 +1387,14 @@
         let rows = [{
                 productId: 1,
                 qty: 2,
-                price: 850,
+                price: 799,
                 gst: 18,
                 discount: 0
             },
             {
                 productId: 2,
                 qty: 3,
-                price: 1250,
+                price: 649,
                 gst: 18,
                 discount: 5
             }
@@ -1563,7 +1703,8 @@
                 invoiceNo: "INV-0031",
                 quotationNo: "QT-0021",
                 customer: "Sree Agencies",
-                total: 14868,
+            products: ["Daily Shield SPF 50 Sunscreen", "Vitamin C Brightening Serum"],
+            total: 14868,
                 paid: 14868
             },
             {
@@ -1571,6 +1712,7 @@
                 invoiceNo: "INV-0030",
                 quotationNo: "QT-0020",
                 customer: "Sri Lakshmi Traders",
+                products: ["Hydra Cloud Moisturizer", "Gentle Foaming Cleanser"],
                 total: 22000,
                 paid: 10000
             },
@@ -1579,6 +1721,7 @@
                 invoiceNo: "INV-0029",
                 quotationNo: "-",
                 customer: "Ravi Enterprises",
+                products: ["Barrier Repair Moisturizer"],
                 total: 18000,
                 paid: 0
             }
@@ -1637,7 +1780,8 @@
 
             const filtered = invoices.filter(invoice => {
                 const matchesSearch =
-                    invoice.invoiceNo.toLowerCase().includes(query);
+                    (invoice.invoiceNo + " " + invoice.products.join(" "))
+                    .toLowerCase().includes(query);
 
                 const matchesCustomer =
                     customer === "all" || invoice.customer === customer;
@@ -1655,22 +1799,46 @@
 
             filtered.forEach(invoice => {
                 const row = document.createElement("tr");
-                row.dataset.id = invoice.id;
-                row.tabIndex = 0;
-                row.setAttribute("role", "link");
-                row.setAttribute("aria-label",
-                    "View invoice " + invoice.invoiceNo);
 
                 [
                     invoice.invoiceNo,
                     invoice.quotationNo,
                     invoice.customer,
+                    invoice.products.join(", "),
                     formatCurrency(invoice.total),
                     formatCurrency(invoice.paid),
                     getPaymentStatus(invoice)
                 ].forEach(value => {
                     row.appendChild(makeCell(value));
                 });
+
+                const statusCell = row.cells[6];
+                const statusBadge = document.createElement("span");
+                statusBadge.className = "nivis-labs-invoice-status status-" +
+                    getPaymentStatus(invoice).toLowerCase().replace("-", "");
+                statusBadge.textContent = getPaymentStatus(invoice);
+                statusCell.replaceChildren(statusBadge);
+
+                const actionCell = document.createElement("td");
+                actionCell.className = "nivis-labs-invoice-actions";
+                [
+                    ["view", "fa-eye", "View invoice"],
+                    ["edit", "fa-pen-to-square", "Edit invoice"],
+                    ["delete", "fa-trash-can", "Delete invoice"]
+                ].forEach(([action, icon, label]) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className =
+                        "nivis-labs-invoice-icon-action action-" + action;
+                    button.dataset.action = action;
+                    button.dataset.id = invoice.id;
+                    button.setAttribute("aria-label", label + " " + invoice.invoiceNo);
+                    button.title = label;
+                    button.innerHTML =
+                        '<i class="fa-solid ' + icon + '" aria-hidden="true"></i>';
+                    actionCell.appendChild(button);
+                });
+                row.appendChild(actionCell);
 
                 tableBody.appendChild(row);
             });
@@ -1681,29 +1849,25 @@
             );
         }
 
-        function openInvoice(row) {
-            if (!row) return;
-
-            const invoiceId = Number(row.dataset.id);
-
-            if (!Number.isInteger(invoiceId)) return;
-
-            window.location.href =
-                "view-invoice.php?id=" + encodeURIComponent(invoiceId);
-        }
-
         tableBody.addEventListener("click", function(event) {
-            openInvoice(event.target.closest("tr[data-id]"));
-        });
+            const button = event.target.closest("[data-action]");
+            if (!button) return;
 
-        tableBody.addEventListener("keydown", function(event) {
-            if (event.key === "Enter" || event.key === " ") {
-                const row = event.target.closest("tr[data-id]");
-                if (!row) return;
+            const id = Number(button.dataset.id);
+            const invoice = invoices.find(item => item.id === id);
+            if (!invoice) return;
 
-                event.preventDefault();
-                openInvoice(row);
+            if (button.dataset.action === "delete") {
+                if (window.confirm("Delete " + invoice.invoiceNo + "?")) {
+                    invoices.splice(invoices.indexOf(invoice), 1);
+                    renderInvoices();
+                }
+                return;
             }
+
+            const suffix = button.dataset.action === "edit" ? "&action=edit" : "";
+            window.location.href =
+                "add-edit-invoice.php?id=" + encodeURIComponent(id) + suffix;
         });
 
         searchInput.addEventListener("input", renderInvoices);
@@ -1733,18 +1897,18 @@
             paid: 0,
 
             items: [{
-                    product: "LED Panel Light",
-                    hsn: "9405",
+                    product: "Daily Shield SPF 50 Sunscreen",
+                    hsn: "330499",
                     qty: 2,
-                    price: 850,
+                    price: 799,
                     gst: 18,
                     discount: 0
                 },
                 {
-                    product: "Copper Wire",
-                    hsn: "8544",
+                    product: "Hydra Cloud Moisturizer",
+                    hsn: "330499",
                     qty: 3,
-                    price: 1250,
+                    price: 649,
                     gst: 18,
                     discount: 5
                 }
@@ -1752,6 +1916,7 @@
         };
 
         const $ = id => document.getElementById(id);
+        if (!$("nlidpInvoiceNumber")) return;
 
         const formatMoney = amount =>
             "Rs " + Number(amount).toLocaleString("en-IN", {
@@ -1854,7 +2019,8 @@
             "Linked " + invoice.quotationNo;
 
         $("nlidpQuotationLink").href =
-            "view-quotation.php?id=" + encodeURIComponent(invoice.quotationId);
+            "quotations.php?quote_id=" +
+            encodeURIComponent(invoice.quotationId);
 
         $("nlidpSupplyState").textContent =
             "Place of supply: " + invoice.placeOfSupply;
