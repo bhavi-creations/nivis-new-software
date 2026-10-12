@@ -37,7 +37,6 @@ include 'sidebar.php';
             <option value="27">Maharashtra</option>
           </select>
         </div>
-
         <div class="col-12 col-md-4">
           <label for="taxDefaultMode">DEFAULT TAX MODE</label>
           <select class="form-select" id="taxDefaultMode">
@@ -46,7 +45,6 @@ include 'sidebar.php';
             <option value="inter">Inter-state (IGST)</option>
           </select>
         </div>
-
         <div class="col-12 col-md-4">
           <label for="taxPriceMode">DEFAULT PRICE MODE</label>
           <select class="form-select" id="taxPriceMode">
@@ -56,6 +54,10 @@ include 'sidebar.php';
         </div>
 
       </div>
+      <button type="button" class="btn btn-primary mt-3" id="taxSaveSettings">
+        Save tax settings
+      </button>
+      <p class="mt-2 mb-0" id="taxSettingsMessage" role="status"></p>
 
       <!-- GST Mode Indicators -->
       <div class="row g-3 tax-gst-indicators">
@@ -89,35 +91,7 @@ include 'sidebar.php';
             </tr>
           </thead>
 
-          <tbody>
-            <tr>
-              <td>5%</td>
-              <td>2.5% + 2.5%</td>
-              <td>5%</td>
-              <td>Enabled</td>
-            </tr>
-
-            <tr>
-              <td>12%</td>
-              <td>6% + 6%</td>
-              <td>12%</td>
-              <td>Enabled</td>
-            </tr>
-
-            <tr>
-              <td>18%</td>
-              <td>9% + 9%</td>
-              <td>18%</td>
-              <td>Enabled</td>
-            </tr>
-
-            <tr>
-              <td>28%</td>
-              <td>14% + 14%</td>
-              <td>28%</td>
-              <td>Enabled</td>
-            </tr>
-          </tbody>
+          <tbody id="taxRatesTableBody"></tbody>
         </table>
       </div>
     </div>

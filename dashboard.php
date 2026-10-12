@@ -30,31 +30,31 @@ include 'sidebar.php';
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="nivis_dashboard_stat_card">
           <h6>Total Customers</h6>
-          <h2 id="nivisTotalCustomers">1,248</h2>
-          <p>+ 32 this month</p>
+          <h2 id="nivisTotalCustomers">0</h2>
+          <p>Active beauty retailers</p>
         </div>
       </div>
 
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="nivis_dashboard_stat_card">
           <h6>Total Products</h6>
-          <h2 id="nivisTotalProducts">386</h2>
-          <p>12 categories</p>
+          <h2 id="nivisTotalProducts">0</h2>
+          <p>Active skin-care products</p>
         </div>
       </div>
 
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="nivis_dashboard_stat_card">
           <h6>Quotations</h6>
-          <h2 id="nivisTotalQuotations">84</h2>
-          <p>11 waiting</p>
+          <h2 id="nivisTotalQuotations">0</h2>
+          <p id="nivisWaitingQuotes">0 waiting</p>
         </div>
       </div>
 
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="nivis_dashboard_stat_card">
           <h6>Invoice Value</h6>
-          <h2 id="nivisInvoiceValue">Rs 8,42,500</h2>
+          <h2 id="nivisInvoiceValue">Rs 0</h2>
           <p>This month</p>
         </div>
       </div>
@@ -85,14 +85,14 @@ include 'sidebar.php';
           <h3><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Quick actions</h3>
 
           <div class="nivis_dashboard_action_list">
-            <a href="quotations.php?action=create"
+            <a href="create-quotation.php"
                class="nivis_dashboard_action_primary">
               + Create quotation
             </a>
 
-            <a href="invoices.php?action=create"
+            <a href="invoices.php"
                class="nivis_dashboard_action_btn">
-              + New invoice
+              + View invoices
             </a>
 
             <a href="customers.php?action=create"
@@ -127,21 +127,7 @@ include 'sidebar.php';
             </tr>
           </thead>
 
-          <tbody>
-            <tr>
-              <td>QT-0025</td>
-              <td>Sri Lakshmi Traders</td>
-              <td>Rs 22,000</td>
-              <td>Sent</td>
-            </tr>
-
-            <tr>
-              <td>INV-0031</td>
-              <td>Sree Agencies</td>
-              <td>Rs 14,868</td>
-              <td>Paid</td>
-            </tr>
-          </tbody>
+          <tbody id="nivisDashboardRecent"></tbody>
         </table>
       </div>
 
@@ -166,60 +152,88 @@ include 'sidebar.php';
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const canvas = document.getElementById("nivisSalesChart");
+  const currency = value => "Rs " + Number(value).toLocaleString("en-IN");
+  fetch("api.php?resource=dashboard")
+    .then(async response => {
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not load dashboard data.");
+      return result;
+    })
+    .then(data => {
+      document.getElementById("nivisTotalCustomers").textContent = data.stats.customers;
+      document.getElementById("nivisTotalProducts").textContent = data.stats.products;
+      document.getElementById("nivisTotalQuotations").textContent = data.stats.quotations;
+      document.getElementById("nivisWaitingQuotes").textContent = data.stats.waiting + " waiting";
+      document.getElementById("nivisInvoiceValue").textContent = currency(data.stats.invoice_value);
 
-  if (!canvas || typeof Chart === "undefined") return;
-
-  new Chart(canvas, {
-    type: "bar",
-
-    data: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
-
-      datasets: [{
-        data: [35, 52, 42, 70, 61, 86, 75, 103],
-        backgroundColor: [
-          "#AEC2FF", "#AEC2FF", "#AEC2FF", "#AEC2FF",
-          "#AEC2FF", "#AEC2FF", "#AEC2FF", "#345CF6"
-        ],
-        borderRadius: 5,
-        borderSkipped: false,
-        maxBarThickness: 36
-      }]
-    },
-
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return "Demo value: " + context.parsed.y;
-            }
-          }
-        }
-      },
-
-      scales: {
-        x: {
-          grid: { display: false },
-          border: { display: false },
-          ticks: {
-            color: "#8292AE",
-            font: { size: 10 }
-          }
-        },
-
-        y: {
-          display: false,
-          beginAtZero: true,
-          grid: { display: false }
-        }
+      const recent = document.getElementById("nivisDashboardRecent");
+      recent.replaceChildren();
+      data.recent.forEach(item => {
+        const row = document.createElement("tr");
+        [item.document_number, item.customer, currency(item.amount), item.status]
+          .forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+          });
+        recent.appendChild(row);
+      });
+      if (!data.recent.length) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.textContent = "No recent quotations or invoices.";
+        row.appendChild(cell);
+        recent.appendChild(row);
       }
-    }
-  });
+
+      if (!canvas || typeof Chart === "undefined") return;
+      const monthly = data.monthly_sales;
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: monthly.map(item => item.month),
+          datasets: [{
+            data: monthly.map(item => Number(item.total)),
+            backgroundColor: monthly.map((item, index) =>
+              index === monthly.length - 1 ? "#345CF6" : "#AEC2FF"
+            ),
+            borderRadius: 5,
+            borderSkipped: false,
+            maxBarThickness: 36
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: context => currency(context.parsed.y)
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: "#8292AE", font: { size: 10 } }
+            },
+            y: { display: false, beginAtZero: true, grid: { display: false } }
+          }
+        }
+      });
+    })
+    .catch(error => {
+      const recent = document.getElementById("nivisDashboardRecent");
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = 4;
+      cell.textContent = error.message;
+      row.appendChild(cell);
+      recent.replaceChildren(row);
+    });
 });
 </script>
 

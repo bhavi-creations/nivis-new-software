@@ -55,10 +55,6 @@ include 'sidebar.php';
           <select class="form-select"
                   id="nivisProductCategoryFilter">
             <option value="all">All categories</option>
-            <option value="Sun Care">Sun Care</option>
-            <option value="Moisturizers">Moisturizers</option>
-            <option value="Serums">Serums</option>
-            <option value="Cleansers">Cleansers</option>
           </select>
         </div>
 
@@ -101,7 +97,6 @@ include 'sidebar.php';
           </thead>
 
           <tbody id="nivisProductTableBody">
-            <!-- Products rendered by JavaScript -->
           </tbody>
         </table>
       </div>
@@ -171,10 +166,6 @@ include 'sidebar.php';
               <select class="form-select"
                       id="productCategory" required>
                 <option value="">Select category</option>
-                <option>Sun Care</option>
-                <option>Moisturizers</option>
-                <option>Serums</option>
-                <option>Cleansers</option>
               </select>
             </div>
 
@@ -198,6 +189,7 @@ include 'sidebar.php';
                 <option value="Kg">Kg</option>
                 <option value="Meter">Meter</option>
                 <option value="Set">Set</option>
+                <option value="Liter">Liter</option>
               </select>
             </div>
 
@@ -216,11 +208,6 @@ include 'sidebar.php';
               </label>
               <select class="form-select"
                       id="productGST" required>
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="12">12%</option>
-                <option value="18" selected>18%</option>
-                <option value="28">28%</option>
               </select>
             </div>
 
@@ -232,6 +219,15 @@ include 'sidebar.php';
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="productDiscount">
+                DEFAULT DISCOUNT
+              </label>
+              <input type="number" class="form-control"
+                     id="productDiscount" min="0" max="100"
+                     step="0.01" value="0">
             </div>
 
             <div class="col-12 col-md-6">

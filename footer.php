@@ -53,6 +53,7 @@
 <!-- customer page  -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
         const tableBody = document.getElementById("nivisCustomerTableBody");
         const searchInput = document.getElementById("nivisCustomerSearch");
         const typeFilter = document.getElementById("nivisCustomerType");
@@ -280,6 +281,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
         const form = document.getElementById("customerForm");
         const sameBilling = document.getElementById("sameBilling");
         const shippingFields = document.getElementById("shippingAddressFields");
@@ -382,6 +384,7 @@
 <!-- category styling -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         const form = document.getElementById("nivisCategoryForm");
         const tableBody = document.getElementById("nivisCategoryTableBody");
@@ -583,6 +586,7 @@
 <!-- tax gst stylings -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         const sellerState = document.getElementById("taxSellerState");
         const taxMode = document.getElementById("taxDefaultMode");
@@ -635,6 +639,7 @@
 <!-- products script  -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         const products = [{
                 id: 1,
@@ -919,6 +924,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
         const form = document.getElementById("addEditProductForm");
         const message = document.getElementById("addEditProductMessage");
         const saveBtn = document.getElementById("addEditProductSave");
@@ -1014,6 +1020,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         const quotations = [{
             id: 26,
@@ -1325,6 +1332,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
         const products = [{
                 id: 1,
                 name: "Daily Shield SPF 50 Sunscreen",
@@ -1697,6 +1705,7 @@
 <!-- invoice  script -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         const invoices = [{
                 id: 31,
@@ -1882,6 +1891,7 @@
 <!-- view invoice -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         // Demo invoice data - replace with PHP/MySQL API response.
         const invoice = {
@@ -2116,6 +2126,7 @@
 <!-- reports script -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        if (window.NIVIS_DATABASE_UI) return;
 
         // Demo records only - replace with backend API.
         const invoices = [{
@@ -2357,6 +2368,7 @@
 
 
 
+<script src="assets/js/database-ui.js"></script>
 
 </body>
 

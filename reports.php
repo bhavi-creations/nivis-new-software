@@ -5,8 +5,6 @@
 include 'sidebar.php';
 ?>
 
-<link rel="stylesheet" href="assets/css/nivis-labs-reports.css">
-
 <section class="nivis-labs-reports" id="nivis-labs-reports">
   <div class="container-fluid p-0">
 
@@ -72,21 +70,21 @@ include 'sidebar.php';
       <div class="col-12 col-sm-6 col-lg-4">
         <div class="nlr-summary-card">
           <h6>INVOICED SALES</h6>
-          <h2 id="nlrInvoicedSales">Rs 8,42,500</h2>
+          <h2 id="nlrInvoicedSales">Rs 0</h2>
         </div>
       </div>
 
       <div class="col-12 col-sm-6 col-lg-4">
         <div class="nlr-summary-card">
           <h6>COLLECTED</h6>
-          <h2 id="nlrCollected">Rs 6,90,000</h2>
+          <h2 id="nlrCollected">Rs 0</h2>
         </div>
       </div>
 
       <div class="col-12 col-sm-12 col-lg-4">
         <div class="nlr-summary-card">
           <h6>OUTSTANDING</h6>
-          <h2 id="nlrOutstanding">Rs 1,52,500</h2>
+          <h2 id="nlrOutstanding">Rs 0</h2>
         </div>
       </div>
 
@@ -107,35 +105,8 @@ include 'sidebar.php';
 
       <div class="table-responsive">
         <table class="table nlr-report-table mb-0">
-          <thead>
-            <tr>
-              <th>Report</th>
-              <th>Key metric</th>
-              <th>Breakdown</th>
-              <th>Available</th>
-            </tr>
-          </thead>
-
-          <tbody id="nlrReportTableBody">
-            <tr>
-              <td>Sales report</td>
-              <td>Invoice turnover</td>
-              <td>Day / month</td>
-              <td>PDF / CSV</td>
-            </tr>
-            <tr>
-              <td>GST summary</td>
-              <td>CGST / SGST / IGST</td>
-              <td>Rate / state</td>
-              <td>PDF / CSV</td>
-            </tr>
-            <tr>
-              <td>Quotation conversion</td>
-              <td>Converted quote count</td>
-              <td>Customer / status</td>
-              <td>PDF / CSV</td>
-            </tr>
-          </tbody>
+          <thead id="nlrReportTableHead"></thead>
+          <tbody id="nlrReportTableBody"></tbody>
         </table>
       </div>
 

@@ -44,34 +44,11 @@ include 'sidebar.php';
                   <th>Category</th>
                   <th>Products</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
 
-              <tbody id="nivisCategoryTableBody">
-                <tr data-id="1">
-                  <td>Sun Care</td>
-                  <td>24</td>
-                  <td>Active</td>
-                </tr>
-
-                <tr data-id="2">
-                  <td>Moisturizers</td>
-                  <td>38</td>
-                  <td>Active</td>
-                </tr>
-
-                <tr data-id="3">
-                  <td>Serums</td>
-                  <td>21</td>
-                  <td>Active</td>
-                </tr>
-
-                <tr data-id="4">
-                  <td>Cleansers</td>
-                  <td>17</td>
-                  <td>Active</td>
-                </tr>
-              </tbody>
+              <tbody id="nivisCategoryTableBody"></tbody>
             </table>
           </div>
 
@@ -119,7 +96,8 @@ include 'sidebar.php';
                      id="nivisCategoryCode"
                      name="category_code"
                      placeholder="SUN"
-                     maxlength="20">
+                     maxlength="20"
+                     required>
             </div>
 
             <div class="nivis_labs_category_field">

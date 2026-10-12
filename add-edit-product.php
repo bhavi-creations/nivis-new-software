@@ -67,10 +67,6 @@ include 'sidebar.php';
                     name="category_id"
                     required>
               <option value="">Select category</option>
-              <option value="1">Sun Care</option>
-              <option value="2">Moisturizers</option>
-              <option value="3">Serums</option>
-              <option value="4">Cleansers</option>
             </select>
           </div>
 

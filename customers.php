@@ -76,52 +76,7 @@ include 'sidebar.php';
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="nivisCustomerTableBody">
-            <tr>
-              <td>Sri Lakshmi Traders</td>
-              <td>98765 43210</td>
-              <td>37ABCDE1234F1Z5</td>
-              <td>Andhra Pradesh</td>
-              <td>
-                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-              </td>
-            </tr>
-            <tr>
-              <td>Sree Agencies</td>
-              <td>91234 56780</td>
-              <td>29ABCDE5678A1Z4</td>
-              <td>Karnataka</td>
-              <td>
-                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-              </td>
-            </tr>
-            <tr>
-              <td>Ravi Enterprises</td>
-              <td>99887 76655</td>
-              <td>Unregistered</td>
-              <td>Telangana</td>
-              <td>
-                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-              </td>
-            </tr>
-            <tr>
-              <td>Glow &amp; Co. Beauty Store</td>
-              <td>98440 30010</td>
-              <td>37ABCDE9999K1Z3</td>
-              <td>Andhra Pradesh</td>
-              <td>
-                <button type="button" class="nivis_customer_icon_btn" data-action="view" title="View customer" aria-label="View customer"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn" data-action="edit" title="Edit customer" aria-label="Edit customer"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i></button>
-                <button type="button" class="nivis_customer_icon_btn action-delete" data-action="delete" title="Delete customer" aria-label="Delete customer"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
-              </td>
-            </tr>
-          </tbody>
+          <tbody id="nivisCustomerTableBody"></tbody>
         </table>
       </div>
       <p class="nivis_customer_empty d-none" id="nivisCustomerEmpty">
@@ -197,9 +152,27 @@ include 'sidebar.php';
               <label class="form-label">Billing address</label>
               <textarea class="form-control" name="billing_address" rows="2"></textarea>
             </div>
+            <div class="col-md-6">
+              <label class="form-label">City</label>
+              <input type="text" class="form-control" name="city">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Pincode</label>
+              <input type="text" class="form-control" name="pincode"
+                     inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+            </div>
             <div class="col-12">
               <label class="form-label">Shipping address</label>
               <textarea class="form-control" name="shipping_address" rows="2"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Shipping city</label>
+              <input type="text" class="form-control" name="shipping_city">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Shipping pincode</label>
+              <input type="text" class="form-control" name="shipping_pincode"
+                     inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
             </div>
           </div>
           <p class="nivis_customer_form_message mt-3 mb-0"

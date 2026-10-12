@@ -23,9 +23,9 @@ include 'sidebar.php';
 
     <!-- New Invoice -->
     <div class="nivis-labs-invoice-toolbar">
-      <a href="add-edit-invoice.php"
+      <a href="quotations.php"
          class="nivis-labs-invoice-add-btn">
-        + New invoice
+        + Convert approved quotation
       </a>
     </div>
 

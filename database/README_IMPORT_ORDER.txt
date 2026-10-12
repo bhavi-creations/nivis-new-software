@@ -1,24 +1,25 @@
 NIVIS LABS INTERNATIONAL - MySQL 8 schema
 
-Import in THIS ORDER:
-00_database_users.sql
-01_customers.sql
-02_categories.sql
-03_tax_gst.sql
-04_products.sql
-05_quotations.sql
-06_invoices.sql
-07_payments.sql
-08_reports_dashboard.sql
-09_settings_audit.sql
+Start MySQL from the XAMPP Control Panel, then configure NIVIS_DB_HOST,
+NIVIS_DB_PORT, NIVIS_DB_NAME, NIVIS_DB_USER and NIVIS_DB_PASSWORD in the
+environment used by Apache/PHP. For a default local XAMPP install the
+connection defaults are 127.0.0.1:3306, database nivis_labs_billing, user root
+and an empty password. Set a password for any non-local or shared installation.
 
-For CLI, run from the directory with these files:
-mysql -u your_user -p < 00_database_users.sql
-mysql -u your_user -p < 01_customers.sql
-... continue in order.
+Run the one-time schema setup from the project root using XAMPP Shell:
+  C:\xampp\php\php.exe database\setup.php
+
+The CLI-only setup imports all schema files in dependency order and adds
+illustrative skin-care categories/products, sample customers and sample GST
+rates. It does not overwrite existing tables or product rows. All tax rates are examples only:
+verify current tax treatment, HSN classification and effective dates before use.
+
+The application uses config/database.php for PDO connections and api.php for
+prepared-statement CRUD. Do not put database passwords in source control.
+Check PHP error logs and the API response if the database connection fails.
 
 Important:
-1. Demo frontend JS values are NOT connected to database by these scripts.
+1. Database-backed screens require Apache/PHP and MySQL to be running.
 2. Do NOT trust client-side totals/status. PHP should recalculate, validate, authorize.
 3. Tax rates, HSN mapping and state/place-of-supply must be configured according to current law, not guessed.
 4. Issue invoice numbers in a database transaction with a locked sequence row; do not calculate MAX(number)+1.
