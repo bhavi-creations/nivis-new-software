@@ -37,7 +37,13 @@ try {
  assert(api('categories','POST',{name:'Bad count',code:'BAD',product_count:-1}).error);
  assert(api('products','POST',{...product,quantity:-1}).error);
  const customer={name:'Test buyer',mobile:'9000000000',customer_type:'unregistered',gst_registration:'unregistered',billing_address:'Test street',city:'Test city',pincode:'533001',state:'Andhra Pradesh'};
+ // Hosting may require explicit customer codes and address defaults.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE customers MODIFY customer_code VARCHAR(40) NOT NULL"); $p->exec("ALTER TABLE customer_addresses MODIFY country VARCHAR(80) NOT NULL, MODIFY is_default TINYINT(1) NOT NULL");', [], true);
  const cid=ok(api('customers','POST',customer)).id;
+ ok(api('customers','POST',{...customer,id:cid,name:'Updated buyer',shipping_address:'Shipping street',shipping_city:'Hyderabad',shipping_state:'Telangana',shipping_pincode:'500001'}));
+ const customerSaved=ok(api('customers')).data.find(c=>c.id===cid);
+ assert.equal(customerSaved.name,'Updated buyer'); assert.equal(customerSaved.shipping_state,'Telangana');
+
  const quote={customer_id:cid,issue_date:'2026-10-12',valid_until:'2026-10-27',notes:'Keep these notes',status:'draft',items:[{product_id:pid,quantity:2,unit_price:100,discount_percent:10}]};
  const qid=ok(api('quotations','POST',quote)).id;
  let q=ok(api('quotations','GET',{}, {id:qid})).data; assert.equal(q.notes,'Keep these notes');assert.equal(Number(q.grand_total),212.4);

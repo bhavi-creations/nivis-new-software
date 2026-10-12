@@ -12,7 +12,7 @@ async function nivisApi(resource, method = "GET", data = null, id = null) {
     });
     const result = await response.json();
     if (!response.ok) {
-        throw new Error(result.error || "The database request failed.");
+        throw new Error((result.error || "The database request failed.") + (result.code ? " [" + result.code + "]" : ""));
     }
     return result;
 }

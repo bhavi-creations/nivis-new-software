@@ -62,7 +62,7 @@
       </a>
 
       <!-- <a href="settings.php" class="nav-link">
-        Settings
+        Settings su
       </a> -->
 
     </nav>

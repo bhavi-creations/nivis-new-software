@@ -273,17 +273,13 @@ try {
                 $pdo->rollBack();
                 respond(['error' => 'Customer not found.'], 404);
             }
-            if ($statement->rowCount() === 0 &&
-                !(int) $pdo->query('SELECT COUNT(*) FROM customers WHERE id=' . $customerId)->fetchColumn()) {
-                $pdo->rollBack();
-                respond(['error' => 'Customer not found.'], 404);
-            }
         } else {
             $statement = $pdo->prepare(
-                'INSERT INTO customers (name, mobile, email, customer_type, gst_registration, gstin, status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO customers (customer_code, name, mobile, email, customer_type, gst_registration, gstin, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $statement->execute([
+                'CUS-' . strtoupper(bin2hex(random_bytes(8))),
                 $name, $mobile, $email ?: null, $type, $registration, $gstin ?: null, $status,
             ]);
             $customerId = (int) $pdo->lastInsertId();
@@ -299,8 +295,8 @@ try {
         if ($billing !== '') {
             $address = $pdo->prepare(
                 'INSERT INTO customer_addresses
-                 (customer_id, address_type, address_line1, city, state_name, state_code, pincode)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+                 (customer_id, address_type, address_line1, city, state_name, state_code, pincode, country, is_default)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $city = trim((string) ($data['city'] ?? ''));
             $pincode = trim((string) ($data['pincode'] ?? ''));
@@ -308,7 +304,7 @@ try {
                 $pdo->rollBack();
                 respond(['error' => 'Billing address requires a city and six-digit pincode.'], 422);
             }
-            $address->execute([$customerId, 'billing', $billing, $city, $state, $code, $pincode]);
+            $address->execute([$customerId, 'billing', $billing, $city, $state, $code, $pincode, 'India', 1]);
             if ($shipping !== '') {
                 $shippingState = trim((string) ($data['shipping_state'] ?? $state));
                 $shippingCode = state_code($shippingState);
@@ -320,7 +316,7 @@ try {
                 $address->execute([
                     $customerId, 'shipping', $shipping,
                     trim((string) ($data['shipping_city'] ?? $city)),
-                    $shippingState, $shippingCode, $shippingPin,
+                    $shippingState, $shippingCode, $shippingPin, 'India', 1,
                 ]);
             }
         }
@@ -1003,12 +999,24 @@ try {
 
     respond(['error' => 'Unsupported API resource or method.'], 404);
 } catch (PDOException $error) {
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     error_log('Nivis database API error: ' . $error->getMessage());
     $mysqlError = (int) ($error->errorInfo[1] ?? 0);
     if (in_array($mysqlError, [1062, 1451, 1452], true)) {
-        respond(['error' => 'This record is linked to other data or duplicates an existing value. Resolve the links or use a unique value.'], 409);
+        respond(['error' => $mysqlError === 1062 ? 'A record with the same unique value already exists. Check GSTIN or customer code.' : 'This record is linked to other data. Check the related records.', 'code' => 'DB_' . $mysqlError], 409);
     }
+    // Return only a validated schema identifier, never raw SQL or submitted values.
+    $field = '';
+    if (preg_match("/(?:Field|Column|column) '([a-zA-Z0-9_]+)'/", $error->getMessage(), $match)) $field = $match[1];
+    $fieldLabel = $field !== '' ? ' (' . $field . ')' : '';
     $messages = [
+        1364 => 'The live database requires a field with no default' . $fieldLabel . '. Its schema differs from the application. Share this field name and error code with support.',
+        1048 => 'A required database field cannot be empty' . $fieldLabel . '. Check the live table definition.',
+        1265 => 'The live database does not accept this field value' . $fieldLabel . '. Check the allowed values in the table definition.',
+        1406 => 'The value is too long for the live database field' . $fieldLabel . '. Check the field length.',
+        1366 => 'The live database field has an incompatible type or character encoding' . $fieldLabel . '.',
+        3819 => 'A database validation rule rejected this record. Check the customer field values and live table constraints.',
+        4025 => 'A database validation rule rejected this record. Check the customer field values and live table constraints.',
         1045 => 'Database login failed. Check NIVIS_DB_USER and NIVIS_DB_PASSWORD in hosting settings or config/database.php.',
         1044 => 'Database access denied. Assign the database user to this database in your hosting panel.',
         1049 => 'Database not found. Check NIVIS_DB_NAME, including the hosting account prefix.',
@@ -1022,6 +1030,7 @@ try {
     ];
     respond(['error' => $messages[$mysqlError] ?? 'Database operation failed. Check the hosting PHP error log for the Nivis database API error entry.', 'code' => 'DB_' . $mysqlError], 500);
 } catch (Throwable $error) {
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     error_log('Nivis API error: ' . $error->getMessage());
     respond(['error' => 'The request could not be completed.'], 500);
 }
