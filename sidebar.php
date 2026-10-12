@@ -61,9 +61,9 @@
         Reports
       </a>
 
-      <a href="settings.php" class="nav-link">
+      <!-- <a href="settings.php" class="nav-link">
         Settings
-      </a>
+      </a> -->
 
     </nav>
 
