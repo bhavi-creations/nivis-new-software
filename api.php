@@ -1,8 +1,5 @@
 <?php
 
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/config/schema.php';
-
 header('Content-Type: application/json; charset=utf-8');
 
 function respond(array $payload, int $status = 200): void
@@ -55,6 +52,8 @@ function state_code(string $state): string
 }
 
 try {
+    require_once __DIR__ . '/config/database.php';
+    require_once __DIR__ . '/config/schema.php';
     $pdo = database_connection();
     $resource = (string) ($_GET['resource'] ?? '');
     if (in_array($resource, ['products', 'categories'], true)) {
@@ -73,6 +72,33 @@ try {
     }
     $data = request_data();
     $id = filter_var($_GET['id'] ?? $data['id'] ?? null, FILTER_VALIDATE_INT);
+
+    if ($resource === 'settings' && $method === 'GET') {
+        respond(['data' => $pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch() ?: null]);
+    }
+    if ($resource === 'settings' && $method === 'POST') {
+        $name = required_text($data, 'company_name', 180);
+        $address = required_text($data, 'address', 5000);
+        $state = required_text($data, 'state_name', 100);
+        $code = state_code($state);
+        $email = trim((string) ($data['email'] ?? ''));
+        $gstin = strtoupper(trim((string) ($data['gstin'] ?? '')));
+        $phone = trim((string) ($data['phone'] ?? ''));
+        if ($code === '' || strlen($phone) > 20 || strlen($email) > 190 ||
+            ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) ||
+            ($gstin !== '' && (!preg_match('/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/', $gstin) || substr($gstin, 0, 2) !== $code))) {
+            respond(['error' => 'Check the company state, GSTIN, email and phone.'], 422);
+        }
+        $pdo->beginTransaction();
+        $pdo->prepare('INSERT INTO company_settings (id, company_name, address, state_name, state_code, gstin, email, phone)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE
+            company_name=VALUES(company_name), address=VALUES(address), state_name=VALUES(state_name),
+            state_code=VALUES(state_code), gstin=VALUES(gstin), email=VALUES(email), phone=VALUES(phone)')
+            ->execute([$name, $address, $state, $code, $gstin ?: null, $email ?: null, $phone ?: null]);
+        $pdo->prepare('UPDATE gst_configuration SET seller_state_name=?, seller_state_code=? WHERE id=1')->execute([$state, $code]);
+        $pdo->commit();
+        respond(['message' => 'Company settings saved.']);
+    }
 
     if ($resource === 'products' && $method === 'GET') {
         $rows = $pdo->query(
@@ -170,7 +196,7 @@ try {
             'SELECT c.id, c.name, c.code, c.description, c.status, c.product_count,
                     COUNT(p.id) AS linked_products, COALESCE(c.product_count, COUNT(p.id)) AS products
              FROM categories c LEFT JOIN products p ON p.category_id=c.id
-             GROUP BY c.id ORDER BY c.id'
+             GROUP BY c.id, c.name, c.code, c.description, c.status, c.product_count ORDER BY c.id'
         )->fetchAll();
         respond(['data' => $rows]);
     }
@@ -226,7 +252,7 @@ try {
                     MAX(CASE WHEN a.address_type='shipping' THEN a.state_name END) AS shipping_state,
                     MAX(CASE WHEN a.address_type='shipping' THEN a.pincode END) AS shipping_pincode
              FROM customers c LEFT JOIN customer_addresses a ON a.customer_id=c.id
-             GROUP BY c.id ORDER BY c.id"
+             GROUP BY c.id, c.name, c.mobile, c.email, c.gstin, c.customer_type, c.gst_registration, c.status ORDER BY c.id"
         )->fetchAll();
         respond(['data' => $rows]);
     }
@@ -397,7 +423,7 @@ try {
                 LEFT JOIN invoices i ON i.quotation_id=q.id
                 LEFT JOIN quotation_items qi ON qi.quotation_id=q.id";
         if ($id) {
-            $statement = $pdo->prepare($sql . ' WHERE q.id=? GROUP BY q.id');
+            $statement = $pdo->prepare($sql . ' WHERE q.id=? GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id');
             $statement->execute([$id]);
             $rows = $statement->fetchAll();
             if (!$rows) {
@@ -413,7 +439,7 @@ try {
             $rows[0]['items'] = $itemStatement->fetchAll();
             respond(['data' => $rows[0]]);
         }
-        $rows = $pdo->query($sql . ' GROUP BY q.id ORDER BY q.id DESC')->fetchAll();
+        $rows = $pdo->query($sql . ' GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id ORDER BY q.id DESC')->fetchAll();
         foreach ($rows as &$row) {
             $row['products'] = $row['product_names'] === null
                 ? [] : explode(' | ', $row['product_names']);
@@ -668,7 +694,7 @@ try {
                 LEFT JOIN quotations q ON q.id=i.quotation_id
                 LEFT JOIN invoice_items ii ON ii.invoice_id=i.id";
         if ($id) {
-            $statement = $pdo->prepare($sql . ' WHERE i.id=? GROUP BY i.id');
+            $statement = $pdo->prepare($sql . ' WHERE i.id=? GROUP BY i.id, i.invoice_number, i.quotation_id, q.quote_number, c.name, i.issue_date, i.status, i.grand_total, i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name, i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code, i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total');
             $statement->execute([$id]);
             $invoice = $statement->fetch();
             if (!$invoice) {
@@ -692,7 +718,7 @@ try {
                 ? [] : explode(' | ', $invoice['product_names']);
             respond(['data' => $invoice]);
         }
-        $rows = $pdo->query($sql . ' GROUP BY i.id ORDER BY i.id DESC')->fetchAll();
+        $rows = $pdo->query($sql . ' GROUP BY i.id, i.invoice_number, i.quotation_id, q.quote_number, c.name, i.issue_date, i.status, i.grand_total, i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name, i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code, i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total ORDER BY i.id DESC')->fetchAll();
         foreach ($rows as &$row) {
             $row['products'] = $row['product_names'] === null
                 ? [] : explode(' | ', $row['product_names']);
@@ -986,7 +1012,7 @@ try {
             'customers' => [
                 "SELECT c.name, c.mobile, COUNT(i.id) AS invoices, COALESCE(SUM(i.grand_total),0) AS sales
                  FROM customers c LEFT JOIN invoices i ON i.customer_id=c.id AND i.status='issued' AND i.issue_date BETWEEN ? AND ?
-                 GROUP BY c.id ORDER BY sales DESC, c.name",
+                 GROUP BY c.id, c.name, c.mobile ORDER BY sales DESC, c.name",
                 [$from, $to],
             ],
             'products' => [
@@ -995,7 +1021,7 @@ try {
                  FROM products p JOIN categories c ON c.id=p.category_id
                  LEFT JOIN (SELECT ii.product_id, ii.quantity, ii.line_total FROM invoice_items ii
                     JOIN invoices i ON i.id=ii.invoice_id WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?) s ON s.product_id=p.id
-                 GROUP BY p.id ORDER BY sales DESC, p.name",
+                 GROUP BY p.id, p.name, p.sku, c.name, p.hsn_code ORDER BY sales DESC, p.name",
                 [$from, $to],
             ],
         ];

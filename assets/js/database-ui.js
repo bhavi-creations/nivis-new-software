@@ -1360,3 +1360,25 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const form = document.getElementById('companySettings');
+    if (!form) return;
+    const message = document.getElementById('companyMessage');
+    const button = form.querySelector('button[type="submit"]');
+    try {
+        const {data} = await nivisApi('settings');
+        if (data) for (const [key, value] of Object.entries(data)) {
+            if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value ?? '';
+        }
+        button.disabled = false;
+    } catch (error) { nivisMessage(message, error.message, true); }
+    form.addEventListener('submit', async event => {
+        event.preventDefault(); button.disabled = true;
+        try {
+            const result = await nivisApi('settings', 'POST', Object.fromEntries(new FormData(form)));
+            nivisMessage(message, result.message);
+        } catch (error) { nivisMessage(message, error.message, true); }
+        finally { button.disabled = false; }
+    });
+});

@@ -46,7 +46,7 @@ include 'sidebar.php';
           <label for="nivisInvoiceCustomer">CUSTOMER</label>
           <select class="form-select"
                   id="nivisInvoiceCustomer">
-            <option value="Draft">Draft</option><option value="Cancelled">Cancelled</option><option value="all" selected>All customers</option>
+            <option value="all" selected>All customers</option>
             <option value="Sri Lakshmi Traders">Sri Lakshmi Traders</option>
             <option value="Ravi Enterprises">Ravi Enterprises</option>
             <option value="Sree Agencies">Sree Agencies</option>

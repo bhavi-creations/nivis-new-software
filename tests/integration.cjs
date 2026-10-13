@@ -13,11 +13,11 @@ const api = (resource, method='GET', data={}, query={}) => {
 const ok = result => { assert(!result.error, JSON.stringify(result)); return result; };
 try {
  run('require "config/database.php"; $p=database_connection(false); $p->exec("CREATE DATABASE " . $argv[1]);', [db]);
- for(const file of ['database_users.sql','customers.sql','categories.sql','tax_gst.sql','products.sql','quotations.sql','invoices.sql','payments.sql','reports_dashboard.sql','settings_audit.sql']) {
-  let sql=fs.readFileSync(path.join(root,'database',file),'utf8');
-  sql=sql.replace(/CREATE DATABASE IF NOT EXISTS nivis_labs_billing[^;]*;/g,'').replace(/USE nivis_labs_billing;/g,'USE '+db+';');
-  run('require "config/database.php"; $p=database_connection(); $p->exec($argv[1]);', [sql], true);
- }
+ run('require "config/database.php"; $p=database_connection(); $p->exec($argv[1]);', [fs.readFileSync(path.join(root,'database/schema.sql'),'utf8')], true);
+ cp.execFileSync(php, ['database/setup.php'], {cwd:root, env:{...process.env,NIVIS_DB_NAME:db}});
+ ok(api('settings','POST',{company_name:'Test Company',address:'Test address',state_name:'Andhra Pradesh',email:'test@example.com',phone:'9000000000'}));
+ assert.equal(ok(api('settings')).data.company_name,'Test Company');
+ assert(api('settings','POST',{company_name:'Invalid',address:'Address',state_name:'Unknown'}).error);
  // Simulate an older hosting database and verify automatic migration preserves data.
  run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE products DROP COLUMN default_quantity, DROP COLUMN gst_region"); $p->exec("ALTER TABLE categories DROP COLUMN product_count");', [], true);
  ok(api('products')); ok(api('categories'));

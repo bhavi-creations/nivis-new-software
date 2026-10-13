@@ -64,9 +64,9 @@
         Reports
       </a>
 
-      <!-- <a href="settings.php" class="nav-link">
-        Settings su
-      </a> -->
+      <a href="settings.php" class="nav-link">
+        Settings
+      </a>
 
     </nav>
 

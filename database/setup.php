@@ -41,6 +41,11 @@ try {
         echo 'Installed ' . $file . PHP_EOL;
     }
 
+    if (!in_array('--demo', $argv, true)) {
+        echo 'Schema installed. Configure company settings and tax rates in the application.' . PHP_EOL;
+        exit(0);
+    }
+
     $insertRate = $pdo->prepare(
         "INSERT INTO tax_rates (name, rate_percent, treatment, effective_from, is_enabled)
          SELECT ?, ?, ?, CURRENT_DATE(), 1
