@@ -39,8 +39,15 @@ try {
  const customer={name:'Test buyer',mobile:'9000000000',customer_type:'unregistered',gst_registration:'unregistered',billing_address:'Test street',city:'Test city',pincode:'533001',state:'Andhra Pradesh'};
  // Hosting may require explicit customer codes and address defaults.
  run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE customers MODIFY customer_code VARCHAR(40) NOT NULL"); $p->exec("ALTER TABLE customer_addresses MODIFY country VARCHAR(80) NOT NULL, MODIFY is_default TINYINT(1) NOT NULL");', [], true);
+ // Reproduce a hosting import that lost AUTO_INCREMENT on both identity columns.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE customers MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE customer_addresses MODIFY id BIGINT UNSIGNED NOT NULL");', [], true);
  const cid=ok(api('customers','POST',customer)).id;
+ assert(cid > 0);
  ok(api('customers','POST',{...customer,id:cid,name:'Updated buyer',shipping_address:'Shipping street',shipping_city:'Hyderabad',shipping_state:'Telangana',shipping_pincode:'500001'}));
+ // Repeat the repair on populated tables and verify the original customer survives.
+ run('require "config/database.php"; require "config/schema.php"; $p=database_connection(); $p->exec("ALTER TABLE customers MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE customer_addresses MODIFY id BIGINT UNSIGNED NOT NULL"); ensure_customer_identity_columns($p); ensure_customer_identity_columns($p);', [], true);
+ const nextCustomer = ok(api('customers','POST',{...customer,name:'After identity repair'})).id;
+ assert(nextCustomer > cid);
  const customerSaved=ok(api('customers')).data.find(c=>c.id===cid);
  assert.equal(customerSaved.name,'Updated buyer'); assert.equal(customerSaved.shipping_state,'Telangana');
 

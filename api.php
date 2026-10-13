@@ -258,6 +258,7 @@ try {
         }
         $status = valid_status($data, 'status');
 
+        ensure_customer_identity_columns($pdo);
         $pdo->beginTransaction();
         if ($customerId) {
             $statement = $pdo->prepare(
@@ -1024,7 +1025,7 @@ try {
         2003 => 'Cannot reach the database server. Check the database host and port.',
         1146 => 'A required database table or view is missing. Import the application schema into the selected live database.',
         1054 => 'The live database schema is outdated. Run database/migrate_product_defaults.php on the server and verify all application tables were imported.',
-        1142 => 'Database permission denied. Read/write access is required; adding missing columns requires ALTER permission. Ask your hosting administrator to run database/migrate_product_defaults.php.',
+        1142 => 'Database permission denied. Read/write access is required; schema repairs require ALTER permission. Ask your hosting administrator to run database/migrate_customer_ids.php and database/migrate_product_defaults.php.',
         1143 => 'Database column access denied. Check database user permissions in the hosting panel.',
         1055 => 'A database query is incompatible with the server grouping rules. Check the hosting PHP error log for the failing query.',
     ];

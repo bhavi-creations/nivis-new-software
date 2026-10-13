@@ -3,9 +3,9 @@ NIVIS LABS INTERNATIONAL - MySQL 8 schema
 Start MySQL from the XAMPP Control Panel, then configure NIVIS_DB_HOST,
 NIVIS_DB_PORT, NIVIS_DB_NAME, NIVIS_DB_USER and NIVIS_DB_PASSWORD in the
 environment used by Apache/PHP. For a default local XAMPP install the
-connection defaults are 127.0.0.1:3306, database nivis_labs_billing, user root
-and an empty password. Set a password for any non-local or shared installation.
+set NIVIS_DB_HOST=127.0.0.1, NIVIS_DB_NAME=nivis_labs_billing, NIVIS_DB_USER=root and NIVIS_DB_PASSWORD to your local password. Set a password for any non-local or shared installation.
 
+Create the configured database first (using your hosting panel or MySQL).
 Run the one-time schema setup from the project root using XAMPP Shell:
   C:\xampp\php\php.exe database\setup.php
 
@@ -32,3 +32,24 @@ Important:
 
 Existing installations: run C:\xampp\php\php.exe database\migrate_product_defaults.php once to add default_quantity and gst_region without removing records. The migration is safe to run again.
 Integration checks: node tests/integration.cjs (creates and removes an isolated nivis_test_* database).
+
+Subdomain customer error DB_1364 (id):
+The database connection succeeded, but an imported identity column may have
+lost AUTO_INCREMENT. Upload api.php and config/schema.php together. Customer
+saves check customers.id and customer_addresses.id before the transaction and
+restore AUTO_INCREMENT when the existing integer ID is the sole primary key.
+Existing positive IDs and foreign keys are preserved. ALTER permission is
+needed only when a repair is required. Unexpected keys/types or non-positive
+IDs are left for manual review; see the PHP error log.
+
+Alternatively upload database/migrate_customer_ids.php and run from the
+application root in the hosting terminal, with the same NIVIS_DB_* environment:
+  php database/migrate_customer_ids.php
+This command is CLI-only, can be repeated, and does not add sample data.
+Take a database backup before production schema changes.
+Do not use setup.php as the repair command: it also installs sample data.
+
+Configure NIVIS_DB_HOST, NIVIS_DB_PORT, NIVIS_DB_NAME, NIVIS_DB_USER and
+NIVIS_DB_PASSWORD for the subdomain's PHP environment. The database name/user
+must include any hosting account prefix. setup.php now uses that configured
+database rather than the database name embedded in exported SQL files.

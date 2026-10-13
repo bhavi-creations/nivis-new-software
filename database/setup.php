@@ -21,7 +21,7 @@ $files = [
 ];
 
 try {
-    $pdo = database_connection(false);
+    $pdo = database_connection();
     foreach ($files as $file) {
         $path = __DIR__ . DIRECTORY_SEPARATOR . $file;
         $contents = file_get_contents($path);
@@ -30,6 +30,8 @@ try {
         }
 
         $contents = preg_replace('/^\s*--.*$/m', '', $contents);
+        // Ignore export database names; install only into the configured database.
+        $contents = preg_replace('/^\s*(?:CREATE DATABASE\b[^;]*|USE\s+[^;]+);/mi', '', $contents);
         $statements = preg_split('/;\s*(?:\r?\n|$)/', $contents);
         foreach ($statements as $statement) {
             if (trim($statement) !== '') {
