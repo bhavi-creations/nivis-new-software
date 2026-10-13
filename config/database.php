@@ -10,9 +10,9 @@ function database_connection(bool $selectDatabase = true): PDO
 {
     $host = database_env('NIVIS_DB_HOST', '127.0.0.1');
     $port = database_env('NIVIS_DB_PORT', '3306');
-    $database = database_env('NIVIS_DB_NAME', 'nivissoftware');
-    $user = database_env('NIVIS_DB_USER', 'bhavicreations');
-    $password = database_env('NIVIS_DB_PASSWORD', 'd8Az75YlgmyBnVM');
+    $database = database_env('NIVIS_DB_NAME', 'nivis_labs_billing');
+    $user = database_env('NIVIS_DB_USER', 'root');
+    $password = database_env('NIVIS_DB_PASSWORD', '');
     $databasePart = $selectDatabase ? ';dbname=' . $database : '';
     $dsn = 'mysql:host=' . $host . ';port=' . $port . $databasePart . ';charset=utf8mb4';
 

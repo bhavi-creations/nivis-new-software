@@ -61,6 +61,16 @@ try {
         ensure_billing_columns($pdo, $resource);
     }
     $method = $_SERVER['REQUEST_METHOD'];
+    if ($method === 'POST') {
+        $identityTables = [
+            'products' => ['products'],
+            'categories' => ['categories'],
+            'customers' => ['customers', 'customer_addresses'],
+        ];
+        if (isset($identityTables[$resource])) {
+            ensure_identity_columns($pdo, $identityTables[$resource]);
+        }
+    }
     $data = request_data();
     $id = filter_var($_GET['id'] ?? $data['id'] ?? null, FILTER_VALIDATE_INT);
 
@@ -258,7 +268,6 @@ try {
         }
         $status = valid_status($data, 'status');
 
-        ensure_customer_identity_columns($pdo);
         $pdo->beginTransaction();
         if ($customerId) {
             $statement = $pdo->prepare(
@@ -1011,7 +1020,7 @@ try {
     if (preg_match("/(?:Field|Column|column) '([a-zA-Z0-9_]+)'/", $error->getMessage(), $match)) $field = $match[1];
     $fieldLabel = $field !== '' ? ' (' . $field . ')' : '';
     $messages = [
-        1364 => 'The live database requires a field with no default' . $fieldLabel . '. Its schema differs from the application. Share this field name and error code with support.',
+        1364 => 'The live database requires a field with no default' . $fieldLabel . '. Its schema differs from the application. Run database/migrate_identity_columns.php on the hosting server; check PHP logs if the repair fails.',
         1048 => 'A required database field cannot be empty' . $fieldLabel . '. Check the live table definition.',
         1265 => 'The live database does not accept this field value' . $fieldLabel . '. Check the allowed values in the table definition.',
         1406 => 'The value is too long for the live database field' . $fieldLabel . '. Check the field length.',
@@ -1025,7 +1034,7 @@ try {
         2003 => 'Cannot reach the database server. Check the database host and port.',
         1146 => 'A required database table or view is missing. Import the application schema into the selected live database.',
         1054 => 'The live database schema is outdated. Run database/migrate_product_defaults.php on the server and verify all application tables were imported.',
-        1142 => 'Database permission denied. Read/write access is required; schema repairs require ALTER permission. Ask your hosting administrator to run database/migrate_customer_ids.php and database/migrate_product_defaults.php.',
+        1142 => 'Database permission denied. Read/write access is required; schema repairs require ALTER permission. Ask your hosting administrator to run database/migrate_identity_columns.php and database/migrate_product_defaults.php.',
         1143 => 'Database column access denied. Check database user permissions in the hosting panel.',
         1055 => 'A database query is incompatible with the server grouping rules. Check the hosting PHP error log for the failing query.',
     ];

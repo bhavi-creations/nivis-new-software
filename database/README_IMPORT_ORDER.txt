@@ -53,3 +53,22 @@ Configure NIVIS_DB_HOST, NIVIS_DB_PORT, NIVIS_DB_NAME, NIVIS_DB_USER and
 NIVIS_DB_PASSWORD for the subdomain's PHP environment. The database name/user
 must include any hosting account prefix. setup.php now uses that configured
 database rather than the database name embedded in exported SQL files.
+Product/category/customer DB_1364 (id) repair:
+Upload api.php, config/schema.php and database/migrate_identity_columns.php
+into the matching folders under the subdomain document root. Keep the live
+config/database.php and its hosting credentials/environment configuration.
+POST requests for products, categories and customers now check the corresponding
+identity columns before any transaction and restore missing AUTO_INCREMENT.
+The customer check includes customer_addresses. Existing positive IDs and
+foreign-key relationships are preserved; no sample records are installed.
+
+Back up the live database first. To repair all four tables before accepting
+writes, run in the hosting terminal from the application root:
+  php database/migrate_identity_columns.php
+Use the same NIVIS_DB_* environment as the subdomain PHP process. The database
+user needs ALTER permission for repairs. Once repaired, ALTER is not needed
+for these identity checks. The CLI command is safe to repeat.
+If a primary key is missing/composite, the ID type is unexpected, or IDs are
+zero/negative, repair stops rather than guessing or renumbering existing data.
+The hosting PHP error log/CLI output identifies the table requiring review.
+This is a schema mismatch after connection, not a reason to change DB passwords.

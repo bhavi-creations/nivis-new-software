@@ -23,9 +23,14 @@ try {
  ok(api('products')); ok(api('categories'));
  ok(api('products')); ok(api('categories')); // Repeated checks must be safe.
  ok(api('tax_rates','POST',{name:'Test 18%',rate_percent:18,treatment:'taxable',effective_from:'2020-01-01'}));
+ // Reproduce hosting imports with missing product/category AUTO_INCREMENT.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE products MODIFY id BIGINT UNSIGNED NOT NULL");', [], true);
  const cat=ok(api('categories','POST',{name:'Test category',code:'TEST',status:'active'})).id;
  const product={name:'Test product',sku:'TEST-1',category_id:cat,hsn:'330499',unit:'PCS',price:100,gst:18,discount:10,quantity:2,gst_region:'inside_ap',status:'active'};
  const pid=ok(api('products','POST',product)).id;
+ // Repair populated tables as well; IDs and category references must survive.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE products MODIFY id BIGINT UNSIGNED NOT NULL");', [], true);
+ ok(api('categories','POST',{id:cat,name:'Test category',code:'TEST',status:'active'}));
  ok(api('products','POST',{...product,id:pid,quantity:3,gst_region:'outside_ap'}));
  const saved=ok(api('products')).data.find(p=>p.id===pid); assert.equal(Number(saved.quantity),3); assert.equal(saved.gst_region,'outside_ap');
  assert.equal(ok(api('categories')).data[0].products,1);
