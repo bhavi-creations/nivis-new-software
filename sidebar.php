@@ -15,7 +15,10 @@
 
     <!-- Logo Section -->
     <a href="dashboard.php" class="sidebar-brand">
-      <div class="brand-icon">N</div>
+      <!-- <div class="brand-icon">N</div> -->
+      <div class="brand-icon">
+        <img src="./assets/img/logo.jpeg" alt="logo" style="width: 50px; height:50px;">
+      </div>
       <div>
         <div class="brand-name">NIVIS LABS</div>
         <div class="brand-subtitle">INTERNATIONAL</div>
