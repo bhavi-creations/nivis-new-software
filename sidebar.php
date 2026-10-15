@@ -29,42 +29,52 @@
     <nav class="sidebar-nav" aria-label="Main navigation">
 
       <a href="dashboard.php" class="nav-link">
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
         Dashboard
       </a>
 
       <a href="customers.php" class="nav-link active">
+        <i class="fa-solid fa-users" aria-hidden="true"></i>
         Customers
       </a>
 
        <a href="add-edit-customer.php" class="nav-link">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
         Add/Edit Customer
       </a>
 
       <a href="categories.php" class="nav-link">
+        <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
         Categories
       </a>
 
       <a href="tax.php" class="nav-link">
+        <i class="fa-solid fa-percent" aria-hidden="true"></i>
         Tax &amp; GST
       </a>
 
       <a href="products.php" class="nav-link">
+        <i class="fa-solid fa-box" aria-hidden="true"></i>
         Products
       </a>
 
       <a href="quotations.php" class="nav-link">
+        <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
         Quotations
       </a>
 
       <a href="invoices.php" class="nav-link">
+        <i class="fa-solid fa-file-invoice" aria-hidden="true"></i>
         Invoices
       </a>
 
       <a href="reports.php" class="nav-link">
+        <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
         Reports
       </a>
 
       <a href="settings.php" class="nav-link">
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
         Settings
       </a>
 
@@ -72,7 +82,7 @@
 
     <!-- Sidebar Footer -->
     <div class="sidebar-footer">
-      UI/UX DESIGN SYSTEM
+      NIVIS LABS ? BILLING
     </div>
 
   </aside>

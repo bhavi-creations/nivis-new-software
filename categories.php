@@ -12,7 +12,7 @@ include 'sidebar.php';
     <div class="nivis_labs_category_header">
       <div>
         <h1>Categories</h1>
-        <p>Organize sunscreen, moisturizers, serums and cleanser ranges</p>
+        <p>Enter your categories manually, then add products</p>
       </div>
 
       <div class="nivis_labs_category_account">
@@ -81,7 +81,7 @@ include 'sidebar.php';
                      class="form-control"
                      id="nivisCategoryName"
                      name="category_name"
-                     placeholder="Sun Care"
+                     placeholder="Enter category name"
                      maxlength="100"
                      required>
             </div>
@@ -95,9 +95,8 @@ include 'sidebar.php';
                      class="form-control"
                      id="nivisCategoryCode"
                      name="category_code"
-                     placeholder="SUN"
-                     maxlength="20"
-                     required>
+                     placeholder="Generated automatically if blank"
+                     maxlength="20">
             </div>
 
             <div class="nivis_labs_category_field">

@@ -54,5 +54,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/calculations.js"></script>
 <script src="assets/js/database-ui.js"></script>
+<script src="assets/js/ui-theme.js"></script>
 </body>
 </html>

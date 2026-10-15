@@ -76,13 +76,14 @@ include 'sidebar.php';
     </div>
 
     <div class="tax-gst-card">
-      <h2>Add GST rate</h2><p>Use the applicable HSN rate and effective date. Inside AP splits GST equally into CGST and SGST; outside AP uses IGST for ordinary domestic sales by an AP supplier.</p>
+      <h2 id="taxRateHeading">Add GST rate</h2><p>Use the applicable HSN rate and effective date. Inside AP splits GST equally into CGST and SGST; outside AP uses IGST for ordinary domestic sales by an AP supplier.</p>
       <form id="taxRateForm" class="row g-3">
+        <input type="hidden" id="taxRateId">
         <div class="col-md-4"><label for="taxRateName">Rate name</label><input id="taxRateName" class="form-control" maxlength="100" required></div>
         <div class="col-md-2"><label for="taxRatePercent">GST %</label><input id="taxRatePercent" class="form-control" type="number" min="0" max="100" step="0.001" required></div>
         <div class="col-md-3"><label for="taxRateTreatment">Treatment</label><select id="taxRateTreatment" class="form-select"><option value="taxable">Taxable</option><option value="nil_rated">Nil rated</option><option value="exempt">Exempt</option><option value="zero_rated">Zero rated</option><option value="non_gst">Non GST</option></select></div>
         <div class="col-md-3"><label for="taxRateDate">Effective from</label><input id="taxRateDate" class="form-control" type="date" required></div>
-        <div><button class="btn btn-primary" type="submit">Add rate</button><span id="taxRateMessage" role="status"></span></div>
+        <div><button class="btn btn-primary" type="submit" id="taxRateSave">Save rate</button><button type="reset" class="btn btn-light ms-2">Cancel / New</button><span id="taxRateMessage" role="status"></span></div>
       </form>
     </div>
     <!-- GST Rates -->
@@ -93,10 +94,10 @@ include 'sidebar.php';
         <table class="table tax-gst-table mb-0">
           <thead>
             <tr>
-              <th>Total GST</th>
+              <th>Name</th><th>Total GST</th>
               <th>Inside AP (CGST + SGST)</th>
               <th>Outside AP (IGST)</th>
-              <th>Status</th>
+              <th>Status</th><th>Actions</th>
             </tr>
           </thead>
 

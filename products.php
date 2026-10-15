@@ -13,7 +13,7 @@ include 'sidebar.php';
     <div class="nivis-produdcts-header">
       <div>
         <h1>Products</h1>
-        <p>Skin-care catalog featuring sunscreen, moisturizers, serums and cleansers</p>
+        <p>Manage product costs, quantities and availability</p>
       </div>
 
       <div class="nivis-produdcts-account">
@@ -23,11 +23,10 @@ include 'sidebar.php';
 
     <!-- Add Product Button -->
     <div class="nivis-produdcts-toolbar">
+      <a href="categories.php" class="btn btn-outline-primary me-2">+ Add category</a>
       <button type="button"
               class="nivis-produdcts-add-btn"
-              id="nivisProductAddBtn"
-              data-bs-toggle="modal"
-              data-bs-target="#nivisProductModal">
+              id="nivisProductAddBtn">
         + Add product
       </button>
     </div>
@@ -35,11 +34,6 @@ include 'sidebar.php';
     <!-- Product Filters -->
     <div class="nivis-produdcts-filters">
       <div class="row g-3">
-            <div class="col-md-6"><label for="productSerial">S.NO</label><input id="productSerial" class="form-control" readonly></div>
-            <div class="col-md-6"><label for="productQuantity">QUANTITY</label><input id="productQuantity" class="form-control" readonly></div>
-            <div class="col-md-6"><label for="productRegion">GST REGION</label><input id="productRegion" class="form-control" readonly></div>
-            <div class="col-md-6"><label for="productTotal">TOTAL</label><input id="productTotal" class="form-control" readonly><small id="productTaxSplit"></small></div>
-
         <div class="col-12 col-md-5">
           <label for="nivisProductSearch">
             SEARCH PRODUCT
@@ -85,17 +79,18 @@ include 'sidebar.php';
     <div class="nivis-produdcts-table-card">
       <h2 class="nivis-produdcts-table-title">
         <i class="fa-solid fa-spa" aria-hidden="true"></i>
-        Skin-care product catalogue
+        Product catalogue
       </h2>
       <div class="table-responsive">
         <table class="table nivis-produdcts-table mb-0">
           <thead>
             <tr>
-              <th>Product / SKU</th>
+              <th>S.No</th><th>Photo</th>
+              <th>Product name</th>
               <th>Category</th>
-              <th>HSN</th>
-              <th>Price</th>
-              <th>GST</th>
+              <th>Cost</th>
+              <th>Quantity</th>
+              <th>Availability</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -135,8 +130,15 @@ include 'sidebar.php';
       </div>
 
       <form id="nivisProductForm">
+        <div class="px-3 pt-3"><img id="productImagePreview" class="product-photo-preview" alt="Product photo" hidden></div>
         <div class="modal-body">
           <div class="row g-3">
+            <div class="col-md-6"><label for="productSerial">S.NO</label><input id="productSerial" class="form-control" readonly></div>
+            <div class="col-md-6"><label for="productQuantity">QUANTITY</label><input id="productQuantity" class="form-control" readonly></div>
+            <div class="col-md-6"><label for="productRegion">GST REGION</label><input id="productRegion" class="form-control" readonly></div>
+            <div class="col-md-6"><label for="productTotal">TOTAL</label><input id="productTotal" class="form-control" readonly><small id="productTaxSplit"></small></div>
+
+
 
             <div class="col-12 col-md-6">
               <label class="form-label" for="productName">
@@ -179,18 +181,18 @@ include 'sidebar.php';
               </label>
               <select class="form-select"
                       id="productUnit" required>
-                <option value="Pcs">Pcs</option>
-                <option value="Box">Box</option>
-                <option value="Kg">Kg</option>
-                <option value="Meter">Meter</option>
-                <option value="Set">Set</option>
-                <option value="Liter">Liter</option>
+                <option value="PCS">Pcs</option>
+                <option value="BOX">Box</option>
+                <option value="KG">Kg</option>
+                <option value="METER">Meter</option>
+                <option value="SET">Set</option>
+                <option value="LITER">Liter</option>
               </select>
             </div>
 
             <div class="col-12 col-md-4">
               <label class="form-label" for="productPrice">
-                SELLING PRICE *
+                COST *
               </label>
               <input type="number" class="form-control"
                      id="productPrice" min="0"

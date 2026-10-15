@@ -41,6 +41,17 @@ try {
  assert.equal(ok(api('categories')).data[0].products,1);
  assert(api('categories','POST',{name:'Bad count',code:'BAD',product_count:-1}).error);
  assert(api('products','POST',{...product,quantity:-1}).error);
+ // Manual category entry, stable serials, and zero-stock persistence.
+ const manualCategory=ok(api('categories','POST',{name:'Manual category'})).id;
+ const stockId=ok(api('products','POST',{...product,sku:'STOCK-TEST',category_id:manualCategory,quantity:0})).id;
+ assert(stockId > pid);
+ assert.equal(Number(ok(api('products')).data.find(p=>p.id===stockId).quantity),0);
+ ok(api('products','POST',{...product,id:stockId,sku:'STOCK-TEST',category_id:manualCategory,quantity:5,price:125}));
+ const stock=ok(api('products')).data.find(p=>p.id===stockId);
+ assert.equal(Number(stock.quantity),5); assert.equal(Number(stock.price),125);
+ ok(api('products','DELETE',{}, {id:stockId}));
+ assert(!ok(api('products')).data.some(p=>p.id===stockId));
+ ok(api('categories','DELETE',{}, {id:manualCategory}));
  const customer={name:'Test buyer',mobile:'9000000000',customer_type:'unregistered',gst_registration:'unregistered',billing_address:'Test street',city:'Test city',pincode:'533001',state:'Andhra Pradesh'};
  // Hosting may require explicit customer codes and address defaults.
  run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE customers MODIFY customer_code VARCHAR(40) NOT NULL"); $p->exec("ALTER TABLE customer_addresses MODIFY country VARCHAR(80) NOT NULL, MODIFY is_default TINYINT(1) NOT NULL");', [], true);
@@ -61,10 +72,24 @@ try {
  let q=ok(api('quotations','GET',{}, {id:qid})).data; assert.equal(q.notes,'Keep these notes');assert.equal(Number(q.grand_total),212.4);
  ok(api('quotations','POST',{...quote,id:qid,status:'approved'}));
  const iid=ok(api('invoices','POST',{action:'convert',quotation_id:qid})).id;
+ ok(api('invoices','POST',{action:'edit',invoice_id:iid,due_date:'2026-12-31',notes:'Updated draft'}));
+ assert.equal(ok(api('invoices','GET',{}, {id:iid})).data.notes,'Updated draft');
+ assert(api('invoices','POST',{action:'edit',invoice_id:iid,due_date:'2020-01-01'}).error);
  let invoice=ok(api('invoices','GET',{}, {id:iid})).data;
  assert(invoice.supplier_name); assert.equal(Number(invoice.cgst_total),16.2);assert.equal(Number(invoice.sgst_total),16.2);assert.equal(Number(invoice.igst_total),0);assert(invoice.invoice_number.length<=16);
  assert(api('invoices','POST',{action:'convert',quotation_id:qid}).error);
  ok(api('invoices','POST',{action:'issue',invoice_id:iid}));
+ assert(api('invoices','DELETE',{}, {id:iid}).error);
+ assert(api('invoices','POST',{action:'edit',invoice_id:iid,notes:'Blocked'}).error);
+ const draftQuote=ok(api('quotations','POST',{...quote,status:'approved'})).id;
+ const draftInvoice=ok(api('invoices','POST',{action:'convert',quotation_id:draftQuote})).id;
+ ok(api('invoices','DELETE',{}, {id:draftInvoice}));
+ assert(api('invoices','GET',{}, {id:draftInvoice}).error);
+ const testRate=ok(api('tax_rates','POST',{name:'Temporary',rate_percent:7,treatment:'taxable',effective_from:'2020-01-01'})).id;
+ ok(api('tax_rates','POST',{id:testRate,name:'Updated rate',rate_percent:8,treatment:'taxable',effective_from:'2020-01-01'}));
+ assert.equal(ok(api('tax')).rates.find(r=>r.id===testRate).name,'Updated rate');
+ ok(api('tax_rates','DELETE',{}, {id:testRate}));
+ assert(!ok(api('tax')).rates.some(r=>r.id===testRate));
  ok(api('invoices','POST',{action:'payment',invoice_id:iid,amount:100,payment_date:'2026-10-12',payment_method:'cash'}));
  assert(api('invoices','POST',{action:'payment',invoice_id:iid,amount:200,payment_date:'2026-10-12',payment_method:'cash'}).error);
  for(const type of ['sales','gst','quotation','payments','outstanding','customers','products']) {let report=ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type}));assert(report.rows.length,type);}
@@ -81,6 +106,17 @@ try {
  assert(api('quotations','POST',{...quote,place_of_supply_state_code:'XX'}).error);
  ok(api('products','POST',{...product,id:pid,status:'inactive'}));
  assert.equal(ok(api('dashboard')).stats.products,1);
+ // Deletion must work with address-only and invoice-linked customers.
+ ok(api('customers','DELETE',{}, {id:nextCustomer}));
+ assert(!ok(api('customers')).data.some(c=>c.id===nextCustomer));
+ ok(api('customers','DELETE',{}, {id:cid}));
+ assert(!ok(api('customers')).data.some(c=>c.id===cid));
+ assert(api('customers','POST',{...customer,id:cid}).error);
+ assert(api('customers','DELETE',{}, {id:cid}).error);
+ assert(api('quotations','POST',quote).error);
+ assert.equal(ok(api('invoices','GET',{}, {id:iid})).data.id,iid);
+ assert.equal(ok(api('quotations','GET',{}, {id:qid})).data.id,qid);
+ assert(ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type:'sales'})).rows.length);
  console.log('PASS: customer/product CRUD, counts, quotation notes, inside/outside GST, inclusive pricing, conversion, issuing, payment validation, all seven reports.');
 } finally {
  if(!/^nivis_test_[0-9]+$/.test(db)) throw new Error('Unsafe test database name');

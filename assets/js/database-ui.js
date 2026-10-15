@@ -7,8 +7,8 @@ async function nivisApi(resource, method = "GET", data = null, id = null) {
 
     const response = await fetch(url, {
         method,
-        headers: data ? { "Content-Type": "application/json" } : {},
-        body: data ? JSON.stringify(data) : undefined
+        headers: data && !(data instanceof FormData) ? { "Content-Type": "application/json" } : {},
+        body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined
     });
     const result = await response.json();
     if (!response.ok) {
@@ -31,6 +31,9 @@ function nivisActionButton(action, label, icon) {
     button.title = label;
     button.setAttribute("aria-label", label);
     button.innerHTML = '<i class="fa-solid ' + icon + '" aria-hidden="true"></i>';
+    const caption = document.createElement("span");
+    caption.textContent = label.split(" ")[0];
+    button.appendChild(caption);
     return button;
 }
 
@@ -84,17 +87,26 @@ document.addEventListener("DOMContentLoaded", () => {
             filtered.forEach(product => {
                 const row = document.createElement("tr");
                 [
-                    product.name + " / " + product.sku,
+                    product.id,
+                    product.name,
                     product.category,
-                    product.hsn,
-                    "Rs " + Number(product.price).toLocaleString("en-IN"),
-                    Number(product.gst) + "%"
+                    "Rs " + Number(product.price).toLocaleString("en-IN", {minimumFractionDigits: 2}),
+                    Number(product.quantity),
+                    Number(product.quantity) > 0 && product.status === "active" ? "Available" : "Not available"
                 ].forEach(value => {
                     const cell = document.createElement("td");
                     cell.textContent = value;
                     row.appendChild(cell);
                 });
                 const actions = document.createElement("td");
+                const photoCell = document.createElement("td");
+                if (product.image_path) {
+                    const photo = document.createElement("img");
+                    photo.src = product.image_path; photo.alt = product.name;
+                    photo.className = "product-photo-thumb"; photo.loading = "lazy";
+                    photoCell.appendChild(photo);
+                } else { photoCell.textContent = "No photo"; }
+                row.insertBefore(photoCell, row.children[1]);
                 actions.className = "nivis-produdcts-actions";
                 [["view", "View product", "fa-eye"],
                     ["edit", "Edit product", "fa-pen-to-square"],
@@ -114,6 +126,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         function populateProductForm(product = null, readOnly = false) {
             form.reset();
+            const photo = document.getElementById("productImagePreview");
+            photo.hidden = !product?.image_path;
+            if (product?.image_path) photo.src = product.image_path;
+            else photo.removeAttribute("src");
             editingId = product ? Number(product.id) : null;
             document.getElementById("productName").value = product?.name || "";
             document.getElementById("productSKU").value = product?.sku || "";
@@ -130,9 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("productDescription").value =
                 product?.description || "";
             document.getElementById("productSerial").value = product?.id || "";
-            document.getElementById("productQuantity").value = product?.quantity || 1;
+            document.getElementById("productQuantity").value = product?.quantity ?? 1;
             document.getElementById("productRegion").value = product?.gst_region === "outside_ap" ? "Outside AP (IGST)" : "Inside AP (CGST + SGST)";
-            const amounts = nivisAmounts(Number(product?.quantity || 1), Number(product?.price || 0), Number(product?.discount || 0), Number(product?.gst || 0), productPriceMode);
+            const amounts = nivisAmounts(Number(product?.quantity ?? 1), Number(product?.price || 0), Number(product?.discount || 0), Number(product?.gst || 0), productPriceMode);
             document.getElementById("productTotal").value = nivisMoney(amounts.total);
             document.getElementById("productTaxSplit").textContent = product?.gst_region === "outside_ap" ? "IGST " + nivisMoney(amounts.tax) : "CGST " + nivisMoney(amounts.cgst) + " + SGST " + nivisMoney(amounts.sgst);
             modalTitle.textContent = readOnly ? "Product details" :
@@ -239,6 +255,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const idField = document.getElementById("editProductId");
         const categorySelect = document.getElementById("editProductCategory");
         const gstSelect = document.getElementById("editProductGST");
+        const imageInput = document.getElementById("editProductImage");
+        const imagePreview = document.getElementById("editProductImagePreview");
+        let savedImage = "";
+        let previewUrl = null;
+        imageInput.addEventListener("change", () => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            const file = imageInput.files[0];
+            if (file && file.size > 50 * 1024 * 1024) {
+                imageInput.value = "";
+                nivisMessage(message,"Choose an image up to 50 MB.",true);
+            } else { nivisMessage(message,""); }
+            previewUrl = imageInput.files[0] ? URL.createObjectURL(imageInput.files[0]) : null;
+            imagePreview.hidden = !(previewUrl || savedImage);
+            if (previewUrl || savedImage) imagePreview.src = previewUrl || savedImage;
+            else imagePreview.removeAttribute("src");
+        });
         let rates = [];
         let priceMode = "exclusive";
         function updateProductTotal() {
@@ -276,6 +308,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const response = await nivisApi("products");
             const product = response.data.find(item => String(item.id) === id);
             if (!product) throw new Error("Product not found.");
+            savedImage = product.image_path || "";
+            imagePreview.hidden = !savedImage;
+            if (savedImage) imagePreview.src = savedImage;
             idField.value = product.id;
             document.getElementById("editProductSerial").value = product.id;
             document.getElementById("editProductQuantity").value = product.quantity;
@@ -312,9 +347,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 description: document.getElementById("editProductDescription").value.trim()
             };
             try {
-                await nivisApi("products", "POST", data);
+                const payload = new FormData();
+                Object.entries(data).forEach(([key,value]) => { if (value !== null) payload.append(key,value); });
+                if (imageInput.files[0]) payload.append("image",imageInput.files[0]);
+                document.getElementById("addEditProductSave").disabled = true;
+                await nivisApi("products", "POST", payload);
                 window.location.href = "products.php";
             } catch (error) {
+                document.getElementById("addEditProductSave").disabled = false;
                 nivisMessage(message, error.message, true);
             }
         });
@@ -526,7 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const customer = customers.find(item => Number(item.id) === Number(button.dataset.id));
             if (!customer) return;
             if (button.dataset.action === "delete") {
-                if (!window.confirm("Delete " + customer.name + "? This change is permanent.")) return;
+                if (!window.confirm("Remove " + customer.name + " from the customer list? Existing invoices and quotations will be preserved.")) return;
                 try {
                     await nivisApi("customers", "DELETE", null, customer.id);
                     await refreshCustomers();
@@ -1140,6 +1180,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 view.className = "nivis-labs-invoice-icon-action action-view";
                 view.dataset.id = invoice.id;
                 action.appendChild(view);
+                if (invoice.status === "draft") {
+                    [["edit", "Edit details", "fa-pen-to-square"], ["delete", "Delete draft", "fa-trash-can"]].forEach(([kind,label,icon]) => {
+                        const button = nivisActionButton(kind,label,icon);
+                        button.dataset.id = invoice.id;
+                        action.appendChild(button);
+                    });
+                }
                 row.appendChild(action);
                 invoiceTable.appendChild(row);
             });
@@ -1160,8 +1207,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? selected : "all";
             renderInvoices();
         }
-        invoiceTable.addEventListener("click", event => {
+        invoiceTable.addEventListener("click", async event => {
             const button = event.target.closest("[data-id]");
+            if (button?.dataset.action === "delete") {
+                if (!confirm("Delete this draft invoice?")) return;
+                try { await nivisApi("invoices", "DELETE", null, button.dataset.id); await refreshInvoices(); }
+                catch (error) { alert(error.message); }
+                return;
+            }
             if (button) {
                 window.location.href = "add-edit-invoice.php?id=" +
                     encodeURIComponent(button.dataset.id);
@@ -1188,6 +1241,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const money = value => "Rs " + Number(value).toLocaleString("en-IN", {
                 minimumFractionDigits: 2, maximumFractionDigits: 2
             });
+            document.getElementById("invoiceDraftEditor").hidden = invoice.status !== "draft";
+            document.getElementById("invoiceDueDate").value = invoice.due_date || "";
+            document.getElementById("invoiceDueDate").min = invoice.issue_date;
+            document.getElementById("invoiceNotes").value = invoice.notes || "";
+            document.getElementById("invoiceSavedNotes").textContent = invoice.notes || "No notes";
+            document.getElementById("invoiceSavedDue").textContent = invoice.due_date || "Not set";
             invoiceNumber.textContent = invoice.invoice_number;
             document.getElementById("nlidpInvoiceDate").textContent = invoice.issue_date;
             document.getElementById("nlidpSellerName").textContent = invoice.supplier_name;
@@ -1239,6 +1298,14 @@ document.addEventListener("DOMContentLoaded", () => {
             issueButton.disabled = invoice.status !== "draft";
         }
 
+        document.getElementById("invoiceDraftEditor").addEventListener("submit", async event => {
+            event.preventDefault();
+            if (!event.target.reportValidity()) return;
+            try {
+                await nivisApi("invoices", "POST", {action:"edit", invoice_id:invoiceId, due_date:document.getElementById("invoiceDueDate").value, notes:document.getElementById("invoiceNotes").value});
+                await loadInvoice(); nivisMessage(feedback,"Invoice details saved.");
+            } catch(error) { nivisMessage(feedback,error.message,true); }
+        });
         document.getElementById("nlidpSendInvoice").addEventListener("click", async () => {
             if (!currentInvoice || currentInvoice.status !== "draft") return;
             if (!window.confirm("Issue this invoice? Issued invoices cannot be edited.")) return;
@@ -1305,7 +1372,7 @@ document.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
             if (!event.target.reportValidity()) return;
             try {
-                await nivisApi("tax_rates", "POST", { name:document.getElementById("taxRateName").value, rate_percent:Number(document.getElementById("taxRatePercent").value), treatment:document.getElementById("taxRateTreatment").value, effective_from:document.getElementById("taxRateDate").value });
+                await nivisApi("tax_rates", "POST", { id:document.getElementById("taxRateId").value || null, name:document.getElementById("taxRateName").value, rate_percent:Number(document.getElementById("taxRatePercent").value), treatment:document.getElementById("taxRateTreatment").value, effective_from:document.getElementById("taxRateDate").value });
                 location.reload();
             } catch(error) { nivisMessage(document.getElementById("taxRateMessage"), error.message, true); }
         });
@@ -1335,13 +1402,30 @@ document.addEventListener("DOMContentLoaded", () => {
             result.rates.forEach(rate => {
                 const row = document.createElement("tr");
                 const total = Number(rate.rate_percent);
-                [total + "%", (total / 2) + "% + " + (total / 2) + "%",
+                [rate.name, total + "%", (total / 2) + "% + " + (total / 2) + "%",
                     total + "%", Number(rate.is_enabled) ? "Enabled" : "Disabled"]
                     .forEach(value => {
                         const cell = document.createElement("td");
                         cell.textContent = value;
                         row.appendChild(cell);
                     });
+                const actions = document.createElement("td");
+                const edit = nivisActionButton("edit", "Edit rate", "fa-pen-to-square");
+                edit.addEventListener("click", () => {
+                    document.getElementById("taxRateId").value = rate.id;
+                    document.getElementById("taxRateName").value = rate.name;
+                    document.getElementById("taxRatePercent").value = rate.rate_percent;
+                    document.getElementById("taxRateTreatment").value = rate.treatment;
+                    document.getElementById("taxRateDate").value = rate.effective_from;
+                    document.getElementById("taxRateName").focus();
+                });
+                const remove = nivisActionButton("delete", "Delete rate", "fa-trash-can");
+                remove.addEventListener("click", async () => {
+                    if (!confirm("Delete GST rate " + rate.name + "? Rates linked to products cannot be deleted.")) return;
+                    try { await nivisApi("tax_rates", "DELETE", null, rate.id); location.reload(); }
+                    catch(error) { nivisMessage(message,error.message,true); }
+                });
+                actions.append(edit,remove); row.appendChild(actions);
                 ratesBody.appendChild(row);
             });
         }).catch(error => nivisMessage(message, error.message, true));

@@ -12,7 +12,7 @@ include 'sidebar.php';
     <div class="add-edit-product-header">
       <div>
         <h1>Add / Edit Product</h1>
-        <p>Product master holds reusable defaults for quotations</p>
+        <p>Enter a product and its available quantity</p>
       </div>
 
       <div class="add-edit-product-account">
@@ -30,8 +30,14 @@ include 'sidebar.php';
         <input type="hidden" name="product_id" id="editProductId">
 
         <div class="row g-4">
+          <div class="col-12">
+            <label for="editProductImage" class="form-label">PRODUCT PHOTO</label>
+            <input type="file" id="editProductImage" class="form-control" accept="image/*">
+            <small>All image formats, maximum 50 MB. Preview depends on browser support. Select a new photo to replace the current one.</small>
+            <div class="mt-2"><img id="editProductImagePreview" class="product-photo-preview" alt="Product photo preview" hidden></div>
+          </div>
           <div class="col-md-4"><label for="editProductSerial" class="form-label">S.NO</label><input id="editProductSerial" class="form-control" value="Assigned when saved" readonly></div>
-          <div class="col-md-4"><label for="editProductQuantity" class="form-label">QUANTITY *</label><input id="editProductQuantity" class="form-control" type="number" min="0.001" max="1000000" step="0.001" value="1" required></div>
+          <div class="col-md-4"><label for="editProductQuantity" class="form-label">QUANTITY *</label><input id="editProductQuantity" class="form-control" type="number" min="0" max="1000000" step="0.001" value="1" required><small>Enter 0 when not available.</small></div>
 
           <!-- Product Name -->
           <div class="col-12 col-md-6 col-xl-4">
@@ -56,6 +62,7 @@ include 'sidebar.php';
                     required>
               <option value="">Select category</option>
             </select>
+            <div class="mt-2"><a href="categories.php" class="btn btn-outline-primary btn-sm">+ Add a category first</a></div>
           </div>
 
           </div>
@@ -110,7 +117,7 @@ include 'sidebar.php';
           <!-- Selling Price -->
           <div class="col-12 col-md-6 col-xl-4">
             <label for="editProductPrice" class="form-label">
-              SELLING PRICE *
+              COST *
             </label>
             <input type="number"
                    class="form-control"

@@ -13,7 +13,7 @@ include 'sidebar.php';
     <div class="nlidp-header">
       <div>
         <h1>Invoice Detail / Preview</h1>
-        <p>Beauty-care products supplied with clear tax and payment details</p>
+        <p>Review invoice details, due dates and payments</p>
       </div>
 
       <div class="nlidp-account">
@@ -114,6 +114,14 @@ include 'sidebar.php';
       </div>
 
       <div class="nlidp-totals"><div>Paid: <span id="nlidpPaid">Rs 0.00</span></div><div>Outstanding: <span id="nlidpBalance">Rs 0.00</span></div></div>
+      <p>Due date: <strong id="invoiceSavedDue"></strong></p><p id="invoiceSavedNotes"></p>
+      <form id="invoiceDraftEditor" hidden data-html2canvas-ignore="true" class="row g-3 my-3">
+        <h3>Edit draft details</h3>
+        <p>Update the due date and notes here. Product lines come from the approved quotation. Issued invoices are read-only.</p>
+        <div class="col-md-4"><label for="invoiceDueDate">Due date</label><input type="date" id="invoiceDueDate" class="form-control"></div>
+        <div class="col-md-8"><label for="invoiceNotes">Notes</label><textarea id="invoiceNotes" class="form-control" maxlength="5000"></textarea></div>
+        <div><button class="btn btn-primary" type="submit">Save invoice details</button></div>
+      </form>
       <!-- Action Buttons -->
       <div class="nlidp-actions" data-html2canvas-ignore="true">
         <button type="button"

@@ -1,0 +1,48 @@
+/* Shared visual language across every billing page. */
+:root { --brand:#2457c5; --ink:#182b49; --muted:#607086; --line:#dce4ef; }
+body { background:#f3f6fb; color:var(--ink); font-family:Inter,"Segoe UI",sans-serif; }
+.side-bar { background:#142b4b; padding-top:30px; }
+.side-bar .nav-link { font-size:14px; gap:12px; min-height:44px; color:#d0ddf0; }
+.side-bar .nav-link i { width:18px; text-align:center; }
+.side-bar .nav-link.active { background:#2c5fc4; color:#fff; box-shadow:inset 3px 0 #96c3ff; }
+.side-bar .nav-link:hover { background:#244365; color:#fff; }
+body > section h1 { color:var(--ink); font-size:28px; font-weight:750; letter-spacing:-.6px; }
+body > section h2 { color:var(--ink); font-weight:650; }
+body > section > .container-fluid > div[class$="header"] { border-bottom:1px solid var(--line); padding-bottom:20px; margin-bottom:24px; }
+body > section [class$="card"], #companySettings { background:white; border:1px solid var(--line); border-radius:14px; box-shadow:0 4px 18px #203b6010; }
+#companySettings { padding:24px; margin:20px 0; }
+.table { color:var(--ink); --bs-table-color:var(--ink); }
+.table thead th { background:#eaf0fa!important; color:#344c70!important; font-size:12px; font-weight:700; padding:14px 16px!important; white-space:nowrap; border-bottom:1px solid #cedbef; }
+.table tbody td { padding:15px 16px!important; vertical-align:middle; border-bottom:1px solid #edf1f6; font-size:14px; }
+.table tbody tr:hover td { background:#f7faff; }
+.table td:last-child { white-space:nowrap; }
+body .form-control, body .form-select { min-height:44px; border:1px solid #cbd6e5; border-radius:8px; color:var(--ink); font-size:14px; }
+body .form-control:focus, body .form-select:focus { border-color:#487de2; box-shadow:0 0 0 3px #2457c51a; }
+body label { color:#405574; font-size:12px; font-weight:650; margin-bottom:7px; }
+body input[readonly], body input:disabled, body select:disabled { background:#f0f4f9; color:#52647c; }
+body small { color:var(--muted); }
+body button[class*="save"], body button[class*="add-btn"], body button[class*="new_btn"], body .btn-primary { background:var(--brand); color:white; border:1px solid var(--brand); border-radius:8px; min-height:42px; padding:10px 18px; font-weight:600; }
+body button[data-action] { display:inline-flex!important; align-items:center; justify-content:center; gap:7px; width:auto!important; height:auto!important; min-height:36px; padding:7px 10px!important; margin:2px 4px 2px 0; border-radius:7px; font-size:12px; font-weight:650; border:1px solid transparent; }
+body button.action-view { background:#eaf2ff!important; color:#2355a1!important; border-color:#cbdcf5; }
+body button.action-edit { background:#fff4db!important; color:#855600!important; border-color:#efdaa5; }
+body button.action-delete { background:#fff0f1!important; color:#b52b3c!important; border-color:#f3cbd0; }
+body button[data-action]:hover { filter:brightness(.95); }
+body :is(button,a,input,select,textarea):focus-visible { outline:3px solid #6a9def; outline-offset:3px; }
+body button:disabled { opacity:.55; cursor:not-allowed; }
+.nivis-status { display:inline-block; padding:5px 10px; border-radius:20px; background:#edf1f7; color:#4f6077; font-size:12px; font-weight:650; }
+.nivis-status[data-tone="good"] { background:#e2f5ed; color:#176647; }
+.nivis-status[data-tone="warning"] { background:#fff2d5; color:#805400; }
+.nivis-status[data-tone="bad"] { background:#ffebee; color:#a62c3d; }
+.nivis-action-key { display:flex; flex-wrap:wrap; gap:16px; color:#607086; font-size:12px; margin:0 0 18px; }
+.nivis-action-key span { display:inline-flex; align-items:center; gap:6px; }
+.nivis-action-key .fa-eye { color:#2355a1; }
+.nivis-action-key .fa-pen-to-square { color:#855600; }
+.nivis-action-key .fa-trash-can { color:#b52b3c; }
+.modal-content { border:0; border-radius:16px; box-shadow:0 20px 70px #122a4933; }
+.modal-header { background:#f3f7fd; border-bottom:1px solid var(--line); }
+[role="status"]:not(:empty) { display:block; padding:10px 12px; background:#f4f7fb; border-radius:8px; margin-top:12px; }
+@media(max-width:767px) { body > section h1 { font-size:24px; } .table tbody td { padding:12px!important; } body button[data-action] { min-height:40px; } }
+@media print { .side-bar,.side-bar-toggle,.nivis-action-key { display:none!important; } body { background:white; } }
+
+.product-photo-thumb { width:52px; height:52px; object-fit:cover; border-radius:8px; border:1px solid #dce4ef; }
+.product-photo-preview { max-width:240px; max-height:200px; object-fit:contain; border:1px solid #dce4ef; border-radius:10px; padding:4px; }

@@ -11,6 +11,7 @@ function respond(array $payload, int $status = 200): void
 
 function request_data(): array
 {
+    if (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') === 0) return $_POST;
     $raw = file_get_contents('php://input');
     if ($raw === false || $raw === '') {
         return $_POST;
@@ -54,11 +55,13 @@ function state_code(string $state): string
 try {
     require_once __DIR__ . '/config/database.php';
     require_once __DIR__ . '/config/schema.php';
+    require_once __DIR__ . '/config/product_images.php';
     $pdo = database_connection();
     $resource = (string) ($_GET['resource'] ?? '');
     if (in_array($resource, ['products', 'categories'], true)) {
         ensure_billing_columns($pdo, $resource);
     }
+    if (in_array($resource, ['customers', 'quotations', 'dashboard'], true)) ensure_billing_columns($pdo, 'customers');
     $method = $_SERVER['REQUEST_METHOD'];
     if ($method === 'POST') {
         $identityTables = [
@@ -102,7 +105,7 @@ try {
 
     if ($resource === 'products' && $method === 'GET') {
         $rows = $pdo->query(
-            "SELECT p.id, p.default_quantity AS quantity, p.gst_region, p.name, p.sku, p.category_id, c.name AS category,
+            "SELECT p.id, p.image_path, p.default_quantity AS quantity, p.gst_region, p.name, p.sku, p.category_id, c.name AS category,
                     p.hsn_code AS hsn, p.unit, p.selling_price AS price,
                     COALESCE(t.rate_percent, 0) AS gst,
                     p.default_discount_percent AS discount, p.status, p.description
@@ -121,8 +124,8 @@ try {
         if (strlen($sku) > 70) respond(['error' => 'Product code is too long.'], 422);
         $quantity = filter_var($data['quantity'] ?? 1, FILTER_VALIDATE_FLOAT);
         $region = (string) ($data['gst_region'] ?? 'inside_ap');
-        if ($quantity === false || $quantity <= 0 || $quantity > 1000000 || !in_array($region, ['inside_ap', 'outside_ap'], true)) {
-            respond(['error' => 'Enter a quantity above zero and choose a GST region.'], 422);
+        if ($quantity === false || $quantity < 0 || $quantity > 1000000 || !in_array($region, ['inside_ap', 'outside_ap'], true)) {
+            respond(['error' => 'Enter a quantity from 0 to 1000000 and choose a GST region.'], 422);
         }
         $categoryId = filter_var($data['category_id'] ?? null, FILTER_VALIDATE_INT);
         $hsn = required_text($data, 'hsn', 8);
@@ -149,14 +152,24 @@ try {
         if (isset($data['id']) && !$productId) {
             respond(['error' => 'Invalid product ID.'], 422);
         }
+        $oldImage = null;
+        if ($productId) {
+            $existing = $pdo->prepare('SELECT image_path FROM products WHERE id=?');
+            $existing->execute([$productId]);
+            $record = $existing->fetch();
+            if (!$record) respond(['error' => 'Product not found.'], 404);
+            $oldImage = $record['image_path'];
+        }
+        $newProductImage = store_product_image();
+        $imagePath = $newProductImage ?? $oldImage;
         if ($productId) {
             $statement = $pdo->prepare(
-                'UPDATE products SET default_quantity=?, gst_region=?, name=?, sku=?, category_id=?, hsn_code=?, unit=?,
+                'UPDATE products SET image_path=?, default_quantity=?, gst_region=?, name=?, sku=?, category_id=?, hsn_code=?, unit=?,
                  selling_price=?, default_discount_percent=?, tax_rate_id=?, description=?, status=?
                  WHERE id=?'
             );
             $statement->execute([
-                $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
+                $imagePath, $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
                 $taxRateId ?: null, trim((string) ($data['description'] ?? '')),
                 $status, $productId,
             ]);
@@ -164,18 +177,21 @@ try {
                 !(int) $pdo->query('SELECT COUNT(*) FROM products WHERE id=' . $productId)->fetchColumn()) {
                 respond(['error' => 'Product not found.'], 404);
             }
+            if ($newProductImage) remove_product_image($oldImage);
+            $newProductImage = null;
             respond(['message' => 'Product saved.', 'id' => $productId]);
         }
         $statement = $pdo->prepare(
             'INSERT INTO products
-             (default_quantity, gst_region, name, sku, category_id, hsn_code, unit, selling_price, default_discount_percent,
+             (image_path, default_quantity, gst_region, name, sku, category_id, hsn_code, unit, selling_price, default_discount_percent,
               tax_rate_id, description, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $statement->execute([
-            $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
+            $imagePath, $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
             $taxRateId ?: null, trim((string) ($data['description'] ?? '')), $status,
         ]);
+        $newProductImage = null;
         respond(['message' => 'Product saved.', 'id' => (int) $pdo->lastInsertId()], 201);
     }
 
@@ -183,11 +199,15 @@ try {
         if (!$id) {
             respond(['error' => 'A valid product ID is required.'], 422);
         }
+        $imageQuery = $pdo->prepare('SELECT image_path FROM products WHERE id=?');
+        $imageQuery->execute([$id]);
+        $deletedImage = $imageQuery->fetchColumn();
         $statement = $pdo->prepare('DELETE FROM products WHERE id = ?');
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
             respond(['error' => 'Product not found.'], 404);
         }
+        remove_product_image($deletedImage ?: null);
         respond(['message' => 'Product deleted.']);
     }
 
@@ -210,7 +230,9 @@ try {
             if ($productCount === false || $productCount < 0 || $productCount > 1000000) respond(['error' => 'Product count must be a whole number from 0 to 1000000.'], 422);
         }
         $name = required_text($data, 'name', 120);
-        $code = strtoupper(required_text($data, 'code', 30));
+        $code = strtoupper(trim((string) ($data['code'] ?? '')));
+        if ($code === '') $code = 'CAT-' . strtoupper(bin2hex(random_bytes(6)));
+        if (strlen($code) > 30) respond(['error' => 'Category code is too long.'], 422);
         $description = trim((string) ($data['description'] ?? ''));
         $status = valid_status($data, 'status');
         if ($categoryId) {
@@ -252,6 +274,7 @@ try {
                     MAX(CASE WHEN a.address_type='shipping' THEN a.state_name END) AS shipping_state,
                     MAX(CASE WHEN a.address_type='shipping' THEN a.pincode END) AS shipping_pincode
              FROM customers c LEFT JOIN customer_addresses a ON a.customer_id=c.id
+             WHERE c.deleted_at IS NULL
              GROUP BY c.id, c.name, c.mobile, c.email, c.gstin, c.customer_type, c.gst_registration, c.status ORDER BY c.id"
         )->fetchAll();
         respond(['data' => $rows]);
@@ -298,14 +321,14 @@ try {
         if ($customerId) {
             $statement = $pdo->prepare(
                 'UPDATE customers SET name=?, mobile=?, email=?, customer_type=?,
-                 gst_registration=?, gstin=?, status=? WHERE id=?'
+                 gst_registration=?, gstin=?, status=? WHERE id=? AND deleted_at IS NULL'
             );
             $statement->execute([
                 $name, $mobile, $email ?: null, $type, $registration, $gstin ?: null,
                 $status, $customerId,
             ]);
             if ($statement->rowCount() === 0 &&
-                !(int) $pdo->query('SELECT COUNT(*) FROM customers WHERE id=' . $customerId)->fetchColumn()) {
+                !(int) $pdo->query('SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL AND id=' . $customerId)->fetchColumn()) {
                 $pdo->rollBack();
                 respond(['error' => 'Customer not found.'], 404);
             }
@@ -364,12 +387,12 @@ try {
         if (!$id) {
             respond(['error' => 'A valid customer ID is required.'], 422);
         }
-        $statement = $pdo->prepare('DELETE FROM customers WHERE id=?');
+        $statement = $pdo->prepare("UPDATE customers SET deleted_at=CURRENT_TIMESTAMP, status='inactive' WHERE id=? AND deleted_at IS NULL");
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
             respond(['error' => 'Customer not found.'], 404);
         }
-        respond(['message' => 'Customer deleted.']);
+        respond(['message' => 'Customer removed from the directory. Existing billing history is preserved.']);
     }
 
     if ($resource === 'tax' && $method === 'GET') {
@@ -381,6 +404,13 @@ try {
         respond(['configuration' => $config, 'rates' => $rates]);
     }
 
+    if ($resource === 'tax_rates' && $method === 'DELETE') {
+        if (!$id) respond(['error' => 'Choose a valid GST rate.'], 422);
+        $statement = $pdo->prepare('DELETE FROM tax_rates WHERE id=?');
+        $statement->execute([$id]);
+        if (!$statement->rowCount()) respond(['error' => 'GST rate not found.'], 404);
+        respond(['message' => 'GST rate deleted.']);
+    }
     if ($resource === 'tax_rates' && $method === 'POST') {
         $name = required_text($data, 'name', 100);
         $rate = filter_var($data['rate_percent'] ?? null, FILTER_VALIDATE_FLOAT);
@@ -390,6 +420,13 @@ try {
         if ($rate === false || $rate < 0 || $rate > 100 || !$date || $date->format('Y-m-d') !== $effective ||
             !in_array($treatment, ['taxable','zero_rated','nil_rated','exempt','non_gst'], true) || ($treatment !== 'taxable' && $rate != 0)) {
             respond(['error' => 'Enter a valid rate, treatment and effective date.'], 422);
+        }
+        if (!empty($data['id'])) {
+            $rateId = filter_var($data['id'], FILTER_VALIDATE_INT);
+            if (!$rateId) respond(['error' => 'Invalid rate ID.'], 422);
+            $statement = $pdo->prepare('UPDATE tax_rates SET name=?, rate_percent=?, treatment=?, effective_from=? WHERE id=?');
+            $statement->execute([$name, $rate, $treatment, $effective, $rateId]);
+            respond(['message' => 'GST rate updated.', 'id' => $rateId]);
         }
         $statement = $pdo->prepare('INSERT INTO tax_rates (name, rate_percent, treatment, effective_from, is_enabled) VALUES (?, ?, ?, ?, 1)');
         $statement->execute([$name, $rate, $treatment, $effective]);
@@ -472,7 +509,7 @@ try {
             "SELECT c.name, c.gstin, a.state_code
              FROM customers c LEFT JOIN customer_addresses a
                ON a.customer_id=c.id AND a.address_type='billing'
-             WHERE c.id=? LIMIT 1"
+             WHERE c.id=? AND c.deleted_at IS NULL LIMIT 1"
         );
         $customerStatement->execute([$customerId]);
         $customer = $customerStatement->fetch();
@@ -680,9 +717,35 @@ try {
         respond(['message' => 'Quotation deleted.']);
     }
 
+    if ($resource === 'invoices' && ($method === 'DELETE' || ($method === 'POST' && ($data['action'] ?? '') === 'edit'))) {
+        $invoiceId = filter_var($method === 'DELETE' ? $id : ($data['invoice_id'] ?? null), FILTER_VALIDATE_INT);
+        if (!$invoiceId) respond(['error' => 'Choose a valid invoice.'], 422);
+        $pdo->beginTransaction();
+        $check = $pdo->prepare('SELECT status, issue_date FROM invoices WHERE id=? FOR UPDATE');
+        $check->execute([$invoiceId]);
+        $invoice = $check->fetch();
+        if (!$invoice || $invoice['status'] !== 'draft') {
+            $pdo->rollBack();
+            respond(['error' => 'Only draft invoices can be edited or deleted.'], 409);
+        }
+        if ($method === 'DELETE') {
+            $pdo->prepare('DELETE FROM invoices WHERE id=?')->execute([$invoiceId]);
+        } else {
+            $due = trim((string) ($data['due_date'] ?? ''));
+            $date = $due === '' ? null : DateTime::createFromFormat('!Y-m-d', $due);
+            if ($due !== '' && (!$date || $date->format('Y-m-d') !== $due || $due < $invoice['issue_date'])) {
+                $pdo->rollBack();
+                respond(['error' => 'Due date must be on or after the invoice date.'], 422);
+            }
+            $pdo->prepare('UPDATE invoices SET due_date=?, notes=? WHERE id=?')->execute([$due ?: null, trim((string) ($data['notes'] ?? '')), $invoiceId]);
+        }
+        $pdo->commit();
+        respond(['message' => $method === 'DELETE' ? 'Draft invoice deleted.' : 'Invoice details saved.']);
+    }
+
     if ($resource === 'invoices' && $method === 'GET') {
         $sql = "SELECT i.id, i.invoice_number, i.quotation_id, q.quote_number,
-                       c.name AS customer, i.issue_date, i.status, i.grand_total,
+                       c.name AS customer, i.due_date, i.notes, i.issue_date, i.status, i.grand_total,
                        i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name,
                        i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code,
                        i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total,
@@ -694,7 +757,7 @@ try {
                 LEFT JOIN quotations q ON q.id=i.quotation_id
                 LEFT JOIN invoice_items ii ON ii.invoice_id=i.id";
         if ($id) {
-            $statement = $pdo->prepare($sql . ' WHERE i.id=? GROUP BY i.id, i.invoice_number, i.quotation_id, q.quote_number, c.name, i.issue_date, i.status, i.grand_total, i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name, i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code, i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total');
+            $statement = $pdo->prepare($sql . ' WHERE i.id=? GROUP BY i.id, i.invoice_number, i.quotation_id, q.quote_number, c.name, i.due_date, i.notes, i.issue_date, i.status, i.grand_total, i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name, i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code, i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total');
             $statement->execute([$id]);
             $invoice = $statement->fetch();
             if (!$invoice) {
@@ -718,7 +781,7 @@ try {
                 ? [] : explode(' | ', $invoice['product_names']);
             respond(['data' => $invoice]);
         }
-        $rows = $pdo->query($sql . ' GROUP BY i.id, i.invoice_number, i.quotation_id, q.quote_number, c.name, i.issue_date, i.status, i.grand_total, i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name, i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code, i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total ORDER BY i.id DESC')->fetchAll();
+        $rows = $pdo->query($sql . ' GROUP BY i.id, i.invoice_number, i.quotation_id, q.quote_number, c.name, i.due_date, i.notes, i.issue_date, i.status, i.grand_total, i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name, i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code, i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total ORDER BY i.id DESC')->fetchAll();
         foreach ($rows as &$row) {
             $row['products'] = $row['product_names'] === null
                 ? [] : explode(' | ', $row['product_names']);
@@ -901,7 +964,7 @@ try {
     if ($resource === 'dashboard' && $method === 'GET') {
         $stats = $pdo->query(
             "SELECT
-                (SELECT COUNT(*) FROM customers) AS customers,
+                (SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL) AS customers,
                 (SELECT COUNT(*) FROM products) AS products,
                 (SELECT COUNT(*) FROM quotations) AS quotations,
                 (SELECT COUNT(*) FROM quotations WHERE status IN ('draft','sent')) AS waiting,
@@ -1035,6 +1098,7 @@ try {
 
     respond(['error' => 'Unsupported API resource or method.'], 404);
 } catch (PDOException $error) {
+    if (!empty($newProductImage)) remove_product_image($newProductImage);
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     error_log('Nivis database API error: ' . $error->getMessage());
     $mysqlError = (int) ($error->errorInfo[1] ?? 0);
@@ -1066,6 +1130,7 @@ try {
     ];
     respond(['error' => $messages[$mysqlError] ?? 'Database operation failed. Check the hosting PHP error log for the Nivis database API error entry.', 'code' => 'DB_' . $mysqlError], 500);
 } catch (Throwable $error) {
+    if (!empty($newProductImage)) remove_product_image($newProductImage);
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     error_log('Nivis API error: ' . $error->getMessage());
     respond(['error' => 'The request could not be completed.'], 500);
