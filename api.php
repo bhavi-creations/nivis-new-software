@@ -53,6 +53,11 @@ function state_code(string $state): string
 }
 
 try {
+    foreach (['errors.php', 'database.php', 'schema.php', 'product_images.php'] as $requiredFile) {
+        if (!is_file(__DIR__ . '/config/' . $requiredFile)) {
+            respond(['error' => 'Application file missing: config/' . $requiredFile . '. Upload the complete updated config folder.', 'code' => 'SETUP_MISSING_FILE'], 500);
+        }
+    }
     require_once __DIR__ . '/config/database.php';
     require_once __DIR__ . '/config/schema.php';
     require_once __DIR__ . '/config/product_images.php';
@@ -1132,6 +1137,10 @@ try {
 } catch (Throwable $error) {
     if (!empty($newProductImage)) remove_product_image($newProductImage);
     if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
-    error_log('Nivis API error: ' . $error->getMessage());
-    respond(['error' => 'The request could not be completed.'], 500);
+    $reference = substr(hash('sha256', uniqid('', true)), 0, 12);
+    error_log('Nivis API error [' . $reference . '] resource=' . ($resource ?? 'startup') . ' method=' . ($_SERVER['REQUEST_METHOD'] ?? 'unknown') . ' ' . get_class($error) . ': ' . $error->getMessage() . ' at ' . $error->getFile() . ':' . $error->getLine());
+    if ($error instanceof NivisConfigurationException) {
+        respond(['error' => $error->getMessage(), 'code' => 'SETUP_ERROR'], 500);
+    }
+    respond(['error' => 'Save failed because of a server error. Check the PHP error log using reference ' . $reference . '.', 'code' => 'SERVER_ERROR'], 500);
 }

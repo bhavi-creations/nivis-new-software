@@ -1,9 +1,10 @@
 <?php
+require_once __DIR__ . '/errors.php';
 /** Restore imported identities before starting a write transaction. */
 function ensure_identity_columns(PDO $pdo, array $tables): void
 {
     if ($pdo->inTransaction()) {
-        throw new RuntimeException('Identity migration must run outside a transaction.');
+        throw new NivisConfigurationException('Identity migration must run outside a transaction.');
     }
     foreach ($tables as $table) {
         if (!in_array($table, ['products', 'categories', 'customers', 'customer_addresses'], true)) {
@@ -12,15 +13,15 @@ function ensure_identity_columns(PDO $pdo, array $tables): void
         $column = $pdo->query("SHOW COLUMNS FROM `$table` WHERE Field = 'id'")->fetch();
         if ($column && stripos($column['Extra'], 'auto_increment') !== false) continue;
         if (!$column || !preg_match('/^(tinyint|smallint|mediumint|int|bigint)(\([0-9]+\))?( unsigned)?$/i', $column['Type'])) {
-            throw new RuntimeException("Unsupported identity definition in $table; manual schema review required.");
+            throw new NivisConfigurationException("Unsupported identity definition in $table; manual schema review required.");
         }
         $primary = $pdo->query("SHOW INDEX FROM `$table` WHERE Key_name = 'PRIMARY'")->fetchAll();
         if (count($primary) !== 1 || $primary[0]['Column_name'] !== 'id') {
-            throw new RuntimeException("Expected a single-column id primary key in $table; manual schema review required.");
+            throw new NivisConfigurationException("Expected a single-column id primary key in $table; manual schema review required.");
         }
         // ALTER can renumber zero identities; never silently change existing IDs.
         if ($pdo->query("SELECT 1 FROM `$table` WHERE id <= 0 LIMIT 1")->fetchColumn() !== false) {
-            throw new RuntimeException("Non-positive identities in $table; manual schema review required.");
+            throw new NivisConfigurationException("Non-positive identities in $table; manual schema review required.");
         }
         $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN `id` " . $column['Type'] . ' NOT NULL AUTO_INCREMENT');
     }

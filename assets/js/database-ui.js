@@ -10,7 +10,9 @@ async function nivisApi(resource, method = "GET", data = null, id = null) {
         headers: data && !(data instanceof FormData) ? { "Content-Type": "application/json" } : {},
         body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined
     });
-    const result = await response.json();
+    let result;
+    try { result = await response.json(); }
+    catch { throw new Error("The server returned an invalid response (HTTP " + response.status + "). Check the PHP error log and upload size settings."); }
     if (!response.ok) {
         throw new Error((result.error || "The database request failed.") + (result.code ? " [" + result.code + "]" : ""));
     }

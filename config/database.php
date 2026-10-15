@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/errors.php';
 
 function database_env(string $name, string $default): string
 {
@@ -6,7 +7,7 @@ function database_env(string $name, string $default): string
     if ($config === null) {
         $file = __DIR__ . '/database.local.php';
         $config = is_file($file) ? require $file : [];
-        if (!is_array($config)) throw new RuntimeException('Database configuration must return an array.');
+        if (!is_array($config)) throw new NivisConfigurationException('Database configuration must return an array.');
     }
     $value = getenv($name);
     return $value === false ? (string) ($config[$name] ?? $default) : $value;
@@ -21,7 +22,7 @@ function database_connection(bool $selectDatabase = true): PDO
     $password = database_env('NIVIS_DB_PASSWORD', '');
     if (!preg_match('/^[a-zA-Z0-9_]+$/', $database) || !ctype_digit($port) ||
         (int) $port < 1 || (int) $port > 65535 || preg_match('/[;\r\n]/', $host)) {
-        throw new RuntimeException('Invalid database host, port or database name.');
+        throw new NivisConfigurationException('Invalid database host, port or database name.');
     }
     date_default_timezone_set('Asia/Kolkata');
     $databasePart = $selectDatabase ? ';dbname=' . $database : '';

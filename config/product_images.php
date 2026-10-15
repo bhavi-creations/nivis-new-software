@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/errors.php';
 
 function store_product_image(): ?string
 {
@@ -10,6 +11,7 @@ function store_product_image(): ?string
     if ($file['size'] > 50 * 1024 * 1024 || !is_uploaded_file($file['tmp_name'])) {
         respond(['error' => 'Choose an image smaller than 50 MB.'], 422);
     }
+    if (!class_exists('finfo')) throw new NivisConfigurationException('Enable the PHP fileinfo extension to upload product images.');
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
     $extensions = [
         'image/jpeg'=>'jpg', 'image/png'=>'png', 'image/webp'=>'webp',
@@ -26,11 +28,11 @@ function store_product_image(): ?string
     $extension = $extensions[$mime] ?? 'img';
     $directory = __DIR__ . '/../uploads/photos';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-        throw new RuntimeException('Cannot create product photo directory.');
+        throw new NivisConfigurationException('Cannot create uploads/photos. Give the PHP server write permission to the uploads folder.');
     }
     $path = 'uploads/photos/' . bin2hex(random_bytes(16)) . '.' . $extension;
     if (!move_uploaded_file($file['tmp_name'], __DIR__ . '/../' . $path)) {
-        throw new RuntimeException('Cannot save product photo.');
+        throw new NivisConfigurationException('Cannot save product photo. Check write permissions and free space for uploads/photos.');
     }
     return $path;
 }
