@@ -2,31 +2,33 @@
 <?php
 // Include common sidebar only once.
 // Remove this line if your parent layout already includes it.
+$directInvoice = isset($directInvoice) && $directInvoice;
 include_once 'header.php';
 include 'sidebar.php';
 ?>
 
-<section class="nivis-labs-creat-quotation" id="nivis-labs-creat-quotation">
+<section class="nivis-labs-creat-quotation" id="nivis-labs-creat-quotation" data-document-type="<?= $directInvoice ? 'invoice' : 'quotation' ?>">
   <div class="container-fluid p-0">
 
     <!-- Header -->
     <div class="nlcq-header">
       <div>
-        <h1>Create Quotation</h1>
-        <p>Build a beauty-care quote for sunscreen, moisturizers, serums and more</p>
+        <h1><?= $directInvoice ? 'Create Direct Invoice' : 'Create Quotation' ?></h1>
+        <p>Select a customer, add products and save.</p>
       </div>
       <div class="nlcq-account">Admin <span>|</span> AP Business</div>
     </div>
 
     <!-- Quotation Information -->
     <div class="nlcq-card nlcq-info-card">
-      <h2><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Quotation information</h2>
+      <h2><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Document information</h2>
 
       <div class="row g-3">
         <div class="col-12 col-sm-6 col-xl-3">
-          <label class="nlcq-label" for="nlcqQuoteNumber">QUOTE NUMBER</label>
+          <label class="nlcq-label" for="nlcqQuoteNumber"><?= $directInvoice ? 'INVOICE NUMBER' : 'QUOTE NUMBER' ?></label>
           <input type="text" class="form-control" id="nlcqQuoteNumber"
                  value="Assigned when saved" readonly>
+          <small><?= $directInvoice ? 'Automatically assigned on save.' : 'Next available number; confirmed on save. Product references appear below.' ?></small>
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
@@ -43,7 +45,7 @@ include 'sidebar.php';
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-          <label class="nlcq-label" for="nlcqValidUntil">VALID UNTIL</label>
+          <label class="nlcq-label" for="nlcqValidUntil"><?= $directInvoice ? 'DUE DATE' : 'VALID UNTIL' ?></label>
           <input type="date" class="form-control" id="nlcqValidUntil"
                  value="2026-10-27">
         </div>

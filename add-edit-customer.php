@@ -29,6 +29,8 @@ include 'sidebar.php';
         <h3><i class="fa-solid fa-user-tag" aria-hidden="true"></i> Basic information</h3>
 
         <div class="row g-3">
+<div class="col-md-4"><label for="customerRegion" class="form-label">REGION *</label><select id="customerRegion" name="region" class="form-select"><option value="inside_ap">Inside AP</option><option value="outside_ap">Outside AP</option></select></div>
+<div class="col-md-4"><label for="customerCategory" class="form-label">CUSTOMER CATEGORY *</label><select id="customerCategory" name="customer_category" class="form-select"><option value="CB1">CB1 - Regular customer</option><option value="CB2">CB2 - Bulk order</option></select></div>
 
           <div class="col-12 col-md-4">
             <label for="customerName" class="form-label">
@@ -60,7 +62,7 @@ include 'sidebar.php';
 
           <div class="col-12 col-md-4">
             <label for="customerType" class="form-label">
-              CUSTOMER TYPE
+              REGISTRATION TYPE
             </label>
             <select class="form-select" id="customerType"
                     name="customer_type">

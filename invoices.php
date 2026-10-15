@@ -14,7 +14,7 @@ include 'sidebar.php';
     <div class="nivis-labs-invoice-header">
       <div>
         <h1>Invoices</h1>
-        <p>Beauty-care orders: sunscreen, moisturizers and skin-care essentials</p>
+        <p>Create a direct invoice or convert an approved quotation.</p>
       </div>
 
       <div class="nivis-labs-invoice-account">
@@ -24,9 +24,10 @@ include 'sidebar.php';
 
     <!-- New Invoice -->
     <div class="nivis-labs-invoice-toolbar">
+      <a href="create-invoice.php" class="nivis-labs-invoice-add-btn">+ Direct invoice</a>
       <a href="quotations.php"
          class="nivis-labs-invoice-add-btn">
-        + Convert approved quotation
+        From quotation
       </a>
     </div>
 

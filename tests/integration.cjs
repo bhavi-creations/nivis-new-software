@@ -77,8 +77,20 @@ try {
  assert.equal(customerSaved.name,'Updated buyer'); assert.equal(customerSaved.shipping_state,'Telangana');
 
  const quote={customer_id:cid,issue_date:'2026-10-12',valid_until:'2026-10-27',notes:'Keep these notes',status:'draft',items:[{product_id:pid,quantity:2,unit_price:100,discount_percent:10}]};
+ const sameCustomer=ok(api('customers','POST',{...customer,customer_category:'CB2',same_as_billing:true})).id;
+ const sameSaved=ok(api('customers')).data.find(c=>c.id===sameCustomer);
+ assert.equal(sameSaved.customer_category,'CB2'); assert.equal(sameSaved.shipping_address,customer.billing_address);
+ const beforeQuotes=ok(api('quotations')).data.length;
+ const direct=ok(api('invoices','POST',{...quote,action:'create',due_date:'2026-10-20'}));
+ const directSaved=ok(api('invoices','GET',{}, {id:direct.id})).data;
+ assert.equal(directSaved.quotation_id,null); assert.equal(Number(directSaved.grand_total),212.4);
+ assert(directSaved.shipping_address.includes('Shipping street')); assert.equal(directSaved.issue_date,quote.issue_date);
+ assert.equal(ok(api('quotations')).data.length,beforeQuotes);
+ assert(api('invoices','POST',{...quote,action:'create',due_date:'2026-10-01'}).error);
+ assert(api('invoices','POST',{...quote,action:'create',items:[]}).error);
+ const preview=ok(api('document_number','GET',{}, {date:quote.issue_date})).number;
  const qid=ok(api('quotations','POST',quote)).id;
- let q=ok(api('quotations','GET',{}, {id:qid})).data; assert.equal(q.notes,'Keep these notes');assert.equal(Number(q.grand_total),212.4);
+ let q=ok(api('quotations','GET',{}, {id:qid})).data; assert.equal(q.quote_number,preview); assert.equal(q.items[0].reference,preview+'-P'+pid+'-L1'); assert.equal(q.notes,'Keep these notes');assert.equal(Number(q.grand_total),212.4);
  ok(api('quotations','POST',{...quote,id:qid,status:'approved'}));
  const iid=ok(api('invoices','POST',{action:'convert',quotation_id:qid})).id;
  ok(api('invoices','POST',{action:'edit',invoice_id:iid,due_date:'2026-12-31',notes:'Updated draft'}));
@@ -101,7 +113,7 @@ try {
  assert(!ok(api('tax')).rates.some(r=>r.id===testRate));
  ok(api('invoices','POST',{action:'payment',invoice_id:iid,amount:100,payment_date:'2026-10-12',payment_method:'cash'}));
  assert(api('invoices','POST',{action:'payment',invoice_id:iid,amount:200,payment_date:'2026-10-12',payment_method:'cash'}).error);
- for(const type of ['sales','gst','quotation','payments','outstanding','customers','products']) {let report=ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type}));assert(report.rows.length,type);}
+ for(const type of ['invoice','sales','gst','quotation','payments','outstanding','customers','products']) {let report=ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type}));assert(report.rows.length,type);}
  const outside=ok(api('customers','POST',{...customer,name:'Outside buyer',state:'Telangana',pincode:'500001'})).id;
  const outsideQuote=ok(api('quotations','POST',{...quote,customer_id:outside,status:'approved'})).id;
  const outsideInvoice=ok(api('invoices','POST',{action:'convert',quotation_id:outsideQuote})).id;
@@ -126,7 +138,7 @@ try {
  assert.equal(ok(api('invoices','GET',{}, {id:iid})).data.id,iid);
  assert.equal(ok(api('quotations','GET',{}, {id:qid})).data.id,qid);
  assert(ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type:'sales'})).rows.length);
- console.log('PASS: customer/product CRUD, counts, quotation notes, inside/outside GST, inclusive pricing, conversion, issuing, payment validation, all seven reports.');
+ console.log('PASS: customer/product CRUD, counts, quotation notes, inside/outside GST, inclusive pricing, conversion, issuing, payment validation, direct invoices, customer categories, copied shipping, quotation references and all eight reports.');
 } finally {
  if(!/^nivis_test_[0-9]+$/.test(db)) throw new Error('Unsafe test database name');
  run('require "config/database.php"; $p=database_connection(false); $p->exec("DROP DATABASE " . $argv[1]);', [db]);

@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (version !== requestVersion) return;
             if (!response.ok) throw new Error(result.error || "Could not load report.");
             currentRows = result.rows;
+            document.getElementById("nlrReportTitle").textContent = type.selectedOptions[0].text + " | " + from.value + " to " + to.value;
             reportSelection = {type:type.value, from:from.value, to:to.value};
             exportButton.disabled = !currentRows.length;
             document.getElementById("nlrInvoicedSales").textContent =
@@ -63,6 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const columns = currentRows.length
                 ? Object.keys(currentRows[0])
                 : ({
+                    invoice: ["document", "date", "customer", "source", "total", "status"],
                     sales: ["document", "date", "customer", "total", "status"],
                     gst: ["document", "date", "customer", "taxable_total", "cgst_total", "sgst_total", "igst_total", "grand_total"],
                     quotation: ["document", "date", "customer", "status", "total"],
@@ -75,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const headingRow = document.createElement("tr");
             columns.forEach(column => {
                 const cell = document.createElement("th");
-                cell.textContent = column.replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
+                cell.textContent = column === "document" ? (type.value === "quotation" ? "Quote number" : "Invoice number") : column.replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
                 headingRow.appendChild(cell);
             });
             tableHead.appendChild(headingRow);

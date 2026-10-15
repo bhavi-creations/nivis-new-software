@@ -53,6 +53,7 @@ include 'sidebar.php';
         <div class="col-12 col-md-6">
           <h4><i class="fa-solid fa-user" aria-hidden="true"></i> BILL TO</h4>
           <p id="nlidpCustomerName">—</p>
+          <h4>SHIP TO</h4><p id="nlidpShippingAddress"></p>
           
 
           <div class="nlidp-supply-state" id="nlidpSupplyState">

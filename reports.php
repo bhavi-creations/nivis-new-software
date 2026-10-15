@@ -13,7 +13,7 @@ include 'sidebar.php';
     <div class="nlr-header">
       <div>
         <h1>Reports</h1>
-        <p>Actionable sales, quotation, payment and GST summaries</p>
+        <p>Choose Quotations or Invoices, select dates, and view or export the list.</p>
       </div>
 
       <div class="nlr-account">
@@ -21,6 +21,7 @@ include 'sidebar.php';
       </div>
     </div>
 
+    <p class="text-muted">Summary totals below cover issued invoices and payments in the selected period.</p>
     <!-- Report Filters -->
     <div class="nlr-filter-card">
       <form id="nlrFilterForm" class="row g-3 align-items-end">
@@ -46,9 +47,10 @@ include 'sidebar.php';
         <div class="col-12 col-md-8 col-xl-2">
           <label for="nlrReportType">REPORT TYPE</label>
           <select class="form-select" id="nlrReportType">
-            <option value="sales">Sales</option>
+            <option value="invoice">Invoices</option>
+            <option value="sales">Issued invoice sales</option>
             <option value="gst">GST Summary</option>
-            <option value="quotation">Quotation Conversion</option>
+            <option value="quotation">Quotations</option>
             <option value="payments">Payments</option>
             <option value="outstanding">Outstanding</option>
             <option value="customers">Customers</option>
@@ -84,7 +86,7 @@ include 'sidebar.php';
 
       <div class="col-12 col-sm-12 col-lg-4">
         <div class="nlr-summary-card">
-          <h6>OUTSTANDING ON PERIOD INVOICES</h6>
+          <h6>BALANCE DUE (ISSUED INVOICES)</h6>
           <h2 id="nlrOutstanding">Rs 0</h2>
         </div>
       </div>
@@ -95,7 +97,7 @@ include 'sidebar.php';
     <div class="nlr-report-card">
 
       <div class="nlr-report-heading">
-        <h2>Report preview</h2>
+        <h2 id="nlrReportTitle">Invoices</h2>
 
         <button type="button" class="nlr-export-btn" id="nlrPrint">Print / Save PDF</button>
         <button type="button"

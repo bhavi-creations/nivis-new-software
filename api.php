@@ -66,7 +66,7 @@ try {
     if (in_array($resource, ['products', 'categories'], true)) {
         ensure_billing_columns($pdo, $resource);
     }
-    if (in_array($resource, ['customers', 'quotations', 'dashboard'], true)) ensure_billing_columns($pdo, 'customers');
+    if (in_array($resource, ['customers', 'quotations', 'invoices', 'dashboard'], true)) ensure_billing_columns($pdo, 'customers');
     $method = $_SERVER['REQUEST_METHOD'];
     if ($method === 'POST') {
         $identityTables = [
@@ -269,7 +269,7 @@ try {
     if ($resource === 'customers' && $method === 'GET') {
         $rows = $pdo->query(
             "SELECT c.id, c.name, c.mobile, c.email, c.gstin, c.customer_type,
-                    c.gst_registration, c.status,
+                    c.gst_registration, c.status, c.customer_category,
                     MAX(CASE WHEN a.address_type='billing' THEN a.address_line1 END) AS billing_address,
                     MAX(CASE WHEN a.address_type='billing' THEN a.city END) AS city,
                     MAX(CASE WHEN a.address_type='billing' THEN a.state_name END) AS state,
@@ -280,7 +280,7 @@ try {
                     MAX(CASE WHEN a.address_type='shipping' THEN a.pincode END) AS shipping_pincode
              FROM customers c LEFT JOIN customer_addresses a ON a.customer_id=c.id
              WHERE c.deleted_at IS NULL
-             GROUP BY c.id, c.name, c.mobile, c.email, c.gstin, c.customer_type, c.gst_registration, c.status ORDER BY c.id"
+             GROUP BY c.id, c.name, c.mobile, c.email, c.gstin, c.customer_type, c.gst_registration, c.status, c.customer_category ORDER BY c.id"
         )->fetchAll();
         respond(['data' => $rows]);
     }
@@ -296,6 +296,8 @@ try {
         if (!in_array($type, ['business', 'individual', 'unregistered'], true)) {
             respond(['error' => 'Choose a valid customer type.'], 422);
         }
+        $category = (string) ($data['customer_category'] ?? 'CB1');
+        if (!in_array($category, ['CB1', 'CB2'], true)) respond(['error' => 'Choose a valid customer category.'], 422);
         $registration = strtolower((string) ($data['gst_registration'] ?? 'unregistered'));
         if (!in_array($registration, ['registered', 'unregistered', 'composition', 'other'], true)) {
             $registration = 'unregistered';
@@ -349,6 +351,10 @@ try {
             $customerId = (int) $pdo->lastInsertId();
         }
 
+        $pdo->prepare('UPDATE customers SET customer_category=? WHERE id=?')->execute([$category, $customerId]);
+        if (!empty($data['same_as_billing'])) {
+            foreach (['address' => 'billing_address', 'city' => 'city', 'state' => 'state', 'pincode' => 'pincode'] as $key => $source) $data['shipping_' . $key] = $data[$source] ?? '';
+        }
         $pdo->prepare('DELETE FROM customer_addresses WHERE customer_id=?')->execute([$customerId]);
         $billing = trim((string) ($data['billing_address'] ?? ''));
         $shipping = trim((string) ($data['shipping_address'] ?? ''));
@@ -455,6 +461,16 @@ try {
         respond(['message' => 'Tax configuration saved.']);
     }
 
+    if ($resource === 'document_number' && $method === 'GET') {
+        $date = (string) ($_GET['date'] ?? date('Y-m-d'));
+        $parsed = DateTime::createFromFormat('!Y-m-d', $date);
+        if (!$parsed || $parsed->format('Y-m-d') !== $date) respond(['error' => 'Invalid date.'], 422);
+        $year = (int) substr($date, 0, 4) - ((int) substr($date, 5, 2) < 4 ? 1 : 0);
+        $fy = sprintf('%d-%02d', $year, ($year + 1) % 100);
+        $statement = $pdo->prepare("SELECT last_number FROM document_sequences WHERE document_type='quotation' AND financial_year=?");
+        $statement->execute([$fy]);
+        respond(['number' => sprintf('QT-%s-%06d', $fy, (int) $statement->fetchColumn() + 1)]);
+    }
     if ($resource === 'quotations' && $method === 'GET') {
         $sql = "SELECT q.id, q.quote_number, q.customer_id, c.name AS customer,
                        q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total,
@@ -472,13 +488,17 @@ try {
                 respond(['error' => 'Quotation not found.'], 404);
             }
             $itemStatement = $pdo->prepare(
-                'SELECT product_id, product_name, sku, hsn_code AS hsn, unit,
+                'SELECT line_no, product_id, product_name, sku, hsn_code AS hsn, unit,
                         quantity, unit_price, discount_percent, gst_rate,
                         taxable_amount, line_total
                  FROM quotation_items WHERE quotation_id=? ORDER BY line_no'
             );
             $itemStatement->execute([$id]);
             $rows[0]['items'] = $itemStatement->fetchAll();
+            foreach ($rows[0]['items'] as &$line) {
+                $line['reference'] = $rows[0]['quote_number'] . '-P' . $line['product_id'] . '-L' . $line['line_no'];
+            }
+            unset($line);
             respond(['data' => $rows[0]]);
         }
         $rows = $pdo->query($sql . ' GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id ORDER BY q.id DESC')->fetchAll();
@@ -491,7 +511,9 @@ try {
         respond(['data' => $rows]);
     }
 
-    if ($resource === 'quotations' && $method === 'POST') {
+    $directInvoice = $resource === 'invoices' && $method === 'POST' && ($data['action'] ?? '') === 'create';
+    if (($resource === 'quotations' && $method === 'POST') || $directInvoice) {
+        if ($directInvoice) { $data['valid_until'] = ($data['due_date'] ?? '') ?: ($data['issue_date'] ?? ''); $data['status'] = 'draft'; unset($data['id']); }
         $quoteId = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
         $customerId = filter_var($data['customer_id'] ?? null, FILTER_VALIDATE_INT);
         $issueDate = (string) ($data['issue_date'] ?? '');
@@ -618,6 +640,86 @@ try {
             $totals[$key] = round($value, 2);
         }
 
+        if ($directInvoice) {
+            $invoiceDate = $issueDate;
+            $financialYearStart = (int) substr($invoiceDate, 0, 4);
+            if ((int) substr($invoiceDate, 5, 2) < 4) {
+                $financialYearStart--;
+            }
+            $invoiceFy = sprintf('%d-%02d', $financialYearStart, ($financialYearStart + 1) % 100);
+            $pdo->prepare(
+                "INSERT INTO document_sequences(document_type, financial_year, last_number)
+                 VALUES('invoice', ?, 0)
+                 ON DUPLICATE KEY UPDATE last_number=last_number"
+            )->execute([$invoiceFy]);
+            $lock = $pdo->prepare(
+                "SELECT last_number FROM document_sequences
+                 WHERE document_type='invoice' AND financial_year=? FOR UPDATE"
+            );
+            $lock->execute([$invoiceFy]);
+            $invoiceSequence = (int) $lock->fetchColumn() + 1;
+            $pdo->prepare(
+                "UPDATE document_sequences SET last_number=?
+                 WHERE document_type='invoice' AND financial_year=?"
+            )->execute([$invoiceSequence, $invoiceFy]);
+            $invoiceNumber = sprintf('I%s%06d', str_replace('-', '', substr($invoiceFy, 2)), $invoiceSequence);
+            $company = $pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch();
+            $configuration = $pdo->query('SELECT seller_state_name, seller_state_code FROM gst_configuration WHERE id=1')->fetch();
+            $sellerStateName = $configuration['seller_state_name'] ?? 'Andhra Pradesh';
+            $sellerStateCode = $configuration['seller_state_code'] ?? '37';
+            $addresses = $pdo->prepare('SELECT * FROM customer_addresses WHERE customer_id=?');
+            $addresses->execute([$customerId]);
+            $buyerAddress = ''; $shippingAddress = '';
+            foreach ($addresses->fetchAll() as $address) {
+                $text = implode(', ', array_filter([$address['address_line1'], $address['city'], $address['state_name'], $address['pincode']]));
+                if ($address['address_type'] === 'billing') $buyerAddress = $text;
+                if ($address['address_type'] === 'shipping') $shippingAddress = $text;
+            }
+            $invoiceInsert = $pdo->prepare(
+                'INSERT INTO invoices
+                 (invoice_number, quotation_id, customer_id, issue_date, due_date, status,
+                  supplier_name, supplier_gstin, supplier_address, supplier_state_code,
+                  buyer_name, buyer_gstin, billing_address, shipping_address,
+                  place_of_supply_state_code, tax_mode, price_mode, subtotal, discount_total,
+                  taxable_total, cgst_total, sgst_total, igst_total, round_off, grand_total, notes)
+                 VALUES (?, ?, ?, ?, ?, "draft", ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?,
+                         ?, ?, ?, ?, ?, ?, 0, ?, ?)'
+            );
+            $invoiceInsert->execute([
+                $invoiceNumber, null, $customerId, $issueDate, ($data['due_date'] ?? null) ?: null,
+                $company['company_name'] ?? 'Nivis Beauty Care',
+                $company['gstin'] ?? null,
+                $company['address'] ?? 'Business address not configured',
+                $sellerCode,
+                $customer['name'], $customer['gstin'],
+                $buyerAddress ?: 'Billing address not provided',
+                $placeCode, $taxMode, $priceMode,
+                $totals['subtotal'], $totals['discount_total'], $totals['taxable_total'],
+                $totals['cgst_total'], $totals['sgst_total'], $totals['igst_total'],
+                $totals['grand_total'], $notes,
+            ]);
+            $invoiceId = (int) $pdo->lastInsertId();
+            $insertInvoiceItem = $pdo->prepare(
+                'INSERT INTO invoice_items
+                 (invoice_id, line_no, source_quotation_item_id, product_id, product_name, sku,
+                  hsn_code, unit, quantity, unit_price, discount_percent, discount_amount,
+                  taxable_amount, gst_rate, cgst_amount, sgst_amount, igst_amount, line_total)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            foreach ($preparedItems as $item) {
+                $insertInvoiceItem->execute([
+                    $invoiceId, $item['line_no'], null, $item['product_id'],
+                    $item['name'], $item['sku'], $item['hsn'], $item['unit'],
+                    $item['quantity'], $item['price'], $item['discount_percent'],
+                    $item['discount_amount'], $item['taxable'], $item['gst_rate'],
+                    $item['cgst'], $item['sgst'], $item['igst'],
+                    $item['line_total'],
+                ]);
+            }
+            $pdo->prepare('UPDATE invoices SET shipping_address=? WHERE id=?')->execute([$shippingAddress ?: $buyerAddress, $invoiceId]);
+            $pdo->commit();
+            respond(['message' => 'Direct invoice created.', 'id' => $invoiceId, 'invoice_number' => $invoiceNumber], 201);
+        }
         $fromStatus = null;
         if ($quoteId) {
             $existing = $pdo->prepare('SELECT quote_number, status FROM quotations WHERE id=? FOR UPDATE');
@@ -877,6 +979,9 @@ try {
             $quote['grand_total'], $quote['notes'],
         ]);
         $invoiceId = (int) $pdo->lastInsertId();
+        $shipping = $pdo->prepare("SELECT CONCAT_WS(', ', address_line1, city, state_name, pincode) FROM customer_addresses WHERE customer_id=? AND address_type='shipping' LIMIT 1");
+        $shipping->execute([$quote['customer_id']]);
+        $pdo->prepare('UPDATE invoices SET shipping_address=? WHERE id=?')->execute([$shipping->fetchColumn() ?: $buyerAddress, $invoiceId]);
         $quoteItems = $pdo->prepare('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY line_no');
         $quoteItems->execute([$quotationId]);
         $insertInvoiceItem = $pdo->prepare(
@@ -1012,7 +1117,7 @@ try {
             $date = DateTime::createFromFormat('!Y-m-d', $value);
             return $date !== false && $date->format('Y-m-d') === $value;
         };
-        $types = ['sales', 'gst', 'quotation', 'payments', 'outstanding', 'customers', 'products'];
+        $types = ['sales', 'invoice', 'gst', 'quotation', 'payments', 'outstanding', 'customers', 'products'];
         if (!$validDate($from) || !$validDate($to) || $to < $from ||
             !in_array($type, $types, true)) {
             respond(['error' => 'Choose a valid report type and date range.'], 422);
@@ -1034,6 +1139,14 @@ try {
         $summary['collected'] = $paymentSummary->fetchColumn();
 
         $queries = [
+            'invoice' => [
+                "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
+                        COALESCE(q.quote_number, 'Direct invoice') AS source, i.grand_total AS total, i.status
+                 FROM invoices i JOIN customers c ON c.id=i.customer_id
+                 LEFT JOIN quotations q ON q.id=i.quotation_id
+                 WHERE i.issue_date BETWEEN ? AND ? ORDER BY i.issue_date DESC, i.id DESC",
+                [$from, $to],
+            ],
             'sales' => [
                 "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
                         i.grand_total AS total, i.status
