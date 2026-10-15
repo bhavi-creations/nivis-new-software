@@ -16,14 +16,34 @@ function ensure_identity_columns(PDO $pdo, array $tables): void
             throw new NivisConfigurationException("Unsupported identity definition in $table; manual schema review required.");
         }
         $primary = $pdo->query("SHOW INDEX FROM `$table` WHERE Key_name = 'PRIMARY'")->fetchAll();
-        if (count($primary) !== 1 || $primary[0]['Column_name'] !== 'id') {
-            throw new NivisConfigurationException("Expected a single-column id primary key in $table; manual schema review required.");
-        }
         // ALTER can renumber zero identities; never silently change existing IDs.
-        if ($pdo->query("SELECT 1 FROM `$table` WHERE id <= 0 LIMIT 1")->fetchColumn() !== false) {
+        if ($pdo->query("SELECT 1 FROM `$table` WHERE id IS NULL OR id <= 0 LIMIT 1")->fetchColumn() !== false) {
             throw new NivisConfigurationException("Non-positive identities in $table; manual schema review required.");
         }
-        $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN `id` " . $column['Type'] . ' NOT NULL AUTO_INCREMENT');
+        if ($pdo->query("SELECT id FROM `$table` GROUP BY id HAVING COUNT(*) > 1 LIMIT 1")->fetchColumn() !== false) {
+            throw new NivisConfigurationException("Duplicate IDs in $table. Existing data was preserved; resolve duplicate IDs before adding records.");
+        }
+        $keyClause = '';
+        if (!$primary) {
+            $keyClause = ', ADD PRIMARY KEY (`id`)';
+        } elseif (count($primary) !== 1 || $primary[0]['Column_name'] !== 'id') {
+            // Preserve an existing business/composite primary key.
+            $indexes = [];
+            foreach ($pdo->query("SHOW INDEX FROM `$table`")->fetchAll() as $index) {
+                $indexes[$index['Key_name']][] = $index;
+            }
+            $uniqueId = false;
+            foreach ($indexes as $parts) {
+                if (count($parts) === 1 && (int) $parts[0]['Non_unique'] === 0 && $parts[0]['Column_name'] === 'id') $uniqueId = true;
+            }
+            if (!$uniqueId) {
+                $keyName = 'nivis_identity_id';
+                while (isset($indexes[$keyName])) $keyName .= '_x';
+                $keyClause = ', ADD UNIQUE KEY `' . $keyName . '` (`id`)';
+            }
+        }
+        // Add the index and identity together, preserving existing IDs and references.
+        $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN `id` " . $column['Type'] . ' NOT NULL AUTO_INCREMENT' . $keyClause);
     }
 }
 

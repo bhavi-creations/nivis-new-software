@@ -25,9 +25,18 @@ try {
  ok(api('tax_rates','POST',{name:'Test 18%',rate_percent:18,treatment:'taxable',effective_from:'2020-01-01'}));
  // Reproduce hosting imports with missing product/category AUTO_INCREMENT.
  run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE products MODIFY id BIGINT UNSIGNED NOT NULL");', [], true);
+ // Reproduce a hosting table without a primary key; retain its FK-supporting index.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories ADD INDEX hosting_id (id), DROP PRIMARY KEY");', [], true);
  const cat=ok(api('categories','POST',{name:'Test category',code:'TEST',status:'active'})).id;
  const product={name:'Test product',sku:'TEST-1',category_id:cat,hsn:'330499',unit:'PCS',price:100,gst:18,discount:10,quantity:2,gst_region:'inside_ap',status:'active'};
  const pid=ok(api('products','POST',product)).id;
+ // Repeat with populated rows: IDs and product references must remain stable.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories MODIFY id BIGINT UNSIGNED NOT NULL, DROP PRIMARY KEY");', [], true);
+ ok(api('categories','POST',{id:cat,name:'Test category',code:'TEST'}));
+ assert.equal(ok(api('products')).data.find(p=>p.id===pid).category_id,cat);
+ // Preserve a different primary key while repairing the identity.
+ run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories MODIFY id BIGINT UNSIGNED NOT NULL, DROP PRIMARY KEY, ADD PRIMARY KEY(code)");', [], true);
+ ok(api('categories','POST',{id:cat,name:'Test category',code:'TEST'}));
  // Repair populated tables as well; IDs and category references must survive.
  run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE categories MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE products MODIFY id BIGINT UNSIGNED NOT NULL");', [], true);
  ok(api('categories','POST',{id:cat,name:'Test category',code:'TEST',status:'active'}));
