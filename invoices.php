@@ -18,7 +18,7 @@ include 'sidebar.php';
     <div class="nivis-labs-invoice-header">
       <div>
         <h1>Invoices</h1>
-        <p>Bills for your customers. Create a direct invoice or convert an approved quotation, then record payments.</p>
+        <p>Add an invoice directly or convert a saved order / quotation. View and save it as an A4 PDF.</p>
       </div>
 
       <div class="nivis-labs-invoice-account">

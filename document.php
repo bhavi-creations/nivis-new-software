@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/security.php';
 require_once __DIR__ . '/config/billing.php';
+require_once __DIR__ . '/config/business_profile.php';
 function e($v): string
 {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -41,6 +42,11 @@ try {
         $supplier = array_merge($supplier, ['company_name' => $doc['supplier_name'], 'gstin' => $doc['supplier_gstin'], 'address' => $doc['supplier_address']]);
         $buyer = array_merge($buyer, ['name' => $doc['buyer_name'], 'gstin' => $doc['buyer_gstin'], 'billing_address' => $doc['billing_address'], 'shipping_address' => $doc['shipping_address']]);
     }
+    // Update quotation stationery as requested; retain issued invoice party snapshots.
+    if ($type === 'quotation') $supplier = array_merge($supplier, nivis_business_profile());
+    else foreach (nivis_business_profile() as $key => $value) {
+        if (empty($supplier[$key]) || in_array($supplier[$key], ['Business address not configured','Business details not captured'], true)) $supplier[$key] = $value;
+    }
     $details = json_decode($doc['document_details'] ?? '', true) ?: [];
     $treatments = $details['tax_treatments'] ?? [];
     $billOfSupply = $treatments && !array_diff($treatments, ['nil_rated', 'exempt', 'non_gst']);
@@ -64,61 +70,36 @@ try {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title><?= e($number) ?></title>
-    <link rel="stylesheet" href="assets/css/document.css">
+    <link rel="stylesheet" href="assets/css/document.css?v=20261016-3">
 </head>
 
 <body>
-    <nav class="document-actions"><a href="<?= $type === 'quotation' ? 'quotations.php' : 'invoices.php' ?>">Back to <?= e($table) ?></a><button id="printDocument">Print</button><button id="downloadDocument">Download PDF</button><span id="pdfMessage" role="status"></span></nav>
-    <main id="billingDocument" class="paper">
-        <header class="document-header"><img src="assets/img/logo.png" alt="Nivis Labs" width="120">
+    <nav class="document-actions"><a href="<?= $type === 'quotation' ? 'quotations.php' : 'invoices.php' ?>">Back to <?= e($table) ?></a><button id="printDocument">Print A4</button><button id="downloadDocument">Save A4 PDF</button><span id="pdfMessage" role="status"></span></nav>
+    <main id="billingDocument" class="paper document-<?= e($type) ?>" data-document-type="<?= e($type) ?>">
+        <header class="document-header"><div class="document-purpose"><span><?= $type === 'quotation' ? 'PRICE QUOTATION' : 'BILLING DOCUMENT' ?></span><p><?= $type === 'quotation' ? 'Product pricing &amp; tax estimate' : 'Invoice &amp; payment summary' ?></p></div>
             <div>
                 <h1><?= $type === 'quotation' ? 'QUOTATION' : (!empty($supplier['gstin']) ? ($billOfSupply ? 'BILL OF SUPPLY' : 'TAX INVOICE') : 'INVOICE') ?></h1><strong><?= e($number) ?></strong>
                 <p><?= e(strtoupper($doc['status'] === 'approved' ? 'accepted' : $doc['status'])) ?></p>
             </div>
         </header>
         <div class="parties">
-            <!-- <section>
-                <h2>From</h2><strong><?= e($supplier['company_name'] ?? 'Business details not captured') ?></strong>
-                <p><?= nl2br(e($supplier['address'] ?? '')) ?></p>
-                <p><?= e(implode(' | ', array_filter([$supplier['phone'] ?? '', $supplier['email'] ?? '']))) ?></p><?php if (!empty($supplier['gstin'])): ?><p>GSTIN: <?= e($supplier['gstin']) ?></p><?php endif; ?>
-            </section> -->
-
-            <section>
-                <!-- Logo Image -->
-                <?php if (!empty($supplier['logo_url'])): ?>
-                    <img src="<?= e($supplier['logo_url']) ?>" alt="<?= e($supplier['company_name'] ?? 'Company Logo') ?>" class="supplier-logo" style="max-width: 150px; max-height: 80px; height: auto; margin-bottom: 10px; display: block;">
-                <?php endif; ?>
-
-                <!-- Company Details -->
-                <h2><?= e($supplier['company_name'] ?? 'Business details not captured') ?></h2>
-
-                <?php if (!empty($supplier['address'])): ?>
-                    <p><?= nl2br(e($supplier['address'])) ?></p>
-                <?php endif; ?>
-
-                <?php
-                $contact_info = array_filter([$supplier['phone'] ?? '', $supplier['email'] ?? '']);
-                if (!empty($contact_info)):
-                ?>
-                    <p><?= e(implode(' | ', $contact_info)) ?></p>
-                <?php endif; ?>
-
-                <?php if (!empty($supplier['gstin'])): ?>
-                    <p>GSTIN: <?= e($supplier['gstin']) ?></p>
-                <?php endif; ?>
+            <section class="supplier-details">
+                <h2>From</h2>
+                <img src="assets/img/logo.png" alt="Nivis Labs logo" class="supplier-logo" width="140" height="72">
+                <strong><?= e($supplier['company_name']) ?></strong>
+                <p><?= nl2br(e($supplier['address'])) ?></p>
+                <p>Email: <?= e($supplier['email'] ?? '') ?></p>
+                <p>Contact: <?= e($supplier['phone'] ?? '') ?></p>
+                <?php if (!empty($supplier['gstin'])): ?><p>GSTIN: <?= e($supplier['gstin']) ?></p><?php endif; ?>
             </section>
-
-
-
-
-
             <section>
-                <h2>Bill to</h2><strong><?= e($buyer['name'] ?? 'Customer details not captured on this legacy quotation') ?></strong>
+                <h2><?= $type === 'quotation' ? 'Quotation for' : 'Bill to' ?></h2><strong><?= e($buyer['name'] ?? 'Customer details not captured on this legacy quotation') ?></strong>
                 <p><?= nl2br(e($buyer['billing_address'] ?? '')) ?></p>
                 <p><?= e(implode(' | ', array_filter([$buyer['mobile'] ?? '', $buyer['email'] ?? '']))) ?></p><?php if (!empty($buyer['gstin'])): ?><p>GSTIN: <?= e($buyer['gstin']) ?></p><?php endif; ?><h2>Ship to</h2>
                 <p><?= nl2br(e($buyer['shipping_address'] ?? $buyer['billing_address'] ?? '')) ?></p>
             </section>
         </div>
+        <?php if(!empty($details['order_number'])): ?><p><strong>Order reference:</strong> <?= e($details['order_number']) ?></p><?php endif; ?>
         <div class="document-meta"><span>Date: <?= e($doc['issue_date']) ?></span><span><?= $type === 'quotation' ? 'Valid until' : 'Due date' ?>: <?= e($doc[$type === 'quotation' ? 'valid_until' : 'due_date'] ?? 'Not set') ?></span><span>Place of supply (state code): <?= e($doc['place_of_supply_state_code']) ?></span><span>Prices <?= e($doc['price_mode']) ?> of GST</span></div>
         <table>
             <thead>
@@ -135,7 +116,7 @@ try {
             </thead>
             <tbody>
                 <?php foreach ($items as $line): ?><tr>
-                        <td><?= e($line['line_no'] . '. ' . $line['product_name']) ?><small><?= e($line['sku']) ?></small><small><?= e($details['item_descriptions'][$line['line_no']] ?? '') ?></small></td>
+                        <td><?= e($line['line_no'] . '. ' . $line['product_name']) ?></td>
                         <td><?= e($line['hsn_code']) ?></td>
                         <td><?= e($line['quantity'] . ' ' . $line['unit']) ?></td>
                         <td><?= money($line['unit_price']) ?></td>
@@ -160,7 +141,7 @@ try {
                     <dd><?= money($doc[$key . '_total']) ?></dd><?php endforeach; ?>
                 <dt>Round off</dt>
                 <dd><?= money($doc['round_off']) ?></dd>
-                <dt class="grand">Grand total</dt>
+                <dt class="grand"><?= $type === 'quotation' ? 'Quotation total' : 'Invoice total' ?></dt>
                 <dd class="grand"><?= money($doc['grand_total']) ?></dd>
                 <?php if ($type === 'invoice'): ?><dt>Paid</dt>
                     <dd><?= money($paid) ?></dd>
@@ -185,8 +166,10 @@ try {
             </section><?php endif; ?>
         <?php if (!empty($doc['cancellation_reason'])): ?><p>Cancellation reason: <?= e($doc['cancellation_reason']) ?></p><?php endif; ?>
     </main>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="assets/js/document.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="assets/js/document-pages.js?v=20261016-3"></script>
+    <script src="assets/js/document.js?v=20261016-3"></script>
 </body>
 
 </html>

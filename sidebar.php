@@ -58,6 +58,11 @@
         Products
       </a>
 
+      <a href="orders.php" class="nav-link">
+        <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+        Orders
+      </a>
+
       <a href="quotations.php" class="nav-link">
         <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
         Quotations

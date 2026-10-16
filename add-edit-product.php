@@ -30,14 +30,7 @@ include 'sidebar.php';
         <input type="hidden" name="product_id" id="editProductId">
 
         <div class="row g-4">
-          <div class="col-12 col-md-6">
-            <label for="editProductCustomer" class="form-label">CUSTOMER</label>
-            <select id="editProductCustomer" class="form-select"><option value="">All customers / No specific customer</option></select>
-            <label for="editProductCustomerSearch" class="form-label mt-2">SEARCH CUSTOMER</label>
-            <input id="editProductCustomerSearch" type="search" class="form-control" placeholder="Type a letter or customer name" autocomplete="off">
-            <div id="editProductCustomerMatches" class="list-group mt-1" style="max-height:220px;overflow-y:auto" aria-live="polite"></div>
-            <small>Select an existing customer from the dropdown or search results.</small>
-          </div>
+
           <div class="col-12">
             <label for="editProductImage" class="form-label">PRODUCT PHOTO</label>
             <input type="file" id="editProductImage" class="form-control" accept="image/*">
@@ -45,8 +38,9 @@ include 'sidebar.php';
             <div class="mt-2"><img id="editProductImagePreview" class="product-photo-preview" alt="Product photo preview" hidden></div>
           </div>
           <div class="col-md-4"><label for="editProductSerial" class="form-label">S.NO</label><input id="editProductSerial" class="form-control" value="Assigned when saved" readonly></div>
-          <div class="col-md-4"><label for="editProductQuantity" class="form-label">QUANTITY *</label><input id="editProductQuantity" class="form-control" type="number" min="0" max="1000000" step="0.001" value="1" required><small>Enter 0 when not available.</small></div>
+          <div class="col-md-4"><label for="editProductQuantity" class="form-label">TOTAL QUANTITY RECEIVED *</label><input id="editProductQuantity" class="form-control" type="number" min="0" max="1000000" step="0.001" value="1" required><small>Enter total stock received, including sold quantities. Increase this total when restocking.</small></div>
 
+          <div class="col-md-4"><label for="editProductAvailable" class="form-label">AVAILABLE QUANTITY</label><input id="editProductAvailable" class="form-control" readonly><small id="editProductSold">Sold: 0</small></div>
           <!-- Product Name -->
           <div class="col-12 col-md-6 col-xl-4">
             <label for="editProductName" class="form-label">
@@ -146,12 +140,9 @@ include 'sidebar.php';
                     id="editProductGST"
                     name="gst_rate"
                     required>
-              <option value="0">0%</option>
-              <option value="5">5%</option>
-              <option value="12">12%</option>
-              <option value="18" selected>18%</option>
-              <option value="28">28%</option>
+              <option value="">Loading configured GST rates...</option>
             </select>
+            <small>Choose the rate applicable to this product's HSN. These are your configured rates; manage them in Tax &amp; GST.</small>
           </div>
 
           <div class="col-md-4"><label for="editProductRegion" class="form-label">GST REGION</label><select id="editProductRegion" class="form-select"><option value="inside_ap">Inside AP (CGST + SGST)</option><option value="outside_ap">Outside AP (IGST)</option></select><small>Default for product preview. Documents use their place of supply.</small></div>

@@ -104,6 +104,7 @@ try {
             respond($cached['payload'],$cached['status']);
         }
     }
+    require_once __DIR__.'/config/inventory.php';
     billing_actions($pdo,$resource,$method,$data);
     $id = filter_var($_GET['id'] ?? $data['id'] ?? null, FILTER_VALIDATE_INT);
 
@@ -135,6 +136,10 @@ try {
         respond(['message' => 'Company settings saved.']);
     }
 
+    if ($resource === 'product_sales' && $method === 'GET') {
+        if (!$id) respond(['error'=>'A product ID is required.'],422);
+        respond(['data'=>inventory_sales($pdo,(int)$id)]);
+    }
     if ($resource === 'products' && $method === 'GET') {
         $rows = $pdo->query(
             "SELECT p.id, p.tax_rate_id, p.customer_id, p.image_path, p.default_quantity AS quantity, p.gst_region, p.name, p.sku, p.category_id, c.name AS category,
@@ -146,6 +151,8 @@ try {
              LEFT JOIN tax_rates t ON t.id = p.tax_rate_id
              ORDER BY p.id"
         )->fetchAll();
+        foreach($rows as &$row) $row += inventory_balance($pdo,$row);
+        unset($row);
         respond(['data' => $rows]);
     }
 
@@ -193,11 +200,15 @@ try {
             respond(['error' => 'Invalid product ID.'], 422);
         }
         $oldImage = null;
+        $pdo->beginTransaction();
         if ($productId) {
-            $existing = $pdo->prepare('SELECT image_path FROM products WHERE id=?');
+            $existing = $pdo->prepare('SELECT * FROM products WHERE id=? FOR UPDATE');
             $existing->execute([$productId]);
             $record = $existing->fetch();
             if (!$record) respond(['error' => 'Product not found.'], 404);
+            $balance=inventory_balance($pdo,$record);
+            if (strtoupper($unit)!==strtoupper($record['unit']) && inventory_sales($pdo,(int)$productId)) { $pdo->rollBack();respond(['error'=>'A product with sales must keep its stock unit.'],422); }
+            if ($quantity < $balance['sold_quantity']) {$pdo->rollBack();respond(['error'=>'Total quantity cannot be less than the quantity already sold.'],422);}
             $oldImage = $record['image_path'];
         }
         $newProductImage = store_product_image();
@@ -219,6 +230,7 @@ try {
             }
             if ($newProductImage) remove_product_image($oldImage);
             $newProductImage = null;
+            $pdo->commit();
             respond(['message' => 'Product saved.', 'id' => $productId]);
         }
         $statement = $pdo->prepare(
@@ -232,21 +244,25 @@ try {
             $taxRateId ?: null, trim((string) ($data['description'] ?? '')), $status,
         ]);
         $newProductImage = null;
-        respond(['message' => 'Product saved.', 'id' => (int) $pdo->lastInsertId()], 201);
+        $newId=(int)$pdo->lastInsertId();$pdo->commit();
+        respond(['message' => 'Product saved.', 'id' => $newId], 201);
     }
 
     if ($resource === 'products' && $method === 'DELETE') {
         if (!$id) {
             respond(['error' => 'A valid product ID is required.'], 422);
         }
-        $imageQuery = $pdo->prepare('SELECT image_path FROM products WHERE id=?');
+        $pdo->beginTransaction();
+        $imageQuery = $pdo->prepare('SELECT image_path FROM products WHERE id=? FOR UPDATE');
         $imageQuery->execute([$id]);
         $deletedImage = $imageQuery->fetchColumn();
+        if (inventory_sales($pdo,(int)$id)) {$pdo->rollBack();respond(['error'=>'This product has sales history. Mark it inactive instead of deleting it.'],409);}
         $statement = $pdo->prepare('DELETE FROM products WHERE id = ?');
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
             respond(['error' => 'Product not found.'], 404);
         }
+        $pdo->commit();
         remove_product_image($deletedImage ?: null);
         respond(['message' => 'Product deleted.']);
     }
@@ -530,7 +546,7 @@ try {
     if ($resource === 'quotations' && $method === 'GET') {
         $sql = "SELECT q.id, q.quote_number, q.customer_id, COALESCE(MAX(JSON_UNQUOTE(JSON_EXTRACT(q.party_snapshot, '$.buyer.name'))), c.name) AS customer,
                        q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total,
-                       i.id AS invoice_id,
+                       i.id AS invoice_id, MAX(q.source_type) AS source_type, MAX(q.order_number) AS order_number,
                        GROUP_CONCAT(qi.product_name ORDER BY qi.line_no SEPARATOR ' | ') AS product_names
                 FROM quotations q
                 JOIN customers c ON c.id=q.customer_id
@@ -572,6 +588,8 @@ try {
     $directInvoice = $resource === 'invoices' && $method === 'POST' && in_array(($data['action'] ?? ''), ['create','revise'], true);
     if (($resource === 'quotations' && $method === 'POST') || $directInvoice) {
         if ($directInvoice) { $data['valid_until'] = ($data['due_date'] ?? '') ?: ($data['issue_date'] ?? ''); $data['status'] = 'draft'; unset($data['id']); }
+        $sourceType=(string)($data['source_type'] ?? 'quotation');
+        if (!in_array($sourceType,['quotation','order'],true)) respond(['error'=>'Invalid order source.'],422);
         $quoteId = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
         $customerId = filter_var($data['customer_id'] ?? null, FILTER_VALIDATE_INT);
         $issueDate = (string) ($data['issue_date'] ?? '');
@@ -614,6 +632,11 @@ try {
         if (($configuration['tax_mode'] ?? 'auto') === 'manual_review') { $pdo->rollBack(); respond(['error'=>'Tax configuration requires review before billing.'],422); }
         $sellerCode = $company['state_code'] ?? ($configuration['seller_state_code'] ?? '37');
         $parties=billing_parties($pdo,$customerId);
+        if (array_key_exists('customer_gstin',$data)) {
+            $buyerGstin=strtoupper(trim((string)$data['customer_gstin']));
+            if ($buyerGstin!=='' && !preg_match('/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/',$buyerGstin)) {$pdo->rollBack();respond(['error'=>'Enter a valid 15-character customer GST number or leave it blank.'],422);}
+            $customer['gstin']=$buyerGstin ?: null;$parties['buyer']['gstin']=$buyerGstin ?: null;
+        }
         $shippingCode=$pdo->prepare("SELECT state_code FROM customer_addresses WHERE customer_id=? AND address_type='shipping' ORDER BY is_default DESC,id DESC LIMIT 1");
         $shippingCode->execute([$customerId]);
         $customer['state_code']=$shippingCode->fetchColumn() ?: $customer['state_code'];
@@ -664,6 +687,8 @@ try {
                 $pdo->rollBack();
                 respond(['error' => 'A product GST rate is disabled or outside its effective dates. Update the product tax rate.'], 422);
             }
+            $lineUnit=strtoupper(trim((string)($item['unit'] ?? $product['unit'])));
+            if (!in_array($lineUnit,array_merge([strtoupper($product['unit'])],['PCS','BOX','KG','GRAM','LITER','ML','METER','SET']),true)) {$pdo->rollBack();respond(['error'=>'Choose a valid unit for each product.'],422);}
             $quantity=round($quantity,3); $unitPrice=round($unitPrice,2); $discountPercent=round($discountPercent,2);
             if ($quantity<=0) {$pdo->rollBack();respond(['error'=>'Quantity must be at least 0.001.'],422);}
             $taxTreatments[$index+1]=$product['treatment'];
@@ -690,7 +715,7 @@ try {
                 'name' => $product['name'],
                 'sku' => $product['sku'],
                 'hsn' => $product['hsn_code'],
-                'unit' => $product['unit'],
+                'unit' => $lineUnit,
                 'quantity' => $quantity,
                 'price' => $unitPrice,
                 'discount_percent' => $discountPercent,
@@ -832,7 +857,7 @@ try {
         }
         $fromStatus = null;
         if ($quoteId) {
-            $existing = $pdo->prepare('SELECT quote_number, status FROM quotations WHERE id=? FOR UPDATE');
+            $existing = $pdo->prepare('SELECT quote_number, status, source_type FROM quotations WHERE id=? FOR UPDATE');
             $existing->execute([$quoteId]);
             $quote = $existing->fetch();
             if (!$quote || $quote['status'] !== 'draft') {
@@ -840,6 +865,7 @@ try {
                 respond(['error' => 'Only an existing draft quotation can be edited.'], 409);
             }
             $quoteNumber = $quote['quote_number'];
+            $sourceType = $quote['source_type'];
             $fromStatus = $quote['status'];
             $update = $pdo->prepare(
                 "UPDATE quotations SET customer_id=?, issue_date=?, valid_until=?, status=?,
@@ -918,9 +944,12 @@ try {
              (quotation_id, from_status, to_status, notes) VALUES (?, ?, ?, ?)"
         );
         $history->execute([$quoteId, $fromStatus, $requestedStatus, 'Saved from quotation screen']);
+        $orderNumber=$sourceType==='order' ? 'ORD-'.substr($quoteNumber,3) : null;
+        $pdo->prepare('UPDATE quotations SET source_type=?,order_number=? WHERE id=?')->execute([$sourceType,$orderNumber,$quoteId]);
+        if($orderNumber)$details['order_number']=$orderNumber;
         billing_store($pdo,'quotations',$quoteId,$parties,$details,$charge);
         $pdo->commit();
-        respond(['message' => 'Quotation saved.', 'id' => $quoteId, 'quote_number' => $quoteNumber], 201);
+        respond(['message' => 'Quotation saved.', 'id' => $quoteId, 'quote_number' => $quoteNumber, 'order_number' => $orderNumber], 201);
     }
 
     if ($resource === 'quotations' && $method === 'DELETE') {
@@ -1137,8 +1166,24 @@ try {
             respond(['error' => 'A valid invoice ID is required.'], 422);
         }
         $pdo->beginTransaction();
-        $issueCheck=$pdo->prepare('SELECT supplier_gstin,cgst_total,sgst_total,igst_total FROM invoices WHERE id=? FOR UPDATE');$issueCheck->execute([$invoiceId]);$issueRecord=$issueCheck->fetch();
+        $issueCheck=$pdo->prepare('SELECT status,supplier_gstin,cgst_total,sgst_total,igst_total FROM invoices WHERE id=? FOR UPDATE');$issueCheck->execute([$invoiceId]);$issueRecord=$issueCheck->fetch();
         if ($issueRecord && !$issueRecord['supplier_gstin'] && ($issueRecord['cgst_total']+$issueRecord['sgst_total']+$issueRecord['igst_total'])>0) respond(['error'=>'A GST-charging invoice requires the actual supplier GSTIN. Correct company settings and recreate this draft before issuing.'],422);
+        if (!$issueRecord || $issueRecord['status']!=='draft') {$pdo->rollBack();respond(['error'=>'Only draft invoices can be issued.'],409);}
+        $lines=$pdo->prepare('SELECT product_id,quantity,unit FROM invoice_items WHERE invoice_id=? AND product_id IS NOT NULL ORDER BY product_id');$lines->execute([$invoiceId]);
+        $needed=[];$stock=[];
+        foreach($lines->fetchAll() as $line){
+            $pid=(int)$line['product_id'];
+            if(!isset($stock[$pid])){$q=$pdo->prepare('SELECT * FROM products WHERE id=? FOR UPDATE');$q->execute([$pid]);$stock[$pid]=$q->fetch();}
+            $p=$stock[$pid];
+            if(!$p){$pdo->rollBack();respond(['error'=>'An invoice product no longer exists.'],422);}
+            $qty=inventory_quantity((float)$line['quantity'],$line['unit'],$p['unit']);
+            if($qty===null){$pdo->rollBack();respond(['error'=>'Use stock unit '.$p['unit'].' for '.$p['name'].'.'],422);}
+            $needed[$pid]=($needed[$pid]??0)+$qty;
+        }
+        foreach($needed as $pid=>$qty){
+            $balance=inventory_balance($pdo,$stock[$pid]);
+            if($balance['stock_error'] || $qty>$balance['available_quantity']+0.00001){$pdo->rollBack();respond(['error'=>$stock[$pid]['name'].': only '.$balance['available_quantity'].' '.$stock[$pid]['unit'].' available. '.($balance['stock_error']??'Reduce quantity or update total stock received.')],409);}
+        }
         $statement = $pdo->prepare(
             "UPDATE invoices SET status='issued', issued_at=NOW()
              WHERE id=? AND status='draft'"

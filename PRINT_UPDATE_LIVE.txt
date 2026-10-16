@@ -1,0 +1,57 @@
+NIVIS QUOTATION / INVOICE PRINT UPDATE
+
+Changes:
+- Quotation form and PDF From block show the existing Nivis logo plus:
+  Nivis Labs International
+  2-21/632/SF-08-08, Pushikonda, Vishakapatnam, AP-530045
+  nivislabs@gmail.com | 96666 90910
+- Quotation stationery is blue, titled PRICE QUOTATION, with Quotation total.
+- Invoice stationery is green, titled BILLING DOCUMENT / INVOICE, with payment
+  balances. Existing invoice legal-party snapshots are preserved.
+- PDF export prepares fixed-width A4 content pages (186 mm content, 12 mm margins),
+  carries table rows to the next page, repeats table headers, continues oversized
+  descriptions/terms, and adds page numbers. It does not rasterize the entire long
+  document as one canvas. Mobile screen width no longer controls PDF layout.
+- Versioned CSS/JS URLs avoid stale cached print assets after deployment.
+
+LOCAL DATABASE:
+The supplied business name/address/email/phone were saved locally by running:
+  C:\xampp\php\php.exe database\update_business_profile.php
+Existing GSTIN, state on an existing company row, terms and historical invoices
+are not overwritten. No GSTIN or bank details have been invented.
+
+LIVE DEPLOYMENT:
+No live host or connected deployment access was supplied, so live deployment has
+NOT been performed. This ZIP targets an existing copy of this billing application.
+1. Back up the matching live files and the company_settings row.
+2. Extract the ZIP into the application's existing directory, preserving paths.
+   Do not put it inside an extra nested folder. No database credentials are included.
+3. Run from the application directory, if hosting offers a terminal:
+     php database/update_business_profile.php
+   Otherwise save the supplied name/address/email/phone through Settings. The
+   quotation stationery itself uses config/business_profile.php immediately.
+4. Reload a quotation and an invoice; use Ctrl+F5 if an older page remains open.
+5. Download a short quotation and a long quotation with many rows. Check all
+   rows/totals, repeated table headings, page numbers and From details. Repeat on
+   a mobile-width screen. Test the invoice's distinct green layout and payment totals.
+
+Included runtime files:
+document.php
+simple-quotation.php
+assets/css/document.css
+assets/js/document.js
+assets/js/document-pages.js
+assets/img/logo.png
+config/business_profile.php
+database/update_business_profile.php
+PRINT_UPDATE_LIVE.txt
+
+Validation:
+PHP syntax checks, JS parse checks and HTTP document tests passed.
+tests/document-pages.cjs checks multipage row preservation, repeated headers,
+oversized descriptions, long terms and cleanup with a deterministic layout model.
+No connected browser was available, so an actual rendered PDF visual inspection
+and a live-host download are still required. The model tests do not verify fonts,
+browser layout or html2canvas rendering. Download uses the application's existing
+html2pdf.js CDN dependency. Print > Save as PDF is available if the CDN is blocked.
+Worker API reference: https://ekoopmans.github.io/html2pdf.js/

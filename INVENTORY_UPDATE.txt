@@ -1,0 +1,31 @@
+Product stock and GST dropdown update
+
+Product quantity means total stock received, including units already sold.
+Available = total received - quantities on issued, non-cancelled invoices.
+Quotation/order/draft saves do not reserve or consume stock. Issue Invoice records
+the sale; cancellation restores availability. Existing issued invoices count too.
+To restock, increase total quantity received. Products with sales cannot be deleted
+or have their stock unit changed; mark them inactive when necessary.
+
+Products shows total, sold, available and availability status. Sold opens customer,
+quantity, invoice date, issue timestamp and invoice links. Product editing previews
+available quantity, and order/quotation/invoice entry shows current available stock.
+Stock is calculated from database invoices; no stock reset or new migration needed.
+Issuing locks product rows and checks the combined quantities for duplicate lines,
+preventing concurrent invoices from overselling. KG/GRAM and LITER/ML conversions
+are supported. Other differing units require correction before issuing.
+Legacy incompatible units or sales exceeding configured total stock are flagged.
+
+GST dropdown displays percentage, treatment (for non-taxable rates), and HSN scope.
+Equivalent active options are grouped; editing preserves the product's existing
+rate ID. Existing configured rates and invoice tax snapshots are not rewritten.
+The dropdown is not a declaration that every configured percentage applies to
+every cosmetic. Select the rate applicable to the particular goods and HSN.
+Official references consulted:
+https://www.pib.gov.in/PressReleasePage.aspx?PRID=2163566&lang=2&reg=48
+https://cbic-gst.gov.in/gst-goods-services-rates.html
+
+Validation: isolated database tests cover 50-30=20, 20-20=0, draft behavior,
+duplicate issue, overselling, sales history, cancellation, stock-edit protection,
+unit conversion and concurrent issue from separate PHP processes.
+Local code update only. Remote hosting has not been deployed.

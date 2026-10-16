@@ -10,13 +10,26 @@
     document.getElementById('printDocument').addEventListener('click',()=>window.print());
     document.getElementById('downloadDocument').addEventListener('click',async event=>{
         const message=document.getElementById('pdfMessage');
-        if(!window.html2pdf){message.textContent='PDF library unavailable. Use Print → Save as PDF, or restore access to the CDN.';return;}
+        if(!window.html2canvas || !window.jspdf){message.textContent='PDF library unavailable. Use Print → Save as PDF, or restore access to the CDN.';return;}
         event.target.disabled=true; message.textContent='Preparing PDF…';
+        let layout;
         try {
             await document.fonts.ready;
             await Promise.all(Array.from(document.images).map(img=>img.decode().catch(()=>{})));
-            await html2pdf().set({margin:0,filename:document.title+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,backgroundColor:'#ffffff',windowWidth:1000},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.summary','.signature']}}).from(document.getElementById('billingDocument')).save();
+            const billingDocument=document.getElementById('billingDocument');
+            layout=nivisDocumentPages(billingDocument);
+            const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+            for(let index=0;index<layout.pages.length;index++) {
+                message.textContent='Preparing page '+(index+1)+' of '+layout.pages.length+'...';
+                const canvas=await html2canvas(layout.pages[index],{scale:2,backgroundColor:'#ffffff',windowWidth:1200,scrollX:0,scrollY:0,useCORS:true,onclone:doc=>{doc.querySelector('.pdf-stage').style.left='0';}});
+                if(index)pdf.addPage();
+                const scale=Math.min(186/canvas.width,265/canvas.height);
+                pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',12,12,canvas.width*scale,canvas.height*scale);
+                pdf.setFontSize(9);pdf.setTextColor(90);pdf.text(document.title+' | Page '+(index+1)+' / '+layout.pages.length,12,287);
+                canvas.width=1;canvas.height=1;
+            }
+            await pdf.save(billingDocument.dataset.documentType+'-'+document.title+'.pdf',{returnPromise:true});
             message.textContent='PDF downloaded.';
-        } catch {message.textContent='PDF export failed. Use Print → Save as PDF.';} finally {event.target.disabled=false;}
+        } catch {message.textContent='PDF export failed. Use Print → Save as PDF.';} finally {layout?.stage.remove();event.target.disabled=false;}
     });
 })();

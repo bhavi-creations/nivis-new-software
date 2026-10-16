@@ -13,7 +13,7 @@ include 'sidebar.php';
     <div class="nivis-produdcts-header">
       <div>
         <h1>Products</h1>
-        <p>Manage product costs, quantities and availability</p>
+        <p>Stock updates when an invoice is issued. Drafts and quotations do not reduce stock.</p>
       </div>
 
       <div class="nivis-produdcts-account">
@@ -89,7 +89,7 @@ include 'sidebar.php';
               <th>Product name</th>
               <th>Category</th>
               <th>Cost</th>
-              <th>Quantity</th>
+              <th>Total quantity</th><th>Sold</th><th>Available quantity</th>
               <th>Availability</th>
               <th>Actions</th>
             </tr>

@@ -133,8 +133,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     product.name,
                     product.category,
                     "Rs " + Number(product.price).toLocaleString("en-IN", {minimumFractionDigits: 2}),
-                    Number(product.quantity),
-                    Number(product.quantity) > 0 && product.status === "active" ? "Available" : "Not available"
+                    Number(product.quantity)+' '+product.unit,
+                    Number(product.sold_quantity||0)+' '+product.unit,
+                    Number(product.available_quantity||0)+' '+product.unit,
+                    product.stock_error ? 'Review stock' : Number(product.available_quantity) > 0 && product.status === "active" ? "Available" : "Unavailable"
                 ].forEach(value => {
                     const cell = document.createElement("td");
                     cell.textContent = value;
@@ -150,6 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else { photoCell.textContent = "No photo"; }
                 row.insertBefore(photoCell, row.children[1]);
                 actions.className = "nivis-produdcts-actions";
+                const sold=document.createElement('a');sold.href='product-sales.php?id='+product.id;sold.className='btn btn-sm btn-outline-primary';sold.textContent='Sold';actions.append(sold);
                 [["view", "View product", "fa-eye"],
                     ["edit", "Edit product", "fa-pen-to-square"],
                     ["delete", "Delete product", "fa-trash-can"]]
@@ -217,15 +220,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const gstSelect = document.getElementById("productGST");
             const gstFilter = document.getElementById("nivisProductGSTFilter");
             const selectedGst = gstSelect.value;
-            gstSelect.replaceChildren(...taxResult.rates.map(rate =>
-                new Option(Number(rate.rate_percent) + "%", Number(rate.rate_percent))
-            ));
+            gstSelect.replaceChildren(...[...new Set(taxResult.rates.map(rate=>Number(rate.rate_percent)))].sort((a,b)=>a-b).map(rate=>new Option(rate+"%",rate)));
             gstFilter.replaceChildren(new Option("All GST rates", "all"));
-            taxResult.rates.forEach(rate =>
-                gstFilter.add(new Option(
-                    rate.name + " (" + Number(rate.rate_percent) + "%)", rate.id
-                ))
-            );
+            [...new Set(taxResult.rates.map(rate=>Number(rate.rate_percent)))].sort((a,b)=>a-b).forEach(rate=>gstFilter.add(new Option(rate+'%',rate)));
             gstSelect.value = taxResult.rates.some(rate =>
                 String(rate.rate_percent) === selectedGst
             ) ? selectedGst : "18";
@@ -297,8 +294,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const idField = document.getElementById("editProductId");
         const categorySelect = document.getElementById("editProductCategory");
         const gstSelect = document.getElementById("editProductGST");
-        const customerSelect = document.getElementById("editProductCustomer");
-        nivisCustomerSearch(customerSelect, document.getElementById("editProductCustomerSearch"), document.getElementById("editProductCustomerMatches"));
+        let savedCustomerId = "", soldQuantity=0;
+
         const imageInput = document.getElementById("editProductImage");
         const imagePreview = document.getElementById("editProductImagePreview");
         let savedImage = "";
@@ -319,6 +316,8 @@ document.addEventListener("DOMContentLoaded", () => {
         let priceMode = "exclusive";
         function updateProductTotal() {
             const value = id => Number(document.getElementById(id).value) || 0;
+            document.getElementById("editProductAvailable").value=Math.max(0,Math.round((value("editProductQuantity")-soldQuantity)*1000)/1000);
+            document.getElementById("editProductSold").textContent="Sold: "+soldQuantity;
             const amounts = nivisAmounts(value("editProductQuantity"), value("editProductPrice"), value("editProductDiscount"), Number(rates.find(r => String(r.id) === gstSelect.value)?.rate_percent || 0), priceMode);
             document.getElementById("editProductTotal").value = nivisMoney(amounts.total);
             document.getElementById("editProductTaxSplit").textContent = document.getElementById("editProductRegion").value === "inside_ap"
@@ -330,30 +329,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById("addEditProductSave").disabled = true;
         async function loadProductForm() {
-            const [categoryResult, taxResult, customerResult] = await Promise.all([
+            const [categoryResult, taxResult] = await Promise.all([
                 nivisApi("categories"),
-                nivisApi("tax"), nivisApi("customers")
+                nivisApi("tax")
             ]);
             categorySelect.replaceChildren(new Option("Select category", ""));
             categoryResult.data.forEach(category =>
                 categorySelect.add(new Option(category.name, category.id))
             );
-            customerResult.data.forEach(customer => customerSelect.add(new Option(customer.name + " - " + customer.mobile, customer.id)));
-            customerSelect.addEventListener("change", () => {
-                const customer = customerResult.data.find(c => String(c.id) === customerSelect.value);
-                if (customer) document.getElementById("editProductRegion").value = (customer.shipping_state || customer.state) === "Andhra Pradesh" ? "inside_ap" : "outside_ap";
-                updateProductTotal();
-            });
             document.getElementById("editProductRegion").value = taxResult.configuration?.default_region || "inside_ap";
             priceMode = taxResult.configuration?.price_mode || "exclusive";
             const today = new Date().toLocaleDateString("en-CA");
             rates = taxResult.rates.filter(rate => Number(rate.is_enabled) && rate.effective_from <= today && (!rate.effective_to || rate.effective_to >= today));
-            gstSelect.replaceChildren(new Option("Select GST rate", ""));
-            rates.forEach(rate =>
-                gstSelect.add(new Option(
-                    rate.name + " (" + Number(rate.rate_percent) + "%)", rate.id
-                ))
-            );
+            function gstOptions(selectedId) {
+                const groups=new Map();
+                for(const rate of rates){
+                    const hsn=(rate.hsn_codes||'').split(',').sort().join(',');
+                    const key=[Number(rate.rate_percent),rate.treatment,hsn].join('|');
+                    if(!groups.has(key)||String(rate.id)===String(selectedId))groups.set(key,rate);
+                }
+                gstSelect.replaceChildren(new Option('Select GST rate',''));
+                for(const rate of [...groups.values()].sort((a,b)=>Number(a.rate_percent)-Number(b.rate_percent))){
+                    const label=Number(rate.rate_percent)+'%'+(rate.treatment!=='taxable'?' - '+rate.treatment.replaceAll('_',' '):'')+(rate.hsn_codes?' - HSN '+rate.hsn_codes:'');
+                    gstSelect.add(new Option(label,rate.id));
+                }
+            }
+            gstOptions();
             const id = new URLSearchParams(window.location.search).get("id");
             if (!id) { categorySelect.value = new URLSearchParams(location.search).get("category_id") || ""; updateProductTotal(); return; }
             const response = await nivisApi("products");
@@ -363,8 +364,8 @@ document.addEventListener("DOMContentLoaded", () => {
             imagePreview.hidden = !savedImage;
             if (savedImage) imagePreview.src = savedImage;
             idField.value = product.id;
-            if (product.customer_id && !Array.from(customerSelect.options).some(o => o.value === String(product.customer_id))) customerSelect.add(new Option("Previously selected customer #" + product.customer_id, product.customer_id));
-            customerSelect.value = product.customer_id || "";
+            savedCustomerId = product.customer_id || "";
+            soldQuantity=Number(product.sold_quantity)||0;
             document.getElementById("editProductSerial").value = product.id;
             document.getElementById("editProductQuantity").value = product.quantity;
             document.getElementById("editProductRegion").value = product.gst_region;
@@ -374,6 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("editProductHSN").value = product.hsn;
             document.getElementById("editProductUnit").value = product.unit;
             document.getElementById("editProductPrice").value = product.price;
+            gstOptions(product.tax_rate_id);
             gstSelect.value = String(product.tax_rate_id);
             document.getElementById("editProductDiscount").value = product.discount;
             document.getElementById("editProductStatus").value = product.status === "inactive" ? "Inactive" : "Active";
@@ -386,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!productForm.reportValidity()) return;
             const data = {
                 id: idField.value || null,
-                customer_id: customerSelect.value,
+                customer_id: savedCustomerId,
                 quantity: Number(document.getElementById("editProductQuantity").value),
                 gst_region: document.getElementById("editProductRegion").value,
                 name: document.getElementById("editProductName").value.trim(),
@@ -830,6 +832,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 actions.className = "nivis-labs-quotation-actions";
                 const view=nivisActionButton("view","View","fa-eye");
                 view.className="btn btn-outline-primary btn-sm";view.dataset.id=quote.id;actions.append(view);
+                if(quote.status==='draft' && !quote.invoice_id){const edit=document.createElement('a');edit.href='create-quotation.php?id='+quote.id;edit.className='btn btn-outline-primary btn-sm';edit.textContent='Edit';actions.append(edit);}
                 if (["draft","sent","approved"].includes(quote.status) && !quote.invoice_id) {
                     const convert = document.createElement("button");
                     convert.type = "button";
@@ -1313,6 +1316,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const view = nivisActionButton("view", "View invoice", "fa-eye");
                 view.className = "nivis-labs-invoice-icon-action action-view";
                 view.dataset.id = invoice.id;
+                const a4=document.createElement("a");a4.className="btn btn-sm btn-outline-primary";a4.href="document.php?type=invoice&id="+invoice.id;a4.textContent="Save A4";action.append(a4);
                 action.appendChild(view);
                 if (invoice.status === "draft") {
                     [["edit", "Edit details", "fa-pen-to-square"], ["delete", "Delete draft", "fa-trash-can"]].forEach(([kind,label,icon]) => {
@@ -1408,7 +1412,7 @@ document.addEventListener("DOMContentLoaded", () => {
             invoice.items.forEach((item, index) => {
                 const row = document.createElement("tr");
                 [
-                    index + 1, item.product_name, item.hsn, item.quantity,
+                    index + 1, item.product_name, item.hsn, item.quantity + " " + (item.unit || ""),
                     money(item.unit_price), Number(item.discount_percent) + "%",
                     money(item.taxable_amount), Number(item.gst_rate) + "%", money(item.line_total)
                 ].forEach(value => {

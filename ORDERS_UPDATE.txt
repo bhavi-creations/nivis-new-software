@@ -1,0 +1,27 @@
+Orders and A4 billing update
+
+Orders > New order: choose a saved customer, GST number (optional), product,
+quantity, unit and price per unit. Examples: 50 PCS or 30 KG.
+Changing a unit does not convert the price automatically; enter the correct price.
+Inside GST uses CGST + SGST; outside GST uses IGST and requires a supply state.
+
+Saving an order creates one database quotation with an ORD reference. The same
+record appears in Orders and Quotations. Convert to Invoice creates a linked draft
+invoice; repeating conversion is blocked. Quantity, unit, GSTIN and order reference
+are retained. Customer GSTIN entered here is a document snapshot, not a change to
+the customer master record.
+
+Invoices > Direct invoice opens the simple form without requiring a quotation.
+Existing invoice drafts retain their detailed editor.
+Document view offers Print A4 and Save A4 PDF for quotations and invoices.
+
+Database deployment: back up the database, upload the updated application files,
+then run php database/migrate_billing.php. It adds source_type and order_number
+to quotations without deleting existing records. Run
+php database/update_business_profile.php for the supplied Nivis business address.
+The earlier nivis-print-update ZIP contains print-only changes, not Orders.
+
+Validation: isolated database HTTP tests cover Orders persistence, units, GSTIN,
+conversion, duplicate conversion, invalid input, simple invoice creation and pages.
+A4 pagination tests use a layout model; actual browser PDF visual QA is still needed.
+These changes were applied locally; no remote/live deployment has been performed.

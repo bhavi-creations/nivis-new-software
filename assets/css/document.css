@@ -1,1 +1,23 @@
 *{box-sizing:border-box}body{margin:0;background:#eef5f3;color:#183f39;font:13px Arial,sans-serif}.document-actions{max-width:210mm;margin:20px auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.document-actions a{color:#126a59}.document-actions button{background:#14775f;color:white;border:0;border-radius:6px;padding:10px 16px;cursor:pointer}.paper{width:210mm;min-height:297mm;margin:16px auto;padding:12mm;background:white}.document-header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #16816b;padding-bottom:18px}.document-header img{object-fit:contain;max-height:80px}.document-header div{text-align:right}h1{font-size:24px;margin:0 0 8px}h2{font-size:12px;text-transform:uppercase;color:#357369;margin:10px 0 6px}p{line-height:1.5;margin:5px 0;overflow-wrap:anywhere}.parties{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin:20px 0}.document-meta{display:flex;flex-wrap:wrap;gap:10px 24px;background:#eef7f3;padding:12px;margin:15px 0}table{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed}th,td{padding:9px 5px;border-bottom:1px solid #d6e5df;text-align:right;overflow-wrap:anywhere}th{background:#e2f0eb}th:first-child,td:first-child{text-align:left;width:25%}small{display:block;color:#54756e;margin-top:4px}thead{display:table-header-group}tr{break-inside:avoid}.summary{display:flex;justify-content:flex-end;margin-top:16px;break-inside:avoid}dl{display:grid;grid-template-columns:240px 110px;gap:8px;margin:0 0 20px}dd{text-align:right;margin:0}.grand{border-top:2px solid #16816b;padding-top:10px;font-size:15px;font-weight:bold}.terms{break-inside:avoid;margin-top:14px}.signature{margin-top:22px;text-align:right;break-inside:avoid}.signature div{height:35px}@page{size:A4;margin:12mm}@media print{body{background:white}.document-actions{display:none!important}.paper{width:auto;min-height:0;margin:0;padding:0;box-shadow:none}thead{display:table-header-group}a{color:inherit;text-decoration:none}}@media(max-width:800px){.paper{width:100%;padding:20px}.document-actions{padding:12px}.parties{gap:12px}dl{grid-template-columns:minmax(160px,1fr) 100px}table{font-size:9px}}
+/* Document-specific stationery and predictable A4 export geometry. */
+.paper{max-width:none;--document-accent:#14775f;--document-tint:#e2f0eb}
+.document-quotation{--document-accent:#245b93;--document-tint:#eaf2fb}
+.document-header{border-color:var(--document-accent);gap:20px;break-inside:avoid}
+.document-header .document-purpose{text-align:left;color:var(--document-accent);font-weight:bold;font-size:12px}
+.document-purpose p{font-size:11px;font-weight:normal}
+h1,h2{color:var(--document-accent)}
+.document-meta,th{background:var(--document-tint)}
+.grand{border-color:var(--document-accent)}
+.supplier-logo{display:block;width:140px;height:72px;object-fit:contain;object-position:left center;margin:0 0 10px}
+.parties>section{min-width:0}
+.paper td,.paper th{overflow-wrap:anywhere;word-break:normal}
+.document-header,.document-meta,.signature{break-inside:avoid;page-break-inside:avoid}
+.terms{break-inside:auto}
+.pdf-stage{position:absolute;left:-10000px;top:0;width:186mm;pointer-events:none;background:white}
+.paper.pdf-page{width:186mm!important;min-height:0!important;max-width:none!important;margin:0!important;padding:0!important;background:#fff;font:13px Arial,sans-serif;overflow:visible!important;display:flow-root}
+.pdf-page .parties{grid-template-columns:1fr 1fr;gap:25px}
+.pdf-page table{font-size:10px;width:100%;table-layout:fixed}
+.pdf-page dl{grid-template-columns:240px 110px}
+.pdf-page .pdf-continuation{font-size:11px;border-bottom:1px solid var(--document-accent);padding:0 0 8px;margin:0 0 12px;color:var(--document-accent)}
+.pdf-page .pdf-text-fragment,.pdf-page .pdf-cell-fragment{white-space:pre-line}
+@media print{.paper{width:100%;min-height:0;margin:0;padding:0}.document-header,.parties,.summary{break-inside:avoid}tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}th,.document-meta{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pdf-stage{display:none!important}}

@@ -164,6 +164,7 @@ try {
  const copied=ok(api('invoices','GET',{}, {id:convertedCharge})).data;
  assert.equal(copied.buyer_name,originalBuyer);assert.equal(Number(copied.grand_total),190);assert.equal(Number(copied.additional_charges),10);
  assert(api('invoices','POST',{action:'convert',quotation_id:chargeId}).error);
+ ok(api('products','POST',{...product,id:pid,quantity:20})); // Restock before additional issued sales.
  ok(api('invoices','POST',{action:'issue',invoice_id:convertedCharge}));
  ok(api('invoices','POST',{action:'cancel',invoice_id:convertedCharge,reason:'Test cancellation'}));
  assert.equal(ok(api('invoices','GET',{}, {id:convertedCharge})).data.status,'cancelled');
