@@ -15,7 +15,7 @@ try {
  run('require "config/database.php"; $p=database_connection(false); $p->exec("CREATE DATABASE " . $argv[1]);', [db]);
  run('require "config/database.php"; $p=database_connection(); $p->exec($argv[1]);', [fs.readFileSync(path.join(root,'database/schema.sql'),'utf8')], true);
  cp.execFileSync(php, ['database/setup.php'], {cwd:root, env:{...process.env,NIVIS_DB_NAME:db}});
- ok(api('settings','POST',{company_name:'Test Company',address:'Test address',state_name:'Andhra Pradesh',email:'test@example.com',phone:'9000000000'}));
+ ok(api('settings','POST',{company_name:'Test Company',address:'Test address',state_name:'Andhra Pradesh',gstin:'37ABCDE1234F1Z5',email:'test@example.com',phone:'9000000000'}));
  assert.equal(ok(api('settings')).data.company_name,'Test Company');
  assert(api('settings','POST',{company_name:'Invalid',address:'Address',state_name:'Unknown'}).error);
  // Simulate an older hosting database and verify automatic migration preserves data.
@@ -67,6 +67,15 @@ try {
  // Reproduce a hosting import that lost AUTO_INCREMENT on both identity columns.
  run('require "config/database.php"; $p=database_connection(); $p->exec("ALTER TABLE customers MODIFY id BIGINT UNSIGNED NOT NULL"); $p->exec("ALTER TABLE customer_addresses MODIFY id BIGINT UNSIGNED NOT NULL");', [], true);
  const cid=ok(api('customers','POST',customer)).id;
+ ok(api('products','POST',{...product,id:pid,customer_id:cid}));
+ assert.equal(ok(api('products')).data.find(p=>p.id===pid).customer_id,cid);
+ ok(api('products','POST',{...product,id:pid}));
+ assert.equal(ok(api('products')).data.find(p=>p.id===pid).customer_id,cid);
+ assert(api('products','POST',{...product,id:pid,customer_id:999999}).error);
+ ok(api('tax','POST',{seller_state_name:'Andhra Pradesh',tax_mode:'auto',price_mode:'exclusive',default_region:'outside_ap'}));
+ assert.equal(ok(api('tax')).configuration.default_region,'outside_ap');
+ assert(api('tax','POST',{seller_state_name:'Andhra Pradesh',default_region:'invalid'}).error);
+ ok(api('tax','POST',{seller_state_name:'Andhra Pradesh',tax_mode:'auto',price_mode:'exclusive',default_region:'inside_ap'}));
  assert(cid > 0);
  ok(api('customers','POST',{...customer,id:cid,name:'Updated buyer',shipping_address:'Shipping street',shipping_city:'Hyderabad',shipping_state:'Telangana',shipping_pincode:'500001'}));
  // Repeat the repair on populated tables and verify the original customer survives.
@@ -76,7 +85,7 @@ try {
  const customerSaved=ok(api('customers')).data.find(c=>c.id===cid);
  assert.equal(customerSaved.name,'Updated buyer'); assert.equal(customerSaved.shipping_state,'Telangana');
 
- const quote={customer_id:cid,issue_date:'2026-10-12',valid_until:'2026-10-27',notes:'Keep these notes',status:'draft',items:[{product_id:pid,quantity:2,unit_price:100,discount_percent:10}]};
+ const quote={customer_id:cid,place_of_supply_state_code:'37',issue_date:'2026-10-12',valid_until:'2026-10-27',notes:'Keep these notes',status:'draft',items:[{product_id:pid,quantity:2,unit_price:100,discount_percent:10}]};
  const sameCustomer=ok(api('customers','POST',{...customer,customer_category:'CB2',same_as_billing:true})).id;
  const sameSaved=ok(api('customers')).data.find(c=>c.id===sameCustomer);
  assert.equal(sameSaved.customer_category,'CB2'); assert.equal(sameSaved.shipping_address,customer.billing_address);
@@ -115,7 +124,7 @@ try {
  assert(api('invoices','POST',{action:'payment',invoice_id:iid,amount:200,payment_date:'2026-10-12',payment_method:'cash'}).error);
  for(const type of ['invoice','sales','gst','quotation','payments','outstanding','customers','products']) {let report=ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type}));assert(report.rows.length,type);}
  const outside=ok(api('customers','POST',{...customer,name:'Outside buyer',state:'Telangana',pincode:'500001'})).id;
- const outsideQuote=ok(api('quotations','POST',{...quote,customer_id:outside,status:'approved'})).id;
+ const outsideQuote=ok(api('quotations','POST',{...quote,customer_id:outside,place_of_supply_state_code:'36',status:'approved'})).id;
  const outsideInvoice=ok(api('invoices','POST',{action:'convert',quotation_id:outsideQuote})).id;
  invoice=ok(api('invoices','GET',{}, {id:outsideInvoice})).data;assert.equal(Number(invoice.igst_total),32.4);assert.equal(Number(invoice.cgst_total),0);
  ok(api('tax','POST',{seller_state_name:'Andhra Pradesh',tax_mode:'auto',price_mode:'inclusive'}));
@@ -138,7 +147,53 @@ try {
  assert.equal(ok(api('invoices','GET',{}, {id:iid})).data.id,iid);
  assert.equal(ok(api('quotations','GET',{}, {id:qid})).data.id,qid);
  assert(ok(api('reports','GET',{}, {from:'2020-01-01',to:'2030-12-31',type:'sales'})).rows.length);
- console.log('PASS: customer/product CRUD, counts, quotation notes, inside/outside GST, inclusive pricing, conversion, issuing, payment validation, direct invoices, customer categories, copied shipping, quotation references and all eight reports.');
+ // Billing workflow additions use dedicated records and preserve historical snapshots.
+ ok(api('products','POST',{...product,id:pid,status:'active'}));
+ const rate18=ok(api('tax')).rates.find(r=>Number(r.rate_percent)===18).id;
+ const chargeQuote={...quote,customer_id:outside,place_of_supply_state_code:'36',status:'draft',issue_date:'2026-10-16',valid_until:'2099-12-31',additional_charges:10,charge_description:'Handling',charge_hsn:'9967',charge_tax_rate_id:rate18,terms:'Original terms',payment_terms:'Within 15 days'};
+ const chargeId=ok(api('quotations','POST',chargeQuote)).id;
+ let charged=ok(api('quotations','GET',{}, {id:chargeId})).data;
+ assert.equal(charged.items.length,2);assert.equal(Number(charged.grand_total),190); // inclusive mode remains configured
+ assert.equal(JSON.parse(charged.document_details).terms,'Original terms');
+ ok(api('quotations','POST',{action:'status',id:chargeId,status:'sent'}));
+ ok(api('quotations','POST',{action:'status',id:chargeId,status:'accepted'}));
+ assert(api('quotations','POST',{action:'status',id:chargeId,status:'draft'}).error);
+ const originalBuyer=JSON.parse(charged.party_snapshot).buyer.name;
+ ok(api('customers','POST',{...customer,id:outside,name:'Changed after acceptance',state:'Telangana',pincode:'500001'}));
+ const convertedCharge=ok(api('invoices','POST',{action:'convert',quotation_id:chargeId})).id;
+ const copied=ok(api('invoices','GET',{}, {id:convertedCharge})).data;
+ assert.equal(copied.buyer_name,originalBuyer);assert.equal(Number(copied.grand_total),190);assert.equal(Number(copied.additional_charges),10);
+ assert(api('invoices','POST',{action:'convert',quotation_id:chargeId}).error);
+ ok(api('invoices','POST',{action:'issue',invoice_id:convertedCharge}));
+ ok(api('invoices','POST',{action:'cancel',invoice_id:convertedCharge,reason:'Test cancellation'}));
+ assert.equal(ok(api('invoices','GET',{}, {id:convertedCharge})).data.status,'cancelled');
+ assert(api('invoices','POST',{action:'payment',invoice_id:convertedCharge,amount:1,payment_date:'2026-10-16',payment_method:'cash'}).error);
+ const rejectedId=ok(api('quotations','POST',{...chargeQuote,additional_charges:0})).id;
+ ok(api('quotations','POST',{action:'status',id:rejectedId,status:'rejected'}));
+ const expiredId=ok(api('quotations','POST',{...chargeQuote,issue_date:'2020-01-01',valid_until:'2020-01-02',additional_charges:0})).id;
+ ok(api('quotations','POST',{action:'status',id:expiredId,status:'expired'}));
+ const draftDirect=ok(api('invoices','POST',{...chargeQuote,action:'create',due_date:'2099-12-31'})).id;
+ ok(api('invoices','POST',{...chargeQuote,action:'revise',invoice_id:draftDirect,due_date:'2099-12-31',items:[{product_id:pid,quantity:1,unit_price:100,discount_percent:0}]}));
+ assert.equal(Number(ok(api('invoices','GET',{}, {id:draftDirect})).data.grand_total),110);
+ ok(api('invoices','POST',{action:'issue',invoice_id:draftDirect}));
+ ok(api('invoices','POST',{action:'payment',invoice_id:draftDirect,amount:40,payment_date:'2026-10-16',payment_method:'cash',notes:'First installment'}));
+ assert(api('invoices','POST',{action:'cancel',invoice_id:draftDirect,reason:'Cannot cancel paid invoice'}).error);
+ ok(api('invoices','POST',{action:'payment',invoice_id:draftDirect,amount:70,payment_date:'2026-10-16',payment_method:'upi'}));
+ const fullyPaid=ok(api('invoices','GET',{}, {id:draftDirect})).data;assert.equal(Number(fullyPaid.paid_total),110);assert.equal(fullyPaid.payments[0].notes,'First installment');
+ assert(api('invoices','POST',{action:'payment',invoice_id:draftDirect,amount:0.001,payment_date:'2026-10-16',payment_method:'cash'}).error);
+ assert(api('invoices','POST',{...chargeQuote,action:'revise',invoice_id:draftDirect,due_date:'2099-12-31'}).error);
+ ok(api('tax_rates','POST',{id:rate18,action:'toggle',is_enabled:false}));
+ assert(api('quotations','POST',chargeQuote).error);
+ ok(api('tax_rates','POST',{id:rate18,action:'toggle',is_enabled:true}));
+ assert(api('tax_rates','POST',{name:'Bad',rate_percent:-1,effective_from:'2020-01-01'}).error);
+ const linkedRate=ok(api('tax')).rates.find(r=>Number(r.rate_percent)===18).id;
+ ok(api('tax_rates','DELETE',{}, {id:linkedRate}));
+ assert(!ok(api('tax')).rates.some(r=>r.id===linkedRate));
+ assert.equal(Number(ok(api('products')).data.find(p=>p.id===pid).gst),18);
+ assert.equal(ok(api('invoices','GET',{}, {id:iid})).data.id,iid);
+ assert(api('products','POST',{...product,id:pid}).error);
+ assert(api('tax_rates','DELETE',{}, {id:linkedRate}).error);
+ console.log('PASS: customer assignment, region persistence, linked GST deletion; customer/product CRUD, counts, quotation notes, inside/outside GST, inclusive pricing, conversion, issuing, payment validation, direct invoices, customer categories, copied shipping, quotation references and all eight reports.');
 } finally {
  if(!/^nivis_test_[0-9]+$/.test(db)) throw new Error('Unsafe test database name');
  run('require "config/database.php"; $p=database_connection(false); $p->exec("DROP DATABASE " . $argv[1]);', [db]);

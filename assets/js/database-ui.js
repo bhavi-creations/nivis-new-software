@@ -1,3 +1,34 @@
+function nivisListControls(table, render) {
+    const toolbar=document.createElement("div"); toolbar.className="row g-3 mb-3";
+    const dates=[];
+    for(const title of ["From date","To date"]) {const wrap=document.createElement("div");wrap.className="col-md-3";const label=document.createElement("label");const input=document.createElement("input");input.type="date";input.className="form-control";input.id=table.id+title.replaceAll(" ","");label.htmlFor=input.id;label.textContent=title;wrap.append(label,input);toolbar.append(wrap);dates.push(input);input.addEventListener("change",()=>{page=1;render();});}
+    table.closest(".table-responsive").before(toolbar);
+    const pager=document.createElement("div");pager.className="d-flex gap-3 align-items-center my-3";const prev=document.createElement("button"),next=document.createElement("button"),label=document.createElement("span");label.setAttribute("aria-live","polite");prev.textContent="Previous";next.textContent="Next";for(const b of [prev,next]){b.type="button";b.className="btn btn-outline-primary btn-sm";}pager.append(prev,label,next);table.closest(".table-responsive").after(pager);
+    let page=1, signature="";prev.onclick=()=>{page--;render();};next.onclick=()=>{page++;render();};
+    return records=>{records=records.filter(r=>(!dates[0].value||r.issue_date>=dates[0].value)&&(!dates[1].value||r.issue_date<=dates[1].value));const key=records.map(r=>r.id).join(",");if(key!==signature){page=1;signature=key;}const pages=Math.max(1,Math.ceil(records.length/10));page=Math.min(page,pages);prev.disabled=page<=1;next.disabled=page>=pages;label.textContent=records.length+" records · Page "+page+" of "+pages;return records.slice((page-1)*10,page*10);};
+}
+function nivisCustomerSearch(select, input, matches) {
+    input.addEventListener("input", () => {
+        matches.replaceChildren();
+        const query = input.value.trim().toLocaleLowerCase();
+        if (!query) return;
+        const options = Array.from(select.options).filter(option => option.value && option.text.toLocaleLowerCase().includes(query));
+        for (const option of options) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "list-group-item list-group-item-action";
+            button.textContent = option.text;
+            button.addEventListener("click", () => {
+                select.value = option.value;
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+                input.value = "";
+                matches.replaceChildren();
+            });
+            matches.append(button);
+        }
+        if (!options.length) matches.textContent = "No matching customers.";
+    });
+}
 window.NIVIS_DATABASE_UI = true;
 
 async function nivisApi(resource, method = "GET", data = null, id = null) {
@@ -5,9 +36,17 @@ async function nivisApi(resource, method = "GET", data = null, id = null) {
     url.searchParams.set("resource", resource);
     if (id !== null) url.searchParams.set("id", id);
 
+    const headers = data && !(data instanceof FormData) ? { "Content-Type": "application/json" } : {};
+    if (method !== "GET") {
+        headers["X-CSRF-Token"] = document.querySelector('meta[name="csrf-token"]')?.content || "";
+        const fingerprint = resource + method + id + JSON.stringify(data);
+        nivisApi.keys ||= new Map();
+        if (!nivisApi.keys.has(fingerprint)) nivisApi.keys.set(fingerprint, crypto.randomUUID());
+        if (!(data instanceof FormData)) headers["Idempotency-Key"] = nivisApi.keys.get(fingerprint);
+    }
     const response = await fetch(url, {
         method,
-        headers: data && !(data instanceof FormData) ? { "Content-Type": "application/json" } : {},
+        headers,
         body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined
     });
     let result;
@@ -16,6 +55,7 @@ async function nivisApi(resource, method = "GET", data = null, id = null) {
     if (!response.ok) {
         throw new Error((result.error || "The database request failed.") + (result.code ? " [" + result.code + "]" : ""));
     }
+    if (method !== "GET") nivisApi.keys.delete(resource + method + id + JSON.stringify(data));
     return result;
 }
 
@@ -183,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
             gstFilter.replaceChildren(new Option("All GST rates", "all"));
             taxResult.rates.forEach(rate =>
                 gstFilter.add(new Option(
-                    Number(rate.rate_percent) + "%", Number(rate.rate_percent)
+                    rate.name + " (" + Number(rate.rate_percent) + "%)", rate.id
                 ))
             );
             gstSelect.value = taxResult.rates.some(rate =>
@@ -257,6 +297,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const idField = document.getElementById("editProductId");
         const categorySelect = document.getElementById("editProductCategory");
         const gstSelect = document.getElementById("editProductGST");
+        const customerSelect = document.getElementById("editProductCustomer");
+        nivisCustomerSearch(customerSelect, document.getElementById("editProductCustomerSearch"), document.getElementById("editProductCustomerMatches"));
         const imageInput = document.getElementById("editProductImage");
         const imagePreview = document.getElementById("editProductImagePreview");
         let savedImage = "";
@@ -277,7 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let priceMode = "exclusive";
         function updateProductTotal() {
             const value = id => Number(document.getElementById(id).value) || 0;
-            const amounts = nivisAmounts(value("editProductQuantity"), value("editProductPrice"), value("editProductDiscount"), value("editProductGST"), priceMode);
+            const amounts = nivisAmounts(value("editProductQuantity"), value("editProductPrice"), value("editProductDiscount"), Number(rates.find(r => String(r.id) === gstSelect.value)?.rate_percent || 0), priceMode);
             document.getElementById("editProductTotal").value = nivisMoney(amounts.total);
             document.getElementById("editProductTaxSplit").textContent = document.getElementById("editProductRegion").value === "inside_ap"
                 ? "CGST " + nivisMoney(amounts.cgst) + " + SGST " + nivisMoney(amounts.sgst)
@@ -288,21 +330,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById("addEditProductSave").disabled = true;
         async function loadProductForm() {
-            const [categoryResult, taxResult] = await Promise.all([
+            const [categoryResult, taxResult, customerResult] = await Promise.all([
                 nivisApi("categories"),
-                nivisApi("tax")
+                nivisApi("tax"), nivisApi("customers")
             ]);
             categorySelect.replaceChildren(new Option("Select category", ""));
             categoryResult.data.forEach(category =>
                 categorySelect.add(new Option(category.name, category.id))
             );
+            customerResult.data.forEach(customer => customerSelect.add(new Option(customer.name + " - " + customer.mobile, customer.id)));
+            customerSelect.addEventListener("change", () => {
+                const customer = customerResult.data.find(c => String(c.id) === customerSelect.value);
+                if (customer) document.getElementById("editProductRegion").value = (customer.shipping_state || customer.state) === "Andhra Pradesh" ? "inside_ap" : "outside_ap";
+                updateProductTotal();
+            });
+            document.getElementById("editProductRegion").value = taxResult.configuration?.default_region || "inside_ap";
             priceMode = taxResult.configuration?.price_mode || "exclusive";
             const today = new Date().toLocaleDateString("en-CA");
             rates = taxResult.rates.filter(rate => Number(rate.is_enabled) && rate.effective_from <= today && (!rate.effective_to || rate.effective_to >= today));
             gstSelect.replaceChildren(new Option("Select GST rate", ""));
             rates.forEach(rate =>
                 gstSelect.add(new Option(
-                    Number(rate.rate_percent) + "%", Number(rate.rate_percent)
+                    rate.name + " (" + Number(rate.rate_percent) + "%)", rate.id
                 ))
             );
             const id = new URLSearchParams(window.location.search).get("id");
@@ -314,6 +363,8 @@ document.addEventListener("DOMContentLoaded", () => {
             imagePreview.hidden = !savedImage;
             if (savedImage) imagePreview.src = savedImage;
             idField.value = product.id;
+            if (product.customer_id && !Array.from(customerSelect.options).some(o => o.value === String(product.customer_id))) customerSelect.add(new Option("Previously selected customer #" + product.customer_id, product.customer_id));
+            customerSelect.value = product.customer_id || "";
             document.getElementById("editProductSerial").value = product.id;
             document.getElementById("editProductQuantity").value = product.quantity;
             document.getElementById("editProductRegion").value = product.gst_region;
@@ -323,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("editProductHSN").value = product.hsn;
             document.getElementById("editProductUnit").value = product.unit;
             document.getElementById("editProductPrice").value = product.price;
-            gstSelect.value = String(Number(product.gst));
+            gstSelect.value = String(product.tax_rate_id);
             document.getElementById("editProductDiscount").value = product.discount;
             document.getElementById("editProductStatus").value = product.status === "inactive" ? "Inactive" : "Active";
             document.getElementById("editProductDescription").value = product.description || "";
@@ -335,6 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!productForm.reportValidity()) return;
             const data = {
                 id: idField.value || null,
+                customer_id: customerSelect.value,
                 quantity: Number(document.getElementById("editProductQuantity").value),
                 gst_region: document.getElementById("editProductRegion").value,
                 name: document.getElementById("editProductName").value.trim(),
@@ -343,7 +395,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 hsn: document.getElementById("editProductHSN").value.trim(),
                 unit: document.getElementById("editProductUnit").value,
                 price: Number(document.getElementById("editProductPrice").value),
-                gst: Number(gstSelect.value),
+                gst: Number(rates.find(r => String(r.id) === gstSelect.value)?.rate_percent || 0),
+                tax_rate_id: gstSelect.value,
                 discount: Number(document.getElementById("editProductDiscount").value || 0),
                 status: document.getElementById("editProductStatus").value.toLowerCase(),
                 description: document.getElementById("editProductDescription").value.trim()
@@ -740,6 +793,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        const quotePage=nivisListControls(quotationTable,renderQuotations);
         function renderQuotations() {
             const query = search.value.toLowerCase().trim();
             const customer = customerFilter.value;
@@ -751,7 +805,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 (status === "all" || quote.status === status)
             );
             quotationTable.replaceChildren();
-            filtered.forEach(quote => {
+            const visibleQuotes=quotePage(filtered);
+            visibleQuotes.forEach(quote => {
                 const row = document.createElement("tr");
                 [
                     quote.quote_number,
@@ -767,28 +822,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 const statusCell = document.createElement("td");
                 const badge = document.createElement("span");
                 badge.className = "nivis-labs-quotation-status status-" + quote.status;
-                badge.textContent = quote.status.charAt(0).toUpperCase() + quote.status.slice(1);
+                badge.textContent = ["draft","sent","approved"].includes(quote.status) ? "Saved" : quote.status.charAt(0).toUpperCase() + quote.status.slice(1);
                 statusCell.appendChild(badge);
                 row.appendChild(statusCell);
 
                 const actions = document.createElement("td");
                 actions.className = "nivis-labs-quotation-actions";
-                [["view", "View quotation", "fa-eye"]].concat(
-                    quote.status === "draft"
-                        ? [["edit", "Edit quotation", "fa-pen-to-square"],
-                            ["delete", "Delete quotation", "fa-trash-can"]]
-                        : []
-                ).forEach(([action, label, icon]) => {
-                    const button = nivisActionButton(action, label, icon);
-                    button.className = "nivis-labs-quotation-icon-action action-" + action;
-                    button.dataset.id = quote.id;
-                    actions.appendChild(button);
-                });
-                if (quote.status === "approved" && !quote.invoice_id) {
+                const view=nivisActionButton("view","View","fa-eye");
+                view.className="btn btn-outline-primary btn-sm";view.dataset.id=quote.id;actions.append(view);
+                if (["draft","sent","approved"].includes(quote.status) && !quote.invoice_id) {
                     const convert = document.createElement("button");
                     convert.type = "button";
                     convert.className = "nivis-labs-quotation-action nivis-labs-quotation-convert";
-                    convert.textContent = "Convert";
+                    convert.textContent = "Convert to Invoice";
                     convert.dataset.action = "convert";
                     convert.dataset.id = quote.id;
                     actions.appendChild(convert);
@@ -803,7 +849,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 row.appendChild(actions);
                 quotationTable.appendChild(row);
             });
-            empty.classList.toggle("d-none", filtered.length > 0);
+            empty.classList.toggle("d-none", visibleQuotes.length > 0);
             ["draft", "sent", "approved", "converted"].forEach(status => {
                 const node = document.getElementById("quote" +
                     status.charAt(0).toUpperCase() + status.slice(1) + "Count");
@@ -832,6 +878,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!button) return;
             const quote = quotations.find(item => Number(item.id) === Number(button.dataset.id));
             if (!quote) return;
+            if(button.dataset.action==="copy") {location.href="create-quotation.php?copy="+quote.id;return;}
+            if(button.dataset.action==="view") {location.href="document.php?type=quotation&id="+quote.id;return;}
             if (button.dataset.action === "edit") {
                 window.location.href = "create-quotation.php?id=" + encodeURIComponent(quote.id);
                 return;
@@ -847,12 +895,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             if (button.dataset.action === "convert") {
-                selectedQuote = quote;
-                document.getElementById("nivisQuotationConvertText").textContent =
-                    "Convert approved quotation " + quote.quote_number + " to an invoice?";
-                bootstrap.Modal.getOrCreateInstance(
-                    document.getElementById("nivisQuotationConvertModal")
-                ).show();
+                if(button.disabled)return;button.disabled=true;button.textContent="Converting...";
+                try {
+                    await nivisApi("invoices","POST",{action:"convert_simple",quotation_id:quote.id});
+                    location.href="invoices.php?converted=1";
+                } catch(error) {window.alert(error.message);button.disabled=false;button.textContent="Convert to Invoice";}
                 return;
             }
             document.getElementById("nivisQuotationViewNumber").textContent = quote.quote_number;
@@ -904,10 +951,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const rows = [];
         let products = [];
         let customers = [];
+        let chargeRates = [];
+        const copyId = new URLSearchParams(location.search).get("copy");
+        const invoiceEditId = directInvoice ? new URLSearchParams(location.search).get("id") : null;
         let quoteConfiguration = {price_mode:"exclusive", seller_state_code:"37"};
         let quoteId = new URLSearchParams(window.location.search).get("id");
         const formData = () => ({
-            action: directInvoice ? "create" : undefined,
+            action: directInvoice ? (invoiceEditId ? "revise" : "create") : undefined,
+            invoice_id: invoiceEditId,
+            ...Object.fromEntries(["terms","payment_terms","delivery_timeline","bank_details","payment_instructions","signatory"].map(k=>[k,document.getElementById("nlcq_"+k).value])),
+            additional_charges: Number(document.getElementById("nlcqCharges").value),
+            charge_description: document.getElementById("nlcqChargeDescription").value,
+            charge_hsn: document.getElementById("nlcqChargeHsn").value,
+            charge_tax_rate_id: document.getElementById("nlcqChargeRate").value,
             due_date: document.getElementById("nlcqValidUntil").value,
             customer_id: productSelect.value,
             place_of_supply_state_code: document.getElementById("nlcqSupplyState").value,
@@ -933,16 +989,21 @@ document.addEventListener("DOMContentLoaded", () => {
             const sameState = document.getElementById("nlcqSupplyState").value === quoteConfiguration.seller_state_code;
             document.getElementById("nlcqTaxTreatment").textContent = (sameState ? "CGST + SGST" : "IGST") + " | Prices " + quoteConfiguration.price_mode + " of GST";
             let taxable = 0;
-            let tax = 0;
+            let tax = 0, subtotal = 0, discount = 0, cgst = 0, sgst = 0;
             rows.forEach((row, index) => {
                 const gst = Number(products.find(p => Number(p.id) === Number(row.product_id))?.gst || 0);
                 const amounts = nivisAmounts(Number(row.quantity) || 0, Number(row.unit_price) || 0, Number(row.discount_percent) || 0, gst, quoteConfiguration.price_mode);
                 taxable += amounts.taxable;
-                tax += amounts.tax;
+                tax += amounts.tax; subtotal += amounts.base; discount += amounts.discount; cgst += amounts.cgst; sgst += amounts.sgst;
                 const net = amounts.taxable, lineTax = amounts.tax;
                 const totalCell = quoteLines.querySelector('[data-total="' + index + '"]');
                 if (totalCell) totalCell.textContent = quoteMoney(net + lineTax);
             });
+            const charge = nivisAmounts(1, Number(document.getElementById("nlcqCharges").value)||0, 0, Number(chargeRates.find(r=>String(r.id)===document.getElementById("nlcqChargeRate").value)?.rate_percent)||0, quoteConfiguration.price_mode);
+            subtotal += charge.base; taxable += charge.taxable; tax += charge.tax; cgst += charge.cgst; sgst += charge.sgst;
+            document.getElementById("nlcqSubtotal").textContent = quoteMoney(subtotal);
+            document.getElementById("nlcqDiscount").textContent = quoteMoney(discount);
+            document.getElementById("nlcqTaxSplit").textContent = sameState ? "CGST " + quoteMoney(cgst) + " + SGST " + quoteMoney(sgst) : "IGST " + quoteMoney(tax);
             document.getElementById("nlcqTaxable").textContent = quoteMoney(taxable);
             document.getElementById("nlcqTax").textContent = quoteMoney(tax);
             document.getElementById("nlcqGrandTotal").textContent = quoteMoney(taxable + tax);
@@ -964,7 +1025,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 select.value = row.product_id || "";
                 selectCell.appendChild(select);
                 const category = document.createElement("small");
-                category.textContent = products.find(p => Number(p.id) === Number(row.product_id))?.category || "";
+                const info=products.find(p => Number(p.id) === Number(row.product_id));
+                category.textContent = info ? info.category + " | SKU: " + info.sku + " | Unit: " + info.unit + " | Available: " + info.quantity : "";
                 selectCell.appendChild(category);
                 if (!directInvoice && row.product_id) {
                     const reference = document.createElement("small");
@@ -1071,16 +1133,23 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("nlcqIssueDate").addEventListener("change", () => refreshQuoteNumber().catch(e => nivisMessage(feedback, e.message, true)));
         if (directInvoice) {
             document.getElementById("nlcqApprove").hidden = true;
+            document.getElementById("nlcqSent").hidden = true;
             document.getElementById("nlcqConvert").hidden = true;
             document.getElementById("nlcqSaveDraft").textContent = "Save invoice";
         }
         async function initializeQuote() {
-            const [productResult, customerResult, taxResult] = await Promise.all([
-                nivisApi("products"), nivisApi("customers"), nivisApi("tax")
+            const [productResult, customerResult, taxResult, settingsResult] = await Promise.all([
+                nivisApi("products"), nivisApi("customers"), nivisApi("tax"), nivisApi("settings")
             ]);
-            quoteConfiguration = taxResult.configuration;
+            quoteConfiguration = {...taxResult.configuration, seller_state_code:settingsResult.data?.state_code || taxResult.configuration.seller_state_code};
+            const defaults=JSON.parse(settingsResult.data?.document_defaults || "{}");
+            for(const k of ["terms","payment_terms","delivery_timeline","bank_details","payment_instructions","signatory"]) document.getElementById("nlcq_"+k).value=defaults[k] || "";
+            chargeRates=taxResult.rates.filter(r=>Number(r.is_enabled));
+            chargeRates.forEach(r=>document.getElementById("nlcqChargeRate").add(new Option(r.name + " ("+r.rate_percent+"%)",r.id)));
             products = productResult.data.filter(product => product.status === "active");
             customers = customerResult.data;
+            nivisCustomerSearch(productSelect, document.getElementById("nlcqCustomerSearch"), document.getElementById("nlcqCustomerMatches"));
+            document.getElementById("nlcqSupplyState").value = quoteConfiguration.seller_state_code;
             productSelect.replaceChildren(new Option("Select customer", ""));
             customers.forEach(customer => productSelect.add(new Option(customer.name + " (" + (customer.customer_category || "CB1") + ")", customer.id)));
             const today = new Date();
@@ -1095,19 +1164,26 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("nlcqValidUntil").value = localDate(plusDays);
             document.getElementById("nlcqQuoteNumber").value = "Assigned when saved";
 
-            if (quoteId) {
-                const result = await nivisApi("quotations", "GET", null, quoteId);
+            if (quoteId || copyId) {
+                const result = await nivisApi(directInvoice ? "invoices" : "quotations", "GET", null, quoteId || copyId);
                 const quote = result.data;
-                if (quote.status !== "draft") {
+                if (!copyId && quote.status !== "draft") {
                     throw new Error("Only draft quotations can be edited.");
                 }
-                document.getElementById("nlcqQuoteNumber").value = quote.quote_number;
+                document.getElementById("nlcqQuoteNumber").value = copyId ? "Assigned when saved" : (quote.quote_number || quote.invoice_number);
                 productSelect.value = quote.customer_id;
                 document.getElementById("nlcqSupplyState").value = quote.place_of_supply_state_code;
-                document.getElementById("nlcqIssueDate").value = quote.issue_date;
-                document.getElementById("nlcqValidUntil").value = quote.valid_until;
+                if (!copyId) document.getElementById("nlcqIssueDate").value = quote.issue_date;
+                if (invoiceEditId) document.getElementById("nlcqIssueDate").disabled=true;
+                if (!copyId) document.getElementById("nlcqValidUntil").value = quote.valid_until || quote.due_date || quote.issue_date;
                 document.getElementById("nlcqNotes").value = quote.notes || "";
-                quote.items.forEach(item => rows.push({
+                const savedDetails=JSON.parse(quote.document_details || "{}");
+                for(const k of ["terms","payment_terms","delivery_timeline","bank_details","payment_instructions","signatory"]) document.getElementById("nlcq_"+k).value=savedDetails[k] || "";
+                document.getElementById("nlcqCharges").value=quote.additional_charges || 0;
+                document.getElementById("nlcqChargeDescription").value=savedDetails.charge_description || "";
+                document.getElementById("nlcqChargeHsn").value=savedDetails.charge_hsn || "";
+                document.getElementById("nlcqChargeRate").value=savedDetails.charge_tax_rate_id || "";
+                quote.items.filter(item=>item.product_id).forEach(item => rows.push({
                     product_id: Number(item.product_id),
                     quantity: Number(item.quantity),
                     unit_price: Number(item.unit_price),
@@ -1116,11 +1192,19 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 rows.push({ product_id: "", quantity: 1, unit_price: 0, discount_percent: 0 });
             }
+            showCustomer();
             renderQuoteLines();
             await refreshQuoteNumber();
         }
 
+        function showCustomer() {
+            const c=customers.find(c=>String(c.id)===productSelect.value);
+            document.getElementById("nlcqCustomerDetails").textContent=c ? [c.name, "Phone: "+c.mobile, "Email: "+(c.email||"Not provided"), "GSTIN: "+(c.gstin||"Unregistered"), "Bill to: "+[c.billing_address,c.city,c.state,c.pincode].filter(Boolean).join(", "), "Ship to: "+[c.shipping_address||c.billing_address,c.shipping_city||c.city,c.shipping_state||c.state,c.shipping_pincode||c.pincode].filter(Boolean).join(", ")].join("\n") : "Select a customer.";
+        }
+        ["nlcqCharges","nlcqChargeRate"].forEach(id=>document.getElementById(id).addEventListener("input",calculateQuote));
+        document.getElementById("nlcqSent").addEventListener("click",async()=>{if(await saveQuotation("sent")) location.href="quotations.php";});
         productSelect.addEventListener("change", () => {
+            showCustomer();
             const customer = customers.find(c => String(c.id) === productSelect.value);
             const codes = {"Andhra Pradesh":"37","Telangana":"36","Karnataka":"29","Tamil Nadu":"33","Maharashtra":"27","Kerala":"32","Odisha":"21","Delhi":"07"};
             document.getElementById("nlcqSupplyState").value = codes[customer?.shipping_state || customer?.state] || "37";
@@ -1177,12 +1261,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         document.getElementById("nlcqPreview").addEventListener("click", async () => {
-            if (!productSelect.value || !rows.length ||
-                rows.some(row => !row.product_id || Number(row.quantity) <= 0)) {
-                nivisMessage(feedback, "Select a customer and complete each product line.", true);
-                return;
-            }
-            window.print();
+            const result=await saveQuotation("draft");
+            if(result) location.href="document.php?type=quotation&id="+result.id;
         });
         initializeQuote().catch(error => nivisMessage(feedback, error.message, true));
     }
@@ -1201,6 +1281,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (balance <= 0.005) return "Paid";
             return Number(invoice.paid_total) > 0 ? "Part-paid" : "Unpaid";
         }
+        const invoicePage=nivisListControls(invoiceTable,renderInvoices);
         function renderInvoices() {
             const query = search.value.toLowerCase().trim();
             const customer = customerFilter.value;
@@ -1212,7 +1293,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 (status === "all" || paymentStatus(invoice) === status)
             );
             invoiceTable.replaceChildren();
-            filtered.forEach(invoice => {
+            const visibleInvoices=invoicePage(filtered);
+            visibleInvoices.forEach(invoice => {
                 const row = document.createElement("tr");
                 [
                     invoice.invoice_number,
@@ -1242,7 +1324,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 row.appendChild(action);
                 invoiceTable.appendChild(row);
             });
-            empty.classList.toggle("d-none", filtered.length > 0);
+            empty.classList.toggle("d-none", visibleInvoices.length > 0);
         }
         async function refreshInvoices() {
             const [invoiceResult, customerResult] = await Promise.all([
@@ -1299,6 +1381,14 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("invoiceNotes").value = invoice.notes || "";
             document.getElementById("invoiceSavedNotes").textContent = invoice.notes || "No notes";
             document.getElementById("invoiceSavedDue").textContent = invoice.due_date || "Not set";
+            document.getElementById("invoiceTypeTitle").textContent=invoice.supplier_gstin ? "TAX INVOICE" : "INVOICE";
+            document.getElementById("invoicePrintLink").href="document.php?type=invoice&id="+invoice.id;
+            const editLines=document.getElementById("invoiceLinesEdit");editLines.hidden=invoice.status!=="draft" || !!invoice.quotation_id;editLines.href="create-invoice.php?id="+invoice.id;
+            document.getElementById("invoiceCancel").hidden=invoice.status!=="issued" || Number(invoice.paid_total)>0;
+            document.getElementById("invoiceCancellationReason").textContent=invoice.cancellation_reason || "";
+            const history=document.getElementById("invoicePaymentHistory");history.replaceChildren();
+            for(const payment of invoice.payments) {const tr=document.createElement("tr");for(const value of [payment.payment_date,money(payment.amount),payment.payment_method,payment.transaction_reference || "—",payment.notes || "—"]){const td=document.createElement("td");td.textContent=value;tr.append(td);}history.append(tr);}
+            if(!invoice.payments.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.textContent="No payments recorded.";tr.append(td);history.append(tr);}
             invoiceNumber.textContent = invoice.invoice_number;
             document.getElementById("nlidpInvoiceDate").textContent = invoice.issue_date;
             document.getElementById("nlidpSellerName").textContent = invoice.supplier_name;
@@ -1370,26 +1460,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 nivisMessage(feedback, error.message, true);
             }
         });
-        document.getElementById("nlidpDownloadPDF").addEventListener("click", () => {
-            if (!window.html2pdf) {
-                nivisMessage(feedback, "PDF library unavailable. Please try again.", true);
-                return;
-            }
-            html2pdf().set({
-                margin: 8,
-                filename: (currentInvoice?.invoice_number || "invoice") + ".pdf",
-                image: { type: "jpeg", quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-            }).from(document.getElementById("nlidpPrintableInvoice")).save();
+        document.getElementById("invoiceCancel").addEventListener("click",async()=>{
+            const reason=prompt("Reason for cancellation (invoice history will be preserved):");if(!reason?.trim())return;
+            try{await nivisApi("invoices","POST",{action:"cancel",invoice_id:invoiceId,reason});await loadInvoice();}catch(e){nivisMessage(feedback,e.message,true);}
         });
+        document.getElementById("nlidpDownloadPDF").addEventListener("click",()=>{location.href="document.php?type=invoice&id="+invoiceId;});
         document.getElementById("nlidpRecordPayment").addEventListener("click", () => {
             const today = new Date();
             document.getElementById("nlidpPaymentDate").value = [today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")].join("-");
         });
         paymentForm.addEventListener("submit", async event => {
             event.preventDefault();
-            if (!paymentForm.reportValidity() || !currentInvoice) return;
+            if (!paymentForm.reportValidity() || !currentInvoice || paymentForm.dataset.saving) return;
+            paymentForm.dataset.saving="1";
+            paymentForm.querySelector("button[type=submit]").disabled=true;
             try {
                 await nivisApi("invoices", "POST", {
                     action: "payment",
@@ -1398,6 +1482,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     payment_date: document.getElementById("nlidpPaymentDate").value,
                     payment_method: document.getElementById("nlidpPaymentMethod").value
                         .toLowerCase().replace(/ /g, "_"),
+                    notes: document.getElementById("nlidpPaymentNotes").value,
                     transaction_reference: document.getElementById("nlidpPaymentReference").value
                 });
                 paymentForm.reset();
@@ -1408,7 +1493,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 nivisMessage(feedback, "Payment recorded.");
             } catch (error) {
                 nivisMessage(document.getElementById("nlidpPaymentMessage"), error.message, true);
-            }
+            } finally {delete paymentForm.dataset.saving;paymentForm.querySelector("button[type=submit]").disabled=false;}
         });
         loadInvoice().catch(error => nivisMessage(feedback, error.message, true));
     }
@@ -1425,18 +1510,13 @@ document.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
             if (!event.target.reportValidity()) return;
             try {
-                await nivisApi("tax_rates", "POST", { id:document.getElementById("taxRateId").value || null, name:document.getElementById("taxRateName").value, rate_percent:Number(document.getElementById("taxRatePercent").value), treatment:document.getElementById("taxRateTreatment").value, effective_from:document.getElementById("taxRateDate").value });
+                await nivisApi("tax_rates", "POST", { id:document.getElementById("taxRateId").value || null, name:document.getElementById("taxRateName").value, rate_percent:Number(document.getElementById("taxRatePercent").value), hsn_codes:document.getElementById("taxRateHsn").value, is_enabled:Number(document.getElementById("taxRateEnabled").value), treatment:document.getElementById("taxRateTreatment").value, effective_from:document.getElementById("taxRateDate").value });
                 location.reload();
             } catch(error) { nivisMessage(document.getElementById("taxRateMessage"), error.message, true); }
         });
         function updateTaxIndicators() {
-            const stateName = sellerState.options[sellerState.selectedIndex].text;
-            const inside = document.querySelector(".tax-gst-inside");
-            const outside = document.querySelector(".tax-gst-outside");
-            inside.textContent = "Inside " + stateName + ": CGST + SGST";
-            outside.textContent = "Outside " + stateName + ": IGST";
-            inside.style.opacity = taxMode.value === "inter" ? "0.5" : "1";
-            outside.style.opacity = taxMode.value === "intra" ? "0.5" : "1";
+            document.getElementById("taxRegionDescription").textContent = taxMode.value === "outside_ap"
+                ? "Outside Andhra Pradesh: IGST" : "Inside Andhra Pradesh: CGST + SGST";
         }
         sellerState.addEventListener("change", updateTaxIndicators);
         taxMode.addEventListener("change", updateTaxIndicators);
@@ -1446,7 +1526,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const config = result.configuration;
             if (config) {
                 sellerState.value = config.seller_state_code;
-                taxMode.value = "auto";
+                sellerState.dataset.name = config.seller_state_name;
+                document.getElementById("taxSupplierSummary").textContent = "Registered supplier state: " + config.seller_state_name;
+                taxMode.value = config.default_region || "inside_ap";
                 priceMode.value = config.price_mode;
             }
             updateTaxIndicators();
@@ -1466,6 +1548,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const edit = nivisActionButton("edit", "Edit rate", "fa-pen-to-square");
                 edit.addEventListener("click", () => {
                     document.getElementById("taxRateId").value = rate.id;
+                    document.getElementById("taxRateHsn").value = rate.hsn_codes || "";
+                    document.getElementById("taxRateEnabled").value = String(rate.is_enabled);
                     document.getElementById("taxRateName").value = rate.name;
                     document.getElementById("taxRatePercent").value = rate.rate_percent;
                     document.getElementById("taxRateTreatment").value = rate.treatment;
@@ -1474,11 +1558,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 const remove = nivisActionButton("delete", "Delete rate", "fa-trash-can");
                 remove.addEventListener("click", async () => {
-                    if (!confirm("Delete GST rate " + rate.name + "? Rates linked to products cannot be deleted.")) return;
+                    if (!confirm("Delete GST rate " + rate.name + "? It will be removed from available rates. Existing records are preserved; linked products will need a new rate for future billing.")) return;
                     try { await nivisApi("tax_rates", "DELETE", null, rate.id); location.reload(); }
                     catch(error) { nivisMessage(message,error.message,true); }
                 });
-                actions.append(edit,remove); row.appendChild(actions);
+                const view = nivisActionButton("view", "View rate", "fa-eye");
+                view.addEventListener("click", () => alert(rate.name + "\nGST: " + total + "%\nTreatment: " + rate.treatment + "\nHSN/SAC: " + (rate.hsn_codes || "Not specified") + "\nEffective: " + rate.effective_from));
+                const toggle = nivisActionButton("toggle", Number(rate.is_enabled) ? "Deactivate" : "Activate", "fa-power-off");
+                toggle.addEventListener("click", async () => { try { await nivisApi("tax_rates","POST",{id:rate.id,action:"toggle",is_enabled:!Number(rate.is_enabled)}); location.reload(); } catch(e) { nivisMessage(message,e.message,true); } });
+                actions.append(view,edit,toggle,remove); row.appendChild(actions);
                 ratesBody.appendChild(row);
             });
         }).catch(error => nivisMessage(message, error.message, true));
@@ -1486,8 +1574,9 @@ document.addEventListener("DOMContentLoaded", () => {
         save?.addEventListener("click", async () => {
             try {
                 await nivisApi("tax", "POST", {
-                    seller_state_name: sellerState.options[sellerState.selectedIndex].text,
-                    tax_mode: taxMode.value === "inter" ? "manual_review" : "auto",
+                    seller_state_name: sellerState.dataset.name,
+                    default_region: taxMode.value,
+                    tax_mode: "auto",
                     price_mode: priceMode.value
                 });
                 nivisMessage(message, "Tax settings saved.");
@@ -1505,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const button = form.querySelector('button[type="submit"]');
     try {
         const {data} = await nivisApi('settings');
-        if (data) for (const [key, value] of Object.entries(data)) {
+        if (data) for (const [key, value] of Object.entries({...data, ...JSON.parse(data.document_defaults || "{}")})) {
             if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value ?? '';
         }
         button.disabled = false;

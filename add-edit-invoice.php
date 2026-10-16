@@ -26,7 +26,7 @@ include 'sidebar.php';
 
       <!-- Invoice Heading -->
       <div class="nlidp-invoice-heading">
-        <h2>TAX INVOICE <small id="nlidpDocumentStatus"></small></h2>
+        <h2><span id="invoiceTypeTitle">INVOICE</span> <small id="nlidpDocumentStatus"></small></h2>
 
         <div class="nlidp-invoice-meta">
           <strong id="nlidpInvoiceNumber">—</strong>
@@ -123,6 +123,11 @@ include 'sidebar.php';
         <div class="col-md-8"><label for="invoiceNotes">Notes</label><textarea id="invoiceNotes" class="form-control" maxlength="5000"></textarea></div>
         <div><button class="btn btn-primary" type="submit">Save invoice details</button></div>
       </form>
+      <h3 class="h5 mt-4">Payment history</h3><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th></tr></thead><tbody id="invoicePaymentHistory"></tbody></table></div>
+      <a id="invoicePrintLink" class="btn btn-outline-primary" href="#">View A4 / Print / PDF</a>
+      <a id="invoiceLinesEdit" class="btn btn-outline-primary" hidden href="#">Edit draft line items</a>
+      <button type="button" id="invoiceCancel" class="btn btn-outline-danger" hidden>Cancel issued invoice</button>
+      <p id="invoiceCancellationReason"></p>
       <!-- Action Buttons -->
       <div class="nlidp-actions" data-html2canvas-ignore="true">
         <button type="button"
@@ -211,6 +216,7 @@ include 'sidebar.php';
                    id="nlidpPaymentReference">
           </div>
 
+          <label for="nlidpPaymentNotes">Payment notes</label><textarea id="nlidpPaymentNotes" class="form-control" maxlength="500"></textarea>
           <div class="nlidp-payment-balance">
             Outstanding: <strong id="nlidpOutstanding">Rs 0.00</strong>
           </div>

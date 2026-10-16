@@ -4,6 +4,10 @@ header('Content-Type: application/json; charset=utf-8');
 
 function respond(array $payload, int $status = 200): void
 {
+    if ($status < 300 && isset($GLOBALS['request_cache_key']) && session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION['requests'][$GLOBALS['request_cache_key']] = ['hash'=>$GLOBALS['request_hash'],'payload'=>$payload,'status'=>$status];
+        if (count($_SESSION['requests']) > 100) array_shift($_SESSION['requests']);
+    }
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
@@ -62,11 +66,19 @@ try {
     require_once __DIR__ . '/config/schema.php';
     require_once __DIR__ . '/config/product_images.php';
     $pdo = database_connection();
+    require_once __DIR__.'/config/security.php';
+    require_once __DIR__.'/config/billing.php';
+    $write = !in_array($_SERVER['REQUEST_METHOD'], ['GET','HEAD'], true);
+    if ($denied = nivis_access($pdo, $write)) respond($denied, http_response_code());
+    if (PHP_SAPI !== 'cli' && $write && !hash_equals($_SESSION['csrf'], $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) respond(['error'=>'Security token expired. Refresh the page and retry.'],403);
     $resource = (string) ($_GET['resource'] ?? '');
     if (in_array($resource, ['products', 'categories'], true)) {
         ensure_billing_columns($pdo, $resource);
     }
     if (in_array($resource, ['customers', 'quotations', 'invoices', 'dashboard'], true)) ensure_billing_columns($pdo, 'customers');
+    if (in_array($resource, ['products', 'tax', 'tax_rates'], true)) ensure_billing_columns($pdo, 'tax_rates');
+    if ($resource === 'tax') ensure_billing_columns($pdo, 'gst_configuration');
+    if ($resource === 'products') ensure_billing_columns($pdo, 'customers');
     $method = $_SERVER['REQUEST_METHOD'];
     if ($method === 'POST') {
         $identityTables = [
@@ -79,6 +91,20 @@ try {
         }
     }
     $data = request_data();
+    if (in_array($resource,['quotations','invoices','settings'],true)) { ensure_document_columns($pdo); ensure_billing_columns($pdo,'tax_rates'); }
+    if ($resource === 'security' && $method === 'GET') respond(['csrf'=>$_SESSION['csrf'] ?? '']);
+    if (PHP_SAPI !== 'cli' && $write && !empty($_SERVER['HTTP_IDEMPOTENCY_KEY'])) {
+        $key = $_SERVER['HTTP_IDEMPOTENCY_KEY'];
+        if (!preg_match('/^[a-zA-Z0-9-]{16,80}$/',$key)) respond(['error'=>'Invalid request key.'],422);
+        $request_cache_key = $resource.':'.$key;
+        $request_hash = hash('sha256', $method.json_encode($_GET).json_encode($data));
+        $cached = $_SESSION['requests'][$request_cache_key] ?? null;
+        if ($cached) {
+            if ($cached['hash'] !== $request_hash) respond(['error'=>'Request key already used for different values.'],409);
+            respond($cached['payload'],$cached['status']);
+        }
+    }
+    billing_actions($pdo,$resource,$method,$data);
     $id = filter_var($_GET['id'] ?? $data['id'] ?? null, FILTER_VALIDATE_INT);
 
     if ($resource === 'settings' && $method === 'GET') {
@@ -104,13 +130,14 @@ try {
             state_code=VALUES(state_code), gstin=VALUES(gstin), email=VALUES(email), phone=VALUES(phone)')
             ->execute([$name, $address, $state, $code, $gstin ?: null, $email ?: null, $phone ?: null]);
         $pdo->prepare('UPDATE gst_configuration SET seller_state_name=?, seller_state_code=? WHERE id=1')->execute([$state, $code]);
+        $pdo->prepare('UPDATE company_settings SET document_defaults=? WHERE id=1')->execute([json_encode(billing_details($data))]);
         $pdo->commit();
         respond(['message' => 'Company settings saved.']);
     }
 
     if ($resource === 'products' && $method === 'GET') {
         $rows = $pdo->query(
-            "SELECT p.id, p.image_path, p.default_quantity AS quantity, p.gst_region, p.name, p.sku, p.category_id, c.name AS category,
+            "SELECT p.id, p.tax_rate_id, p.customer_id, p.image_path, p.default_quantity AS quantity, p.gst_region, p.name, p.sku, p.category_id, c.name AS category,
                     p.hsn_code AS hsn, p.unit, p.selling_price AS price,
                     COALESCE(t.rate_percent, 0) AS gst,
                     p.default_discount_percent AS discount, p.status, p.description
@@ -127,6 +154,13 @@ try {
         $sku = trim((string) ($data['sku'] ?? ''));
         if ($sku === '') $sku = 'PRD-' . strtoupper(bin2hex(random_bytes(6)));
         if (strlen($sku) > 70) respond(['error' => 'Product code is too long.'], 422);
+        $customerId = null;
+        if (array_key_exists('customer_id', $data) && $data['customer_id'] !== '') {
+            $customerId = filter_var($data['customer_id'], FILTER_VALIDATE_INT);
+            $customerCheck = $pdo->prepare('SELECT id FROM customers WHERE id=? AND deleted_at IS NULL');
+            $customerCheck->execute([$customerId]);
+            if (!$customerId || !$customerCheck->fetchColumn()) respond(['error' => 'Choose an existing customer.'], 422);
+        }
         $quantity = filter_var($data['quantity'] ?? 1, FILTER_VALIDATE_FLOAT);
         $region = (string) ($data['gst_region'] ?? 'inside_ap');
         if ($quantity === false || $quantity < 0 || $quantity > 1000000 || !in_array($region, ['inside_ap', 'outside_ap'], true)) {
@@ -145,10 +179,11 @@ try {
             respond(['error' => 'Check the product category, HSN, price, tax and discount values.'], 422);
         }
         $rate = $pdo->prepare(
-            "SELECT id FROM tax_rates WHERE rate_percent = ? AND is_enabled=1 AND effective_from <= CURRENT_DATE() AND (effective_to IS NULL OR effective_to >= CURRENT_DATE())
+            "SELECT id FROM tax_rates WHERE rate_percent = ? AND (? IS NULL OR id=?) AND deleted_at IS NULL AND is_enabled=1 AND effective_from <= CURRENT_DATE() AND (effective_to IS NULL OR effective_to >= CURRENT_DATE())
              ORDER BY is_enabled DESC, id LIMIT 1"
         );
-        $rate->execute([$gst]);
+        $selectedRate = !empty($data['tax_rate_id']) ? filter_var($data['tax_rate_id'], FILTER_VALIDATE_INT) : null;
+        $rate->execute([$gst, $selectedRate, $selectedRate]);
         $taxRateId = $rate->fetchColumn();
         if ($taxRateId === false) {
             respond(['error' => 'Choose a GST rate configured in Tax & GST settings.'], 422);
@@ -169,12 +204,12 @@ try {
         $imagePath = $newProductImage ?? $oldImage;
         if ($productId) {
             $statement = $pdo->prepare(
-                'UPDATE products SET image_path=?, default_quantity=?, gst_region=?, name=?, sku=?, category_id=?, hsn_code=?, unit=?,
+                'UPDATE products SET customer_id=IF(?, ?, customer_id), image_path=?, default_quantity=?, gst_region=?, name=?, sku=?, category_id=?, hsn_code=?, unit=?,
                  selling_price=?, default_discount_percent=?, tax_rate_id=?, description=?, status=?
                  WHERE id=?'
             );
             $statement->execute([
-                $imagePath, $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
+                array_key_exists('customer_id', $data) ? 1 : 0, $customerId, $imagePath, $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
                 $taxRateId ?: null, trim((string) ($data['description'] ?? '')),
                 $status, $productId,
             ]);
@@ -188,12 +223,12 @@ try {
         }
         $statement = $pdo->prepare(
             'INSERT INTO products
-             (image_path, default_quantity, gst_region, name, sku, category_id, hsn_code, unit, selling_price, default_discount_percent,
+             (customer_id, image_path, default_quantity, gst_region, name, sku, category_id, hsn_code, unit, selling_price, default_discount_percent,
               tax_rate_id, description, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $statement->execute([
-            $imagePath, $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
+            $customerId, $imagePath, $quantity, $region, $name, $sku, $categoryId, $hsn, $unit, $price, $discount,
             $taxRateId ?: null, trim((string) ($data['description'] ?? '')), $status,
         ]);
         $newProductImage = null;
@@ -409,20 +444,25 @@ try {
     if ($resource === 'tax' && $method === 'GET') {
         $config = $pdo->query('SELECT * FROM gst_configuration WHERE id=1')->fetch();
         $rates = $pdo->query(
-            'SELECT id, name, rate_percent, treatment, effective_from, effective_to, is_enabled
-             FROM tax_rates ORDER BY rate_percent, id'
+            'SELECT id, name, rate_percent, treatment, effective_from, effective_to, is_enabled, (SELECT GROUP_CONCAT(hsn_code) FROM hsn_tax_mappings h WHERE h.tax_rate_id=tax_rates.id) AS hsn_codes
+             FROM tax_rates WHERE deleted_at IS NULL ORDER BY rate_percent, id'
         )->fetchAll();
         respond(['configuration' => $config, 'rates' => $rates]);
     }
 
     if ($resource === 'tax_rates' && $method === 'DELETE') {
         if (!$id) respond(['error' => 'Choose a valid GST rate.'], 422);
-        $statement = $pdo->prepare('DELETE FROM tax_rates WHERE id=?');
+        $statement = $pdo->prepare('UPDATE tax_rates SET deleted_at=CURRENT_TIMESTAMP, is_enabled=0 WHERE id=? AND deleted_at IS NULL');
         $statement->execute([$id]);
         if (!$statement->rowCount()) respond(['error' => 'GST rate not found.'], 404);
         respond(['message' => 'GST rate deleted.']);
     }
     if ($resource === 'tax_rates' && $method === 'POST') {
+        if (($data['action'] ?? '') === 'toggle') {
+            $q=$pdo->prepare('UPDATE tax_rates SET is_enabled=? WHERE id=? AND deleted_at IS NULL');
+            $q->execute([!empty($data['is_enabled']) ? 1 : 0, $id]);
+            respond(['message'=>'Tax rate status updated.']);
+        }
         $name = required_text($data, 'name', 100);
         $rate = filter_var($data['rate_percent'] ?? null, FILTER_VALIDATE_FLOAT);
         $effective = (string) ($data['effective_from'] ?? '');
@@ -432,21 +472,37 @@ try {
             !in_array($treatment, ['taxable','zero_rated','nil_rated','exempt','non_gst'], true) || ($treatment !== 'taxable' && $rate != 0)) {
             respond(['error' => 'Enter a valid rate, treatment and effective date.'], 422);
         }
+        $hsnCodes = array_values(array_unique(array_filter(array_map('trim',explode(',',(string)($data['hsn_codes'] ?? ''))))));
+        foreach ($hsnCodes as $hsnCode) if (!preg_match('/^[0-9]{4,8}$/',$hsnCode)) respond(['error'=>'HSN/SAC codes must contain 4 to 8 digits.'],422);
+        $enabled = !array_key_exists('is_enabled',$data) || !empty($data['is_enabled']);
+        $pdo->beginTransaction();
         if (!empty($data['id'])) {
             $rateId = filter_var($data['id'], FILTER_VALIDATE_INT);
             if (!$rateId) respond(['error' => 'Invalid rate ID.'], 422);
-            $statement = $pdo->prepare('UPDATE tax_rates SET name=?, rate_percent=?, treatment=?, effective_from=? WHERE id=?');
+            $check=$pdo->prepare('SELECT id FROM tax_rates WHERE id=? AND deleted_at IS NULL FOR UPDATE');$check->execute([$rateId]);
+            if (!$check->fetchColumn()) {$pdo->rollBack();respond(['error'=>'Tax rate not found.'],404);}
+            $statement = $pdo->prepare('UPDATE tax_rates SET name=?, rate_percent=?, treatment=?, effective_from=? WHERE id=? AND deleted_at IS NULL');
             $statement->execute([$name, $rate, $treatment, $effective, $rateId]);
+            $pdo->prepare('UPDATE tax_rates SET is_enabled=? WHERE id=? AND deleted_at IS NULL')->execute([(int)$enabled,$rateId]);
+            $pdo->prepare('DELETE FROM hsn_tax_mappings WHERE tax_rate_id=?')->execute([$rateId]);
+            foreach ($hsnCodes as $hsnCode) $pdo->prepare('INSERT INTO hsn_tax_mappings(hsn_code,tax_rate_id,effective_from) VALUES(?,?,?)')->execute([$hsnCode,$rateId,$effective]);
+            $pdo->commit();
             respond(['message' => 'GST rate updated.', 'id' => $rateId]);
         }
         $statement = $pdo->prepare('INSERT INTO tax_rates (name, rate_percent, treatment, effective_from, is_enabled) VALUES (?, ?, ?, ?, 1)');
         $statement->execute([$name, $rate, $treatment, $effective]);
-        respond(['message' => 'GST rate saved.', 'id' => (int) $pdo->lastInsertId()], 201);
+        $rateId=(int)$pdo->lastInsertId();
+        $pdo->prepare('UPDATE tax_rates SET is_enabled=? WHERE id=?')->execute([(int)$enabled,$rateId]);
+        foreach ($hsnCodes as $hsnCode) $pdo->prepare('INSERT INTO hsn_tax_mappings(hsn_code,tax_rate_id,effective_from) VALUES(?,?,?)')->execute([$hsnCode,$rateId,$effective]);
+        $pdo->commit();
+        respond(['message' => 'GST rate saved.', 'id' => $rateId], 201);
     }
 
     if ($resource === 'tax' && $method === 'POST') {
         $state = trim((string) ($data['seller_state_name'] ?? ''));
         $code = state_code($state);
+        $region = (string) ($data['default_region'] ?? 'inside_ap');
+        if (!in_array($region, ['inside_ap', 'outside_ap'], true)) respond(['error' => 'Choose Inside AP or Outside AP.'], 422);
         $taxMode = (string) ($data['tax_mode'] ?? 'auto');
         $priceMode = (string) ($data['price_mode'] ?? 'exclusive');
         if ($code === '' || !in_array($taxMode, ['auto', 'manual_review'], true) ||
@@ -455,9 +511,9 @@ try {
         }
         $statement = $pdo->prepare(
             'UPDATE gst_configuration SET seller_state_name=?, seller_state_code=?,
-             tax_mode=?, price_mode=? WHERE id=1'
+             tax_mode=?, price_mode=?, default_region=? WHERE id=1'
         );
-        $statement->execute([$state, $code, $taxMode, $priceMode]);
+        $statement->execute([$state, $code, $taxMode, $priceMode, $region]);
         respond(['message' => 'Tax configuration saved.']);
     }
 
@@ -472,7 +528,7 @@ try {
         respond(['number' => sprintf('QT-%s-%06d', $fy, (int) $statement->fetchColumn() + 1)]);
     }
     if ($resource === 'quotations' && $method === 'GET') {
-        $sql = "SELECT q.id, q.quote_number, q.customer_id, c.name AS customer,
+        $sql = "SELECT q.id, q.quote_number, q.customer_id, COALESCE(MAX(JSON_UNQUOTE(JSON_EXTRACT(q.party_snapshot, '$.buyer.name'))), c.name) AS customer,
                        q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total,
                        i.id AS invoice_id,
                        GROUP_CONCAT(qi.product_name ORDER BY qi.line_no SEPARATOR ' | ') AS product_names
@@ -495,6 +551,8 @@ try {
             );
             $itemStatement->execute([$id]);
             $rows[0]['items'] = $itemStatement->fetchAll();
+            $full=$pdo->prepare('SELECT * FROM quotations WHERE id=?'); $full->execute([$id]);
+            $rows[0]=array_merge($rows[0],$full->fetch());
             foreach ($rows[0]['items'] as &$line) {
                 $line['reference'] = $rows[0]['quote_number'] . '-P' . $line['product_id'] . '-L' . $line['line_no'];
             }
@@ -511,7 +569,7 @@ try {
         respond(['data' => $rows]);
     }
 
-    $directInvoice = $resource === 'invoices' && $method === 'POST' && ($data['action'] ?? '') === 'create';
+    $directInvoice = $resource === 'invoices' && $method === 'POST' && in_array(($data['action'] ?? ''), ['create','revise'], true);
     if (($resource === 'quotations' && $method === 'POST') || $directInvoice) {
         if ($directInvoice) { $data['valid_until'] = ($data['due_date'] ?? '') ?: ($data['issue_date'] ?? ''); $data['status'] = 'draft'; unset($data['id']); }
         $quoteId = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
@@ -519,6 +577,9 @@ try {
         $issueDate = (string) ($data['issue_date'] ?? '');
         $validUntil = (string) ($data['valid_until'] ?? '');
         $notes = trim((string) ($data['notes'] ?? ''));
+        $details=billing_details($data);
+        if (strlen($notes)>5000) respond(['error'=>'Notes must be at most 5000 characters.'],422);
+        if (($data['supply_type'] ?? 'domestic_goods') !== 'domestic_goods') respond(['error'=>'Special supplies require a reviewed tax workflow.'],422);
         $requestedStatus = strtolower((string) ($data['status'] ?? 'draft'));
         $items = $data['items'] ?? null;
         $isDate = static function (string $value): bool {
@@ -531,6 +592,7 @@ try {
             respond(['error' => 'Provide a customer, valid dates, a supported status and at least one valid product line.'], 422);
         }
 
+        if (in_array($requestedStatus,['sent','approved'],true) && $validUntil < date('Y-m-d')) respond(['error'=>'Cannot send or accept an expired quotation. Save a draft with valid dates.'],422);
         $pdo->beginTransaction();
         $customerStatement = $pdo->prepare(
             "SELECT c.name, c.gstin, a.state_code
@@ -547,7 +609,14 @@ try {
         $configuration = $pdo->query(
             'SELECT seller_state_code, price_mode, tax_mode FROM gst_configuration WHERE id=1'
         )->fetch();
-        $sellerCode = $configuration['seller_state_code'] ?? '37';
+        $company=$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch();
+        if (!$company && $directInvoice) { $pdo->rollBack(); respond(['error'=>'Configure your actual business details in Settings before creating a direct invoice.'],422); }
+        if (($configuration['tax_mode'] ?? 'auto') === 'manual_review') { $pdo->rollBack(); respond(['error'=>'Tax configuration requires review before billing.'],422); }
+        $sellerCode = $company['state_code'] ?? ($configuration['seller_state_code'] ?? '37');
+        $parties=billing_parties($pdo,$customerId);
+        $shippingCode=$pdo->prepare("SELECT state_code FROM customer_addresses WHERE customer_id=? AND address_type='shipping' ORDER BY is_default DESC,id DESC LIMIT 1");
+        $shippingCode->execute([$customerId]);
+        $customer['state_code']=$shippingCode->fetchColumn() ?: $customer['state_code'];
         $placeCode = (string) ($data['place_of_supply_state_code'] ?? ($customer['state_code'] ?: $sellerCode));
         if (!in_array($placeCode, ['37','36','29','33','27','32','21','07'], true)) {
             $pdo->rollBack();
@@ -563,8 +632,9 @@ try {
             'grand_total' => 0.0,
         ];
         $preparedItems = [];
+        $taxTreatments=[]; $itemDescriptions=[];
         $productStatement = $pdo->prepare(
-            "SELECT p.id, p.name, p.sku, p.hsn_code, p.unit, p.selling_price,
+            "SELECT p.id, p.name, p.sku, p.hsn_code, p.unit, p.selling_price, p.description, t.treatment,
                     COALESCE(t.rate_percent, 0) AS gst_rate, t.is_enabled, t.effective_from, t.effective_to
              FROM products p LEFT JOIN tax_rates t ON t.id=p.tax_rate_id
              WHERE p.id=? AND p.status='active'"
@@ -594,6 +664,10 @@ try {
                 $pdo->rollBack();
                 respond(['error' => 'A product GST rate is disabled or outside its effective dates. Update the product tax rate.'], 422);
             }
+            $quantity=round($quantity,3); $unitPrice=round($unitPrice,2); $discountPercent=round($discountPercent,2);
+            if ($quantity<=0) {$pdo->rollBack();respond(['error'=>'Quantity must be at least 0.001.'],422);}
+            $taxTreatments[$index+1]=$product['treatment'];
+            $itemDescriptions[$index+1]=$product['description'];
             $base = round($quantity * $unitPrice, 2);
             $discountAmount = round($base * $discountPercent / 100, 2);
             $gstRate = (float) $product['gst_rate'];
@@ -636,10 +710,45 @@ try {
             $totals['igst_total'] += $igst;
             $totals['grand_total'] += $lineTotal;
         }
+        $charge=filter_var($data['additional_charges'] ?? 0,FILTER_VALIDATE_FLOAT);
+        if ($charge===false || $charge<0 || $charge>1000000000) { $pdo->rollBack(); respond(['error'=>'Enter valid additional charges.'],422); }
+        $charge=round($charge,2);
+        if ($charge>0) {
+            $chargeName=required_text($data,'charge_description',180);
+            $q=$pdo->prepare('SELECT * FROM tax_rates WHERE id=? AND is_enabled=1 AND deleted_at IS NULL AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)');
+            $q->execute([$data['charge_tax_rate_id'] ?? null,$issueDate,$issueDate]);$rate=$q->fetch();
+            $chargeHsn=required_text($data,'charge_hsn',8);
+            if (!$rate || !preg_match('/^[0-9]{4,8}$/',$chargeHsn)) {$pdo->rollBack();respond(['error'=>'Choose a configured rate and HSN/SAC for additional charges.'],422);}
+            $taxable=$priceMode==='inclusive' ? round($charge/(1+$rate['rate_percent']/100),2) : $charge;
+            $tax=$priceMode==='inclusive' ? round($charge-$taxable,2) : round($taxable*$rate['rate_percent']/100,2);
+            $cgst=$sameState ? round($tax/2,2) : 0; $sgst=$sameState ? round($tax-$cgst,2) : 0; $igst=$sameState ? 0 : $tax;
+            $taxTreatments[count($preparedItems)+1]=$rate['treatment'];
+            $preparedItems[]=['line_no'=>count($preparedItems)+1,'product_id'=>null,'name'=>$chargeName,'sku'=>'','hsn'=>$chargeHsn,'unit'=>'SERVICE','quantity'=>1,'price'=>$charge,'discount_percent'=>0,'discount_amount'=>0,'taxable'=>$taxable,'gst_rate'=>$rate['rate_percent'],'cgst'=>$cgst,'sgst'=>$sgst,'igst'=>$igst,'line_total'=>round($taxable+$tax,2)];
+            $totals['subtotal']+=$charge;$totals['taxable_total']+=$taxable;$totals['cgst_total']+=$cgst;$totals['sgst_total']+=$sgst;$totals['igst_total']+=$igst;$totals['grand_total']+=round($taxable+$tax,2);
+        }
+        $details['tax_treatments']=$taxTreatments;
+        $details['item_descriptions']=$itemDescriptions;
+        $details['charge_description']=$data['charge_description'] ?? '';
+        $details['charge_hsn']=$data['charge_hsn'] ?? '';
+        $details['charge_tax_rate_id']=$data['charge_tax_rate_id'] ?? '';
         foreach ($totals as $key => $value) {
             $totals[$key] = round($value, 2);
         }
 
+        if ($directInvoice && ($data['action'] ?? '') === 'revise') {
+            $invoiceId=filter_var($data['invoice_id'] ?? null,FILTER_VALIDATE_INT);
+            $q=$pdo->prepare('SELECT * FROM invoices WHERE id=? FOR UPDATE');$q->execute([$invoiceId]);$old=$q->fetch();
+            if (!$old || $old['status']!=='draft' || $old['quotation_id']) {$pdo->rollBack();respond(['error'=>'Only direct draft invoice lines can be edited.'],409);}
+            if ($old['issue_date']!==$issueDate) {$pdo->rollBack();respond(['error'=>'The numbered invoice date cannot be changed.'],422);}
+            $bp=$parties['buyer'];$sp=$parties['supplier'];
+            $pdo->prepare('UPDATE invoices SET customer_id=?,due_date=?,supplier_name=?,supplier_gstin=?,supplier_address=?,supplier_state_code=?,buyer_name=?,buyer_gstin=?,billing_address=?,shipping_address=?,place_of_supply_state_code=?,tax_mode=?,price_mode=?,subtotal=?,discount_total=?,taxable_total=?,cgst_total=?,sgst_total=?,igst_total=?,grand_total=?,notes=? WHERE id=?')
+                ->execute([$customerId,$validUntil,$sp['company_name'],$sp['gstin'],$sp['address'],$sellerCode,$bp['name'],$bp['gstin'],$bp['billing_address'] ?? '',$bp['shipping_address'],$placeCode,$taxMode,$priceMode,$totals['subtotal'],$totals['discount_total'],$totals['taxable_total'],$totals['cgst_total'],$totals['sgst_total'],$totals['igst_total'],$totals['grand_total'],$notes,$invoiceId]);
+            $pdo->prepare('DELETE FROM invoice_items WHERE invoice_id=?')->execute([$invoiceId]);
+            $q=$pdo->prepare('INSERT INTO invoice_items(invoice_id,line_no,product_id,product_name,sku,hsn_code,unit,quantity,unit_price,discount_percent,discount_amount,taxable_amount,gst_rate,cgst_amount,sgst_amount,igst_amount,line_total) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            foreach($preparedItems as $item) $q->execute(array_merge([$invoiceId],array_values($item)));
+            billing_store($pdo,'invoices',$invoiceId,$parties,$details,$charge);
+            $pdo->commit();respond(['message'=>'Draft invoice updated.','id'=>$invoiceId]);
+        }
         if ($directInvoice) {
             $invoiceDate = $issueDate;
             $financialYearStart = (int) substr($invoiceDate, 0, 4);
@@ -717,6 +826,7 @@ try {
                 ]);
             }
             $pdo->prepare('UPDATE invoices SET shipping_address=? WHERE id=?')->execute([$shippingAddress ?: $buyerAddress, $invoiceId]);
+            billing_store($pdo,'invoices',$invoiceId,$parties,$details,$charge);
             $pdo->commit();
             respond(['message' => 'Direct invoice created.', 'id' => $invoiceId, 'invoice_number' => $invoiceNumber], 201);
         }
@@ -808,6 +918,7 @@ try {
              (quotation_id, from_status, to_status, notes) VALUES (?, ?, ?, ?)"
         );
         $history->execute([$quoteId, $fromStatus, $requestedStatus, 'Saved from quotation screen']);
+        billing_store($pdo,'quotations',$quoteId,$parties,$details,$charge);
         $pdo->commit();
         respond(['message' => 'Quotation saved.', 'id' => $quoteId, 'quote_number' => $quoteNumber], 201);
     }
@@ -852,7 +963,7 @@ try {
 
     if ($resource === 'invoices' && $method === 'GET') {
         $sql = "SELECT i.id, i.invoice_number, i.quotation_id, q.quote_number,
-                       c.name AS customer, i.due_date, i.notes, i.issue_date, i.status, i.grand_total,
+                       i.buyer_name AS customer, i.due_date, i.notes, i.issue_date, i.status, i.grand_total,
                        i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name,
                        i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code,
                        i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total,
@@ -871,15 +982,17 @@ try {
                 respond(['error' => 'Invoice not found.'], 404);
             }
             $itemStatement = $pdo->prepare(
-                'SELECT product_name, hsn_code AS hsn, quantity, unit_price,
+                'SELECT product_id, sku, unit, product_name, hsn_code AS hsn, quantity, unit_price,
                         discount_percent, taxable_amount, gst_rate, cgst_amount,
                         sgst_amount, igst_amount, line_total
                  FROM invoice_items WHERE invoice_id=? ORDER BY line_no'
             );
             $itemStatement->execute([$id]);
             $invoice['items'] = $itemStatement->fetchAll();
+            $full=$pdo->prepare('SELECT * FROM invoices WHERE id=?'); $full->execute([$id]);
+            $invoice=array_merge($invoice,$full->fetch());
             $paymentStatement = $pdo->prepare(
-                'SELECT payment_date, amount, payment_method, transaction_reference
+                'SELECT payment_date, amount, payment_method, transaction_reference, notes
                  FROM invoice_payments WHERE invoice_id=? ORDER BY payment_date, id'
             );
             $paymentStatement->execute([$id]);
@@ -899,7 +1012,7 @@ try {
     }
 
     if ($resource === 'invoices' && $method === 'POST' &&
-        ($data['action'] ?? '') === 'convert') {
+        in_array(($data['action'] ?? ''), ['convert','convert_simple'], true)) {
         $quotationId = filter_var($data['quotation_id'] ?? null, FILTER_VALIDATE_INT);
         if (!$quotationId) {
             respond(['error' => 'A valid quotation ID is required.'], 422);
@@ -916,9 +1029,10 @@ try {
         );
         $quoteStatement->execute([$quotationId]);
         $quote = $quoteStatement->fetch();
-        if (!$quote || $quote['status'] !== 'approved') {
+        $convertible = ($data['action'] ?? '') === 'convert_simple' ? ['draft','sent','approved'] : ['approved'];
+        if (!$quote || !in_array($quote['status'], $convertible, true)) {
             $pdo->rollBack();
-            respond(['error' => 'Only an approved quotation can be converted.'], 409);
+            respond(['error' => 'This quotation cannot be converted. Choose a saved quotation that has not been converted or rejected.'], 409);
         }
         $existingInvoice = $pdo->prepare('SELECT id FROM invoices WHERE quotation_id=?');
         $existingInvoice->execute([$quotationId]);
@@ -979,9 +1093,15 @@ try {
             $quote['grand_total'], $quote['notes'],
         ]);
         $invoiceId = (int) $pdo->lastInsertId();
+        $snapshot=json_decode($quote['party_snapshot'] ?? '',true);
+        if ($snapshot) {
+            $sp=$snapshot['supplier']; $bp=$snapshot['buyer'];
+            $pdo->prepare('UPDATE invoices SET supplier_name=?,supplier_gstin=?,supplier_address=?,buyer_name=?,buyer_gstin=?,billing_address=? WHERE id=?')->execute([$sp['company_name'] ?? '',$sp['gstin'] ?? null,$sp['address'] ?? '',$bp['name'] ?? '',$bp['gstin'] ?? null,$bp['billing_address'] ?? '',$invoiceId]);
+        }
+        billing_store($pdo,'invoices',$invoiceId,$snapshot ?: billing_parties($pdo,(int)$quote['customer_id']),json_decode($quote['document_details'] ?? '',true) ?: [],(float)$quote['additional_charges']);
         $shipping = $pdo->prepare("SELECT CONCAT_WS(', ', address_line1, city, state_name, pincode) FROM customer_addresses WHERE customer_id=? AND address_type='shipping' LIMIT 1");
         $shipping->execute([$quote['customer_id']]);
-        $pdo->prepare('UPDATE invoices SET shipping_address=? WHERE id=?')->execute([$shipping->fetchColumn() ?: $buyerAddress, $invoiceId]);
+        $pdo->prepare('UPDATE invoices SET shipping_address=? WHERE id=?')->execute([$snapshot['buyer']['shipping_address'] ?? ($shipping->fetchColumn() ?: $buyerAddress), $invoiceId]);
         $quoteItems = $pdo->prepare('SELECT * FROM quotation_items WHERE quotation_id=? ORDER BY line_no');
         $quoteItems->execute([$quotationId]);
         $insertInvoiceItem = $pdo->prepare(
@@ -1004,8 +1124,8 @@ try {
         $pdo->prepare("UPDATE quotations SET status='converted' WHERE id=?")->execute([$quotationId]);
         $pdo->prepare(
             "INSERT INTO quotation_status_history (quotation_id, from_status, to_status, notes)
-             VALUES (?, 'approved', 'converted', 'Converted to invoice')"
-        )->execute([$quotationId]);
+             VALUES (?, ?, 'converted', 'Converted to invoice')"
+        )->execute([$quotationId, $quote['status']]);
         $pdo->commit();
         respond(['message' => 'Quotation converted to a draft invoice.', 'id' => $invoiceId, 'invoice_number' => $invoiceNumber], 201);
     }
@@ -1016,6 +1136,9 @@ try {
         if (!$invoiceId) {
             respond(['error' => 'A valid invoice ID is required.'], 422);
         }
+        $pdo->beginTransaction();
+        $issueCheck=$pdo->prepare('SELECT supplier_gstin,cgst_total,sgst_total,igst_total FROM invoices WHERE id=? FOR UPDATE');$issueCheck->execute([$invoiceId]);$issueRecord=$issueCheck->fetch();
+        if ($issueRecord && !$issueRecord['supplier_gstin'] && ($issueRecord['cgst_total']+$issueRecord['sgst_total']+$issueRecord['igst_total'])>0) respond(['error'=>'A GST-charging invoice requires the actual supplier GSTIN. Correct company settings and recreate this draft before issuing.'],422);
         $statement = $pdo->prepare(
             "UPDATE invoices SET status='issued', issued_at=NOW()
              WHERE id=? AND status='draft'"
@@ -1024,6 +1147,7 @@ try {
         if ($statement->rowCount() === 0) {
             respond(['error' => 'Only draft invoices can be issued.'], 409);
         }
+        $pdo->commit();
         respond(['message' => 'Invoice issued.']);
     }
 
@@ -1040,6 +1164,7 @@ try {
               DateTime::createFromFormat('!Y-m-d', $paymentDate)->format('Y-m-d') === $paymentDate)) {
             respond(['error' => 'Enter a valid invoice, payment amount, date and method.'], 422);
         }
+        if (abs($amount-round($amount,2))>0.000001) respond(['error'=>'Payment amounts support at most two decimal places.'],422);
         $pdo->beginTransaction();
         $invoiceStatement = $pdo->prepare(
             "SELECT grand_total, status FROM invoices WHERE id=? FOR UPDATE"
@@ -1060,12 +1185,12 @@ try {
             respond(['error' => 'Payment exceeds the invoice outstanding balance.'], 422);
         }
         $insert = $pdo->prepare(
-            'INSERT INTO invoice_payments (invoice_id, payment_date, amount, payment_method, transaction_reference)
-             VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO invoice_payments (invoice_id, payment_date, amount, payment_method, transaction_reference, notes)
+             VALUES (?, ?, ?, ?, ?, ?)'
         );
         $insert->execute([
             $invoiceId, $paymentDate, $amount, $paymentMethod,
-            trim((string) ($data['transaction_reference'] ?? '')) ?: null,
+            trim((string) ($data['transaction_reference'] ?? '')) ?: null, substr(trim((string)($data['notes'] ?? '')),0,500),
         ]);
         $pdo->commit();
         respond(['message' => 'Payment recorded.', 'id' => (int) $pdo->lastInsertId()], 201);

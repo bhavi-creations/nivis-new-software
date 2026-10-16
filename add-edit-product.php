@@ -30,6 +30,14 @@ include 'sidebar.php';
         <input type="hidden" name="product_id" id="editProductId">
 
         <div class="row g-4">
+          <div class="col-12 col-md-6">
+            <label for="editProductCustomer" class="form-label">CUSTOMER</label>
+            <select id="editProductCustomer" class="form-select"><option value="">All customers / No specific customer</option></select>
+            <label for="editProductCustomerSearch" class="form-label mt-2">SEARCH CUSTOMER</label>
+            <input id="editProductCustomerSearch" type="search" class="form-control" placeholder="Type a letter or customer name" autocomplete="off">
+            <div id="editProductCustomerMatches" class="list-group mt-1" style="max-height:220px;overflow-y:auto" aria-live="polite"></div>
+            <small>Select an existing customer from the dropdown or search results.</small>
+          </div>
           <div class="col-12">
             <label for="editProductImage" class="form-label">PRODUCT PHOTO</label>
             <input type="file" id="editProductImage" class="form-control" accept="image/*">

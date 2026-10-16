@@ -8,12 +8,13 @@ include 'sidebar.php';
 
 <section class="nivis-labs-reports" id="nivis-labs-reports">
   <div class="container-fluid p-0">
+    <?php include __DIR__ . "/billing-guide.php"; ?>
 
     <!-- Page Header -->
     <div class="nlr-header">
       <div>
         <h1>Reports</h1>
-        <p>Choose Quotations or Invoices, select dates, and view or export the list.</p>
+        <p>Review and export existing records by date. Quotations show estimates; invoices show bills. Reports do not create new bills.</p>
       </div>
 
       <div class="nlr-account">

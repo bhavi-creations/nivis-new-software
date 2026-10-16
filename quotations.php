@@ -8,12 +8,16 @@ include 'sidebar.php';
 <!-- Quotations Section Start -->
 <section class="nivis-labs-quotation" id="nivis-labs-quotation">
   <div class="container-fluid p-0">
+    <?php if (isset($_GET['saved'])): ?>
+      <p class="alert alert-success" role="status">Quotation saved. You can view it or convert it to an invoice below.</p>
+    <?php endif; ?>
+
 
     <!-- Header -->
     <div class="nivis-labs-quotation-header">
       <div>
         <h1>Quotations</h1>
-        <p>Beauty-care quotes for sunscreen, moisturizers, serums and more</p>
+        <p>Save a quotation, view its details or convert it to an invoice.</p>
       </div>
 
       <div class="nivis-labs-quotation-account">
@@ -27,47 +31,6 @@ include 'sidebar.php';
          class="nivis-labs-quotation-new-btn">
         + New quotation
       </a>
-    </div>
-
-    <!-- Quotation Status Cards -->
-    <div class="row g-3 nivis-labs-quotation-stats">
-
-      <div class="col-6 col-lg-3">
-        <button type="button" class="nivis-labs-quotation-stat-card quote-status-draft"
-                data-quote-status="Draft" aria-pressed="false">
-          <h6>DRAFT</h6>
-          <h2 id="quoteDraftCount">0</h2>
-          <span>Beauty quotes in progress</span>
-        </button>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <button type="button" class="nivis-labs-quotation-stat-card quote-status-sent"
-                data-quote-status="Sent" aria-pressed="false">
-          <h6>SENT</h6>
-          <h2 id="quoteSentCount">0</h2>
-          <span>Shared with beauty retailers</span>
-        </button>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <button type="button" class="nivis-labs-quotation-stat-card quote-status-approved"
-                data-quote-status="Approved" aria-pressed="false">
-          <h6>APPROVED</h6>
-          <h2 id="quoteApprovedCount">0</h2>
-          <span>Ready for fulfilment</span>
-        </button>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <button type="button" class="nivis-labs-quotation-stat-card quote-status-converted"
-                data-quote-status="Converted" aria-pressed="false">
-          <h6>CONVERTED</h6>
-          <h2 id="quoteConvertedCount">0</h2>
-          <span>Converted to invoices</span>
-        </button>
-      </div>
-
     </div>
 
     <div class="nivis-labs-quotation-filters">
@@ -91,9 +54,9 @@ include 'sidebar.php';
           <label for="nivisQuotationStatus">STATUS</label>
           <select class="form-select" id="nivisQuotationStatus">
             <option value="all">All statuses</option>
-            <option value="Draft">Draft</option>
+            <option value="Draft">Saved</option>
             <option value="Sent">Sent</option>
-            <option value="Approved">Approved</option>
+            <option value="Approved">Accepted</option><option value="Rejected">Rejected</option><option value="Expired">Expired</option>
             <option value="Converted">Converted</option>
           </select>
         </div>

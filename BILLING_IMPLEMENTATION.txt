@@ -1,0 +1,199 @@
+NIVIS LABS BILLING IMPLEMENTATION
+
+LATEST SIMPLIFIED QUOTATION FLOW
+create-quotation.php now displays only customer selection/search and product,
+quantity, price, configured tax and total, with one Save quotation button.
+The saved list exposes View and Convert to Invoice. Conversion is a single click
+and supports saved drafts directly without a separate acceptance step, while
+retaining transaction locks, document snapshots and duplicate-conversion checks.
+It redirects to the invoice list and shows a success message. Converted invoices
+are drafts until issued. New simple quotations use today's date, 15-day validity,
+zero discount and the configured company terms; GST uses the saved customer state.
+The earlier advanced quotation-form/status UI described below is superseded.
+The direct-invoice form is unchanged. Added simple-quotation.php and
+assets/js/simple-quotation.js; the HTTP suite covers saved-draft conversion.
+
+OPEN THESE LOCAL URLS
+Tax and GST: http://localhost/nivis-new-software/tax.php
+Quotations: http://localhost/nivis-new-software/quotations.php
+New quotation: http://localhost/nivis-new-software/create-quotation.php
+Invoices: http://localhost/nivis-new-software/invoices.php
+New direct invoice: http://localhost/nivis-new-software/create-invoice.php
+Invoice detail: http://localhost/nivis-new-software/add-edit-invoice.php?id=<saved ID>
+Quotation print: http://localhost/nivis-new-software/document.php?type=quotation&id=<saved ID>
+Invoice print: http://localhost/nivis-new-software/document.php?type=invoice&id=<saved ID>
+Company/document defaults: http://localhost/nivis-new-software/settings.php
+Reports: http://localhost/nivis-new-software/reports.php
+Sign in: http://localhost/nivis-new-software/login.php
+
+DATABASE AND SETUP
+The actual local schema was inspected. Existing Customers, Addresses, Categories,
+Products, Tax Rates, HSN Mappings, Quotations, Invoice Items, Payments, Users,
+Sequences, Audit Logs and Company Settings are reused. No business records were
+deleted and no production tables were recreated.
+
+The additive migration was already run against this local project database:
+  C:\xampp\php\php.exe database\migrate_billing.php
+Run the same command after deploying these files to another installation.
+It can be run repeatedly. It adds missing optional product/customer/GST fields,
+document party/detail snapshots, additional-charge totals, cancellation reasons,
+and company document defaults. It requires ALTER permission. Normal API access
+also checks for missing columns, consistent with the existing project convention.
+Do not run setup.php --demo against an existing business database.
+
+No new PDF dependency needs installation. The application reuses the existing
+html2pdf.js 0.10.1 CDN dependency. If unavailable, the page explains the failure;
+Print > Save as PDF remains available through the browser. No server PDF engine
+was installed. Enable backgrounds and turn off browser headers/footers when printing.
+
+ACCESS
+No users/login were configured in the inspected application. A login page now
+uses the existing users table and password_hash/password_verify. With zero users,
+loopback-only XAMPP access works. Remote requests require sign-in. Once a user is
+created, local requests require sign-in as well. Create your own admin credentials:
+  C:\xampp\php\php.exe database\create_admin.php
+The command prompts for name/email/password. It does not create sample credentials.
+Admin and manager can write; staff is read-only. Sign out is available in the sidebar.
+PHP session.save_path must be writable by the PHP process. Use HTTPS remotely.
+CSRF tokens protect API writes and sign-in/sign-out. Browser mutation request keys
+prevent repeat processing within the same session; the last 100 successful keyed
+requests are retained. Conversion additionally has a transaction lock and unique
+quotation reference, independent of session state. Number sequences are atomic.
+The CLI is a trusted administrative context and does not require browser tokens.
+Apache denies direct access to config/database/tests folders; equivalent rules
+are needed on other web servers. Application login does not protect publicly
+served product-image URLs; product images are not document attachments.
+
+IMPLEMENTED BEHAVIOR
+- Tax: add/edit/view, activate/deactivate, safe removal from future selection,
+  optional HSN/SAC mappings, effective-from date, configured inclusive/exclusive
+  pricing, and selection by tax-rate ID on the product edit screen.
+- Products: existing-customer dropdown and typed search, saved customer linkage,
+  original photo/category/quantity/price workflow preserved.
+- Quotations: customer contact/address preview, multiple products, SKU/unit/stock
+  hints, configurable charges with explicit classification/rate, tax split, terms,
+  draft/sent/accepted/rejected/expired status paths, draft copies, date filters,
+  customer/status/search filters and ten-record pagination. The existing database
+  value 'approved' is retained for compatibility and displayed as Accepted.
+- Invoices: direct creation or accepted-quotation conversion, direct draft line
+  editing, draft due-date/notes editing, issuing, partial/full payments and notes,
+  payment history, outstanding balances, date/status/customer filters, pagination.
+  Converted draft line items retain the accepted quotation's financial snapshot.
+- Unpaid issued invoices can be cancelled with a reason. Their number, values and
+  audit record remain. Paid invoices cannot be cancelled through this shortcut.
+- Documents snapshot parties, financial lines, classifications, descriptions,
+  GST treatment, terms and charges. Conversion copies the saved quotation values.
+  Later master-data changes do not rewrite these snapshots. No inventory is deducted.
+- Print: standalone A4 view without sidebar/navigation in print, actual saved
+  parties, existing logo, lines, totals, amount in words, configured terms/bank
+  instructions/signatory name, payment balances, and PDF/print actions.
+- All important totals are calculated server-side; submitted grand totals are
+  ignored. Amounts use DECIMAL storage, line-level paise rounding, three-decimal
+  quantities, two-decimal prices/discount percentages and two-decimal payments.
+  Round-off is shown as zero; no undisclosed rupee-rounding adjustment is applied.
+
+MANUAL TEST CHECKLIST
+1. Settings: enter actual company name/address/state/GSTIN where applicable. Save
+   terms, bank details and signatory only if provided by your business.
+2. Tax: create an applicable test rate, edit it, view it, deactivate/reactivate it,
+   and verify it appears correctly in product selection. Test a negative percent.
+3. Select an existing customer and at least two existing products in a quotation.
+   Confirm contact/shipping details, SKU, HSN, quantity, price and discount.
+4. With a configured 18% TEST rate: quantity 2 x Rs 100 less 10% = taxable Rs 180;
+   exclusive total Rs 212.40. Same-state split is Rs 16.20 CGST + Rs 16.20 SGST;
+   different-state IGST is Rs 32.40. This is a test example, not a cosmetics-rate claim.
+   Repeat with inclusive pricing; discounted total remains Rs 180 without double tax.
+5. Add charges with explicit HSN/rate. Verify the charge is included exactly once
+   in the line table, subtotal, GST and total. Change quantity/discount and recheck.
+6. Save draft, edit it, mark Sent then Accepted. Create separate drafts to test
+   Rejected and Expired (the latter requires a past validity date). Try an invalid
+   transition. Duplicate a quotation; confirm it saves under a fresh number.
+7. Convert Accepted once; retry and confirm duplicate conversion is rejected.
+   Edit a customer/product after acceptance and confirm the invoice uses snapshots.
+8. Create a direct draft invoice, edit its line items, then issue it. Verify issued
+   financial data cannot be edited. Tax-charging invoices require supplier GSTIN.
+9. Record a partial payment with notes, then the exact remainder. Check payment
+   history, Part-paid/Paid status and outstanding balance. Reject an overpayment.
+10. Cancel a separate unpaid issued invoice with a reason. Verify its history is
+    preserved and payments are blocked. A paid invoice cannot use this cancellation.
+11. Filter both lists by dates/customer/status and test Next/Previous pagination.
+12. Open A4 views for short and long documents. Print and download PDF; verify logo,
+    line wrapping, totals, page breaks and absence of sidebar/buttons. Check a
+    narrow screen. These visual/browser checks remain required (see limits below).
+13. Create an admin account, sign in/out, reject bad credentials and missing CSRF,
+    and confirm staff cannot save. Double-click a save/payment action and ensure
+    a single record is created. Recheck dashboard/customers/categories/products/reports.
+
+AUTOMATED VERIFICATION
+  node tests/integration.cjs
+  node tests/billing-http.cjs
+  node tests/product-images.cjs
+Tests create isolated temporary databases and remove only those databases.
+Passed: CRUD regression, product images including 50 MB limit, company defaults,
+inside/outside and inclusive GST, additional charges, statuses, conversion,
+snapshot retention, draft edits, cancellations, partial/full payments, invalid
+values, reports, HTTP CSRF/auth/role checks, duplicate-request replay, HTML escaping
+and HTTP responses for module pages. PHP syntax checks and JS parse checks passed.
+
+LIMITS / ITEMS NOT CLAIMED COMPLETE
+- No connected browser was available. A4 HTML and escaping were tested over HTTP,
+  but visual rendering, actual PDF download, long-table pagination and interactive
+  keyboard/responsive behavior have not been verified in a browser.
+- This is an ordinary domestic-goods workflow using the project's existing eight
+  supported states. Supplier state comes from Company Settings; saved shipping
+  state defaults the place of supply, which must be reviewed for each transaction.
+  Export/SEZ, bill-to/ship-to special cases, services place-of-supply rules, reverse
+  charge, cess, e-invoicing/IRN and e-way bills are not automated. No GST rates are
+  asserted as legally applicable; rate/HSN choice remains business configuration.
+  Primary references reviewed:
+  https://taxinformation.cbic.gov.in/content-page/explore-act/1000616/1000001
+  https://cbic-gst.gov.in/gst-invoice-rules.html
+- A credit-note/refund workflow for paid issued invoices is not implemented.
+  Cancellation without payments is implemented and protected instead.
+- Historical quotations created before snapshot support have no recoverable
+  original customer/business snapshot. The print view says when details were not
+  captured. Legacy conversion uses available master details; it cannot reconstruct
+  a historical address. Existing issued invoice snapshots remain intact.
+- Duplicate/draft copy uses current product tax configuration on the new save;
+  review copied values before sending. Inactive/deleted products must be replaced.
+- No user-management screen or password-recovery/email delivery was added. The
+  existing users table and CLI account setup are used; sending a quotation is a
+  status change, not an email transmission.
+- List pagination is client-side. Large datasets would benefit from server paging.
+
+FILES CREATED IN THIS BILLING UPDATE
+config/billing.php
+config/security.php
+database/migrate_billing.php
+database/create_admin.php
+document.php
+login.php
+logout.php
+assets/css/document.css
+assets/js/document.js
+tests/billing-http.cjs
+tests/.htaccess
+BILLING_IMPLEMENTATION.txt
+
+FILES MODIFIED IN THIS BILLING UPDATE
+api.php
+assets/js/database-ui.js
+header.php
+sidebar.php
+settings.php
+tax.php
+create-quotation.php
+quotations.php
+invoices.php
+add-edit-invoice.php
+database/README_IMPORT_ORDER.txt
+tests/integration.cjs
+tests/product-images.cjs
+
+EARLIER REQUEST CHANGES RETAINED IN THE WORKSPACE
+add-edit-product.php
+config/schema.php
+reports.php
+billing-guide.php (new shared workflow guide)
+The earlier api.php, database-ui.js and quotation/invoice/tax changes remain.
+config/.htaccess and database/.htaccess continue to deny direct folder access.

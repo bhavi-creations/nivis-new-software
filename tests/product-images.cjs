@@ -13,11 +13,12 @@ const photos = new Set();
  try {
   run('require "config/database.php"; database_connection(false)->exec("CREATE DATABASE '+db+'");');
   cp.execFileSync(php,['database/setup.php'],{cwd:root,env,stdio:'pipe'});
-  server = cp.spawn(php,['-d','upload_max_filesize=50M','-d','post_max_size=55M','-d','upload_tmp_dir='+require('os').tmpdir(),'-S','127.0.0.1:18764'],{cwd:root,env,stdio:'ignore'});
+  server = cp.spawn(php,['-d','upload_max_filesize=50M','-d','post_max_size=55M','-d','upload_tmp_dir='+require('os').tmpdir(),'-d','session.save_path='+require('os').tmpdir(),'-S','127.0.0.1:18764'],{cwd:root,env,stdio:'ignore'});
   const base = 'http://127.0.0.1:18764/api.php?resource=';
   for(let i=0;i<30;i++) { try {await fetch(base+'products');break;} catch {await new Promise(r=>setTimeout(r,100));} }
+  const security=await fetch(base+'security');const cookie=security.headers.get('set-cookie').split(';')[0];const securityText=await security.text();let securityData;try{securityData=JSON.parse(securityText);}catch{throw new Error(securityText);}const csrf=securityData.csrf;
   const request = async (resource,method='GET',data) => {
-   const response=await fetch(base+resource,{method,headers:data && !(data instanceof FormData)?{'Content-Type':'application/json'}:{},body:data instanceof FormData?data:data?JSON.stringify(data):undefined});
+   const response=await fetch(base+resource,{method,headers:{Cookie:cookie,'X-CSRF-Token':csrf,...(data && !(data instanceof FormData)?{'Content-Type':'application/json'}:{})},body:data instanceof FormData?data:data?JSON.stringify(data):undefined});
    const text=await response.text(); let result; try {result=JSON.parse(text);} catch {throw new Error(resource+' '+text.slice(0,1500));} return {status:response.status,...result};
   };
   const ok = r => {assert(!r.error,JSON.stringify(r));return r;};

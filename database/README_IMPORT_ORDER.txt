@@ -28,8 +28,9 @@ LIVE / CPANEL
    This file does not CREATE DATABASE or USE a hardcoded database name.
    With terminal access you can instead run php database/setup.php.
 5. Open the domain/subfolder URL. API URLs are relative and work in either place.
-6. Protect this billing application with hosting authentication/restricted access;
-   the existing application does not implement user login or API authorization.
+6. Run php database/migrate_billing.php, then php database/create_admin.php.
+   Sign in at login.php. Admin/manager accounts can write; staff accounts are read-only.
+   Without users, only loopback requests are permitted for local XAMPP setup.
    Use HTTPS. Apache .htaccess denies direct config/database folder access;
    configure equivalent deny rules if your server uses nginx.
 

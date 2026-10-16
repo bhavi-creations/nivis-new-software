@@ -57,12 +57,15 @@ function ensure_billing_columns(PDO $pdo, ?string $resource = null): void
 {
     $tables = [
         'products' => [
+            'customer_id' => 'BIGINT UNSIGNED NULL DEFAULT NULL',
             'image_path' => 'VARCHAR(255) NULL DEFAULT NULL',
             'default_quantity' => 'DECIMAL(12,3) NOT NULL DEFAULT 1',
             'gst_region' => "ENUM('inside_ap','outside_ap') NOT NULL DEFAULT 'inside_ap'",
         ],
         'customers' => ['deleted_at' => 'DATETIME NULL DEFAULT NULL', 'customer_category' => "ENUM('CB1','CB2') NOT NULL DEFAULT 'CB1'"],
         'categories' => ['product_count' => 'INT UNSIGNED NULL DEFAULT NULL'],
+        'tax_rates' => ['deleted_at' => 'DATETIME NULL DEFAULT NULL'],
+        'gst_configuration' => ['default_region' => "ENUM('inside_ap','outside_ap') NOT NULL DEFAULT 'inside_ap'"],
     ];
     foreach ($tables as $table => $definitions) {
         if ($resource !== null && $resource !== $table) continue;

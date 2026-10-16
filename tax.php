@@ -25,60 +25,29 @@ include 'sidebar.php';
     <div class="tax-gst-card tax-gst-config">
       <h2><i class="fa-solid fa-sliders" aria-hidden="true"></i> GST configuration</h2>
 
-      <div class="row g-3 tax-gst-fields">
-
-        <div class="col-12 col-md-4">
-          <label for="taxSellerState">SELLER STATE</label>
-          <select class="form-select" id="taxSellerState">
-            <option value="37" selected>Andhra Pradesh</option>
-            <option value="36">Telangana</option>
-            <option value="29">Karnataka</option>
-            <option value="33">Tamil Nadu</option>
-            <option value="27">Maharashtra</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-4">
-          <label for="taxDefaultMode">DEFAULT TAX MODE</label>
-          <select class="form-select" id="taxDefaultMode">
-            <option value="auto">Auto by place of supply</option>
-            
-          </select>
-        </div>
-        <div class="col-12 col-md-4">
-          <label for="taxPriceMode">DEFAULT PRICE MODE</label>
-          <select class="form-select" id="taxPriceMode">
-            <option value="exclusive">Exclusive of GST</option>
-            <option value="inclusive">Inclusive of GST</option>
-          </select>
-        </div>
-
+      <input type="hidden" id="taxSellerState" value="37">
+      <label for="taxPriceMode">PRICE MODE</label><select id="taxPriceMode" class="form-select mb-3"><option value="exclusive">Exclusive of GST</option><option value="inclusive">Inclusive of GST</option></select><p id="taxSupplierSummary"></p><a href="settings.php">Update registered business state in Settings</a>
+      <div class="tax-gst-fields">
+        <label for="taxDefaultMode">GST REGION</label>
+        <select id="taxDefaultMode" class="form-select">
+          <option value="inside_ap">Inside AP</option>
+          <option value="outside_ap">Outside AP</option>
+        </select>
+        <p id="taxRegionDescription" class="mt-3 fw-bold" aria-live="polite"></p>
+        <small>Default for new products and documents. A selected customer's place of supply determines document GST.</small>
       </div>
       <button type="button" class="btn btn-primary mt-3" id="taxSaveSettings">
         Save tax settings
       </button>
       <p class="mt-2 mb-0" id="taxSettingsMessage" role="status"></p>
 
-      <!-- GST Mode Indicators -->
-      <div class="row g-3 tax-gst-indicators">
-        <div class="col-12 col-md-4">
-          <div class="tax-gst-inside">
-            Inside AP: CGST + SGST
-          </div>
-        </div>
-
-        <div class="col-12 col-md-4">
-          <div class="tax-gst-outside">
-            Outside AP: IGST
-          </div>
-        </div>
-      </div>
 
     </div>
 
     <div class="tax-gst-card">
       <h2 id="taxRateHeading">Add GST rate</h2><p>Use the applicable HSN rate and effective date. Inside AP splits GST equally into CGST and SGST; outside AP uses IGST for ordinary domestic sales by an AP supplier.</p>
       <form id="taxRateForm" class="row g-3">
-        <input type="hidden" id="taxRateId">
+        <input type="hidden" id="taxRateId"><div class="col-md-6"><label for="taxRateHsn">HSN/SAC classifications (comma-separated, optional)</label><input id="taxRateHsn" class="form-control" placeholder="Configured classification codes"></div><div class="col-md-3"><label for="taxRateEnabled">Status</label><select id="taxRateEnabled" class="form-select"><option value="1">Active</option><option value="0">Inactive</option></select></div>
         <div class="col-md-4"><label for="taxRateName">Rate name</label><input id="taxRateName" class="form-control" maxlength="100" required></div>
         <div class="col-md-2"><label for="taxRatePercent">GST %</label><input id="taxRatePercent" class="form-control" type="number" min="0" max="100" step="0.001" required></div>
         <div class="col-md-3"><label for="taxRateTreatment">Treatment</label><select id="taxRateTreatment" class="form-select"><option value="taxable">Taxable</option><option value="nil_rated">Nil rated</option><option value="exempt">Exempt</option><option value="zero_rated">Zero rated</option><option value="non_gst">Non GST</option></select></div>

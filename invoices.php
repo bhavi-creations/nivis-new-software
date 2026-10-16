@@ -9,12 +9,16 @@ include 'sidebar.php';
 <!-- Invoice Page Start -->
 <section class="nivis-labs-invoice" id="nivis-labs-invoice">
   <div class="container-fluid p-0">
+    <?php if (isset($_GET['converted'])): ?>
+      <p class="alert alert-success" role="status">Quotation converted successfully. Your invoice is listed below.</p>
+    <?php endif; ?>
+
 
     <!-- Page Header -->
     <div class="nivis-labs-invoice-header">
       <div>
         <h1>Invoices</h1>
-        <p>Create a direct invoice or convert an approved quotation.</p>
+        <p>Bills for your customers. Create a direct invoice or convert an approved quotation, then record payments.</p>
       </div>
 
       <div class="nivis-labs-invoice-account">
@@ -60,7 +64,7 @@ include 'sidebar.php';
           <select class="form-select"
                   id="nivisInvoiceStatus">
             <option value="all">All statuses</option>
-            <option value="Paid">Paid</option>
+            <option value="Draft">Draft</option><option value="Cancelled">Cancelled</option><option value="Paid">Paid</option>
             <option value="Part-paid">Part-paid</option>
             <option value="Unpaid">Unpaid</option>
           </select>
