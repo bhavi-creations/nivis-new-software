@@ -19,7 +19,7 @@ function ensure_identity_columns(PDO $pdo, array $tables): void
         throw new NivisConfigurationException('Identity migration must run outside a transaction.');
     }
     foreach ($tables as $table) {
-        if (!in_array($table, ['products', 'categories', 'customers', 'customer_addresses'], true)) {
+        if (!in_array($table, ['products', 'categories', 'customers', 'customer_addresses', 'quotations', 'quotation_items', 'quotation_status_history', 'invoices', 'invoice_items', 'invoice_payments', 'audit_logs'], true)) {
             throw new InvalidArgumentException('Unsupported identity table.');
         }
         $column = $pdo->query("SHOW COLUMNS FROM `$table` WHERE Field = 'id'")->fetch();

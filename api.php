@@ -86,6 +86,8 @@ try {
             'products' => ['products'],
             'categories' => ['categories'],
             'customers' => ['customers', 'customer_addresses'],
+            'quotations' => ['quotations', 'quotation_items', 'quotation_status_history'],
+            'invoices' => ['invoices', 'invoice_items', 'invoice_payments', 'quotation_status_history', 'audit_logs'],
         ];
         if (isset($identityTables[$resource])) {
             ensure_identity_columns($pdo, $identityTables[$resource]);
