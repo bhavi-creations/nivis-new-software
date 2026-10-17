@@ -25,7 +25,7 @@ try {
     }
     $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
     $table = $type === 'quotation' ? 'quotations' : 'invoices';
-    $q = $pdo->prepare("SELECT * FROM $table WHERE id=?" . ($type === 'quotation' ? ' AND deleted_at IS NULL' : ''));
+    $q = $pdo->prepare("SELECT * FROM $table WHERE id=? AND deleted_at IS NULL");
     $q->execute([$id]);
     $doc = $q->fetch();
     if (!$doc) {

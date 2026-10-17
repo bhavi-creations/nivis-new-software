@@ -134,16 +134,18 @@ include 'sidebar.php';
   </div>
 </section>
 
+<dialog id="nlrRecordDialog" class="rounded border p-4" style="max-width:90vw"><h2 class="h5">Report record</h2><div id="nlrRecordDetails"></div><form method="dialog"><button class="btn btn-secondary">Close</button></form></dialog>
 <style>
 @media print {
   @page { size: A4 landscape; margin: 8mm; }
   .nlr-filter-card, .nlr-account { display: none !important; }
+  .report-actions { display: none !important; }
   .nlr-report-table { table-layout: fixed; width: 100%; }
   .nlr-report-table thead th, .nlr-report-table tbody td { white-space: normal; overflow-wrap: anywhere; font-size: 8px; padding: 5px 3px; }
   .nlr-report-table thead { display: table-header-group; }
   .nlr-report-table tr { break-inside: avoid; }
 }
 </style>
-<script src="assets/js/nivis-labs-reports.js?v=20261017-clients"></script>
+<script src="assets/js/nivis-labs-reports.js?v=20261017-actions-delete"></script>
 
 <?php include 'footer.php'; ?>

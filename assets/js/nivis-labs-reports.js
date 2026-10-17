@@ -14,6 +14,38 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentRows = [];
     let requestVersion = 0;
     let reportSelection = null;
+    function recordResource(reportType){return ({quotation:'quotations',payments:'payments',customers:'customers',products:'products'})[reportType]||'invoices';}
+    function editLink(record,reportType){
+        const id=encodeURIComponent(record._id);
+        switch(recordResource(reportType)){
+            case 'quotations':return (record._source_type==='order'?'create-order.php':'create-quotation.php')+'?id='+id;
+            case 'products':return 'add-edit-product.php?id='+id;
+            case 'customers':return 'add-edit-customer.php?id='+id;
+            case 'payments':return 'payments.php?invoice_id='+encodeURIComponent(record._invoice_id)+'&payment_id='+id+'&action=edit';
+            default:return (record._status==='draft'&&!Number(record._has_payments)?'create-invoice.php':'add-edit-invoice.php')+'?id='+id;
+        }
+    }
+    function actionCell(record,reportType){
+        const cell=document.createElement('td');cell.className='report-actions';
+        const view=nivisActionButton('view','View','fa-eye');
+        view.onclick=()=>{const target=document.getElementById('nlrRecordDetails');target.replaceChildren();
+            Object.entries(record).filter(([key])=>!key.startsWith('_')).forEach(([key,value])=>{const p=document.createElement('p');p.textContent=key.replaceAll('_',' ')+': '+(value??'');target.append(p);});
+            document.getElementById('nlrRecordDialog').showModal();};
+        const edit=document.createElement('a');edit.href=editLink(record,reportType);edit.className='btn btn-sm btn-outline-primary';edit.textContent='Edit';
+        const remove=nivisActionButton('delete','Delete','fa-trash-can');
+        remove.onclick=async()=>{
+            const resource=recordResource(reportType);
+            if(!confirm('Delete '+(record.document||record.name||'this record')+'? This updates the underlying '+resource+' record and report totals.'))return;
+            remove.disabled=true;
+            try{
+                if(resource==='payments')await nivisApi('invoices','POST',{action:'payment_delete',invoice_id:record._invoice_id,payment_id:record._id});
+                else await nivisApi(resource,'DELETE',null,record._id);
+                if(resource==='customers'&&String(clients.get(client.value))===String(record._id))client.value='';
+                await loadReport();
+            }catch(e){alert(e.message);remove.disabled=false;}
+        };
+        cell.append(view,edit,remove);return cell;
+    }
 
     const localDate = date => [
         date.getFullYear(),
@@ -71,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 formatMoney(result.summary.outstanding);
 
             const columns = currentRows.length
-                ? Object.keys(currentRows[0])
+                ? Object.keys(currentRows[0]).filter(key=>!key.startsWith('_'))
                 : ({
                     invoice: ["document", "date", "customer", "source", "total", "status"],
                     sales: ["document", "date", "customer", "total", "status"],
@@ -90,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 headingRow.appendChild(cell);
             });
             tableHead.appendChild(headingRow);
+            const actionHeading=document.createElement('th');actionHeading.className='report-actions';actionHeading.textContent='Actions';headingRow.append(actionHeading);
 
             tableBody.replaceChildren();
             currentRows.forEach(record => {
@@ -102,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         ? formatMoney(value) : (value ?? "");
                     row.appendChild(cell);
                 });
-                tableBody.appendChild(row);
+                row.append(actionCell(record,selection.type));tableBody.appendChild(row);
             });
             empty.textContent = currentRows.length
                 ? "" : "No report data found for the selected period.";
@@ -133,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     exportButton.addEventListener("click", () => {
         if (!currentRows.length) return;
-        const columns = Object.keys(currentRows[0]);
+        const columns = Object.keys(currentRows[0]).filter(key=>!key.startsWith('_'));
         const csv = [
             ['Client',reportSelection.client].map(csvEscape).join(','),
             ['Invoice dates',reportSelection.from,reportSelection.to].map(csvEscape).join(','),

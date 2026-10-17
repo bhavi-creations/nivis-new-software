@@ -64,6 +64,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
         const [c,i,q]=await Promise.all([nivisApi('customers'),nivisApi('invoices'),nivisApi('quotations')]);invoices=i.data;quotes=q.data;
         c.data.forEach(c=>customer.add(new Option(c.name,c.id)));nivisCustomerSearch(customer,el('paySearch'),el('payMatches'));
         const selected=invoices.find(i=>String(i.id)===new URLSearchParams(location.search).get('invoice_id'));
-        if(selected){customer.value=selected.customer_id;filter();invoice.value=selected.id;await load();}
+        if(selected){customer.value=selected.customer_id;filter();invoice.value=selected.id;await load();
+            const params=new URLSearchParams(location.search),receipt=current?.payments.find(p=>String(p.id)===params.get('payment_id'));
+            if(receipt&&params.get('action')==='edit'){
+                if(Number(receipt.refunded_amount)>0)nivisMessage(message,'Payments with refunds cannot be edited.',true);
+                else edit(receipt);
+            }
+        }
     }catch(e){nivisMessage(message,e.message,true);}
 });

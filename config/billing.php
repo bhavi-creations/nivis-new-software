@@ -12,6 +12,7 @@ function ensure_document_columns(PDO $pdo): void {
         }
     }
     ensure_payment_allocations($pdo);
+    ensure_deletion_columns($pdo);
 }
 function billing_details(array $data): array {
     $result = [];
@@ -52,7 +53,7 @@ function billing_actions(PDO $pdo, string $resource, string $method, array $data
     }
     if ($resource === 'invoices' && ($data['action'] ?? '') === 'cancel') {
         $id=filter_var($data['invoice_id'] ?? null,FILTER_VALIDATE_INT); $reason=required_text($data,'reason',500);
-        $pdo->beginTransaction(); $q=$pdo->prepare('SELECT status FROM invoices WHERE id=? FOR UPDATE');$q->execute([$id]);$status=$q->fetchColumn();
+        $pdo->beginTransaction(); $q=$pdo->prepare('SELECT status FROM v_active_invoices WHERE id=? FOR UPDATE');$q->execute([$id]);$status=$q->fetchColumn();
         $q=$pdo->prepare('SELECT COUNT(*) FROM invoice_payments WHERE invoice_id=?');$q->execute([$id]);
         if ($status!=='issued' || $q->fetchColumn()>0) {$pdo->rollBack();respond(['error'=>'Only issued invoices without payments can be cancelled. Paid invoices require a reviewed credit/refund process.'],409);}
         $pdo->prepare("UPDATE invoices SET status='cancelled',cancellation_reason=? WHERE id=?")->execute([$reason,$id]);

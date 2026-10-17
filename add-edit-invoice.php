@@ -117,8 +117,8 @@ include 'sidebar.php';
       <div class="nlidp-totals"><div>Paid: <span id="nlidpPaid">Rs 0.00</span></div><div>Outstanding: <span id="nlidpBalance">Rs 0.00</span></div></div>
       <p>Due date: <strong id="invoiceSavedDue"></strong></p><p id="invoiceSavedNotes"></p>
       <form id="invoiceDraftEditor" hidden data-html2canvas-ignore="true" class="row g-3 my-3">
-        <h3>Edit draft details</h3>
-        <p>Use Edit product lines to change quantities, prices and discounts on this draft. Complete sale / Issue invoice records the sale and updates stock. Issued invoices are read-only.</p>
+        <h3>Edit invoice details</h3>
+        <p>Update the due date and notes here. Product lines can be changed only on unpaid draft invoices.</p>
         <div class="col-md-4"><label for="invoiceDueDate">Due date</label><input type="date" id="invoiceDueDate" class="form-control"></div>
         <div class="col-md-8"><label for="invoiceNotes">Notes</label><textarea id="invoiceNotes" class="form-control" maxlength="5000"></textarea></div>
         <div><button class="btn btn-primary" type="submit">Save invoice details</button></div>

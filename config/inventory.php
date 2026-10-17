@@ -10,7 +10,7 @@ function inventory_quantity(float $quantity, string $from, string $to): ?float {
 function inventory_sales(PDO $pdo, int $productId, bool $includeDrafts=false): array {
     $statuses=$includeDrafts?"('draft','issued')":"('issued')";
     $query=$pdo->prepare("SELECT i.id AS invoice_id,i.invoice_number,i.buyer_name AS customer,i.customer_id,i.issue_date,i.issued_at,i.status,ii.quantity,ii.unit
-        FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id
+        FROM invoice_items ii JOIN v_active_invoices i ON i.id=ii.invoice_id
         WHERE ii.product_id=? AND i.status IN $statuses ORDER BY i.issued_at DESC,i.id DESC,ii.line_no");
     $query->execute([$productId]); return $query->fetchAll();
 }

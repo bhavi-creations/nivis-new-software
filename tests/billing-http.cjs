@@ -111,7 +111,7 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  const saleB=await saleDraft(20);ok(await request('invoices','POST',{action:'issue',invoice_id:saleB}));assert.equal(Number((await balance()).available_quantity),0);
  const history=ok(await request('product_sales&id='+stockId)).data;assert.equal(history.length,2);assert(history.every(s=>s.customer==='Test buyer'&&s.issued_at&&s.invoice_number));assert.equal(history.reduce((sum,s)=>sum+Number(s.quantity),0),50);
  assert.equal((await request('products','POST',{...stockProduct,id:stockId,quantity:49})).status,422);
- assert.equal((await request('products&id='+stockId,'DELETE')).status,409);
+ // Linked product deletion is covered below without removing this stock fixture.
  ok(await request('invoices','POST',{action:'cancel',invoice_id:saleB,reason:'Stock test cancellation'}));assert.equal(Number((await balance()).issued_available_quantity),20);
  assert.equal(ok(await request('product_sales&id='+stockId)).data.length,1);
  const weightId=ok(await request('products','POST',{...stockProduct,name:'Weight product',unit:'KG',quantity:2})).id;
@@ -253,15 +253,45 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  ok(await request('invoices','POST',{action:'issue',invoice_id:catConverted.id}));assert.equal(Number((await catalogue()).available_quantity),70);
  ok(await request('invoices&id='+catInvoice.id,'DELETE'));assert.equal(Number((await catalogue()).available_quantity),90);
  ok(await request('invoices','POST',{action:'cancel',invoice_id:catConverted.id,reason:'Test'}));assert.equal(Number((await catalogue()).available_quantity),100);
+ // Linked category/product/invoice deletion hides active records without breaking history.
+ const deleteCategory=ok(await request('categories','POST',{name:'Linked deletion category'})).id;
+ const deleteProduct=ok(await request('products','POST',{...stockProduct,name:'Linked deletion product',category_id:deleteCategory,quantity:10})).id;
+ const linkedInvoice=ok(await request('invoices','POST',{...draft,items:[{product_id:deleteProduct,quantity:2,unit_price:100}]}));
+ ok(await request('invoices','POST',{action:'issue',invoice_id:linkedInvoice.id}));
+ const linkedReceipt=ok(await request('invoices','POST',{action:'payment',invoice_id:linkedInvoice.id,amount:50,payment_date:today,payment_method:'cash'}));
+ ok(await request('categories&id='+deleteCategory,'DELETE'));
+ assert(!ok(await request('categories')).data.some(c=>c.id===deleteCategory));
+ assert(ok(await request('products')).data.some(p=>p.id===deleteProduct));
+ ok(await request('products&id='+deleteProduct,'DELETE'));
+ assert(!ok(await request('products')).data.some(p=>p.id===deleteProduct));
+ assert(!((await report('products')).rows.some(p=>p._id===deleteProduct)));
+ const linkedSaved=ok(await request('invoices&id='+linkedInvoice.id)).data;assert.equal(linkedSaved.items[0].product_name,'Linked deletion product');assert.equal(Number(linkedSaved.paid_total),50);
+ ok(await request('invoices','POST',{action:'edit',invoice_id:linkedInvoice.id,due_date:today,notes:'Updated report details'}));
+ assert.equal(ok(await request('invoices&id='+linkedInvoice.id)).data.notes,'Updated report details');
+ const reportRow=(await report('invoice')).rows.find(i=>i._id===linkedInvoice.id);assert(reportRow);assert.equal(reportRow._status,'issued');
+ assert((await report('payments')).rows.some(p=>p._id===linkedReceipt.id&&p._invoice_id===linkedInvoice.id));
+ const valueBefore=await invoiceValue();
+ ok(await request('invoices&id='+linkedInvoice.id,'DELETE'));
+ assert.equal((await request('invoices&id='+linkedInvoice.id)).status,404);
+ assert.equal((await request('invoices&id='+linkedInvoice.id,'DELETE')).status,404);
+ assert(!((await report('invoice')).rows.some(i=>i._id===linkedInvoice.id)));
+ assert(!((await report('payments')).rows.some(p=>p._id===linkedReceipt.id)));
+ assert.equal(await invoiceValue(),Math.round((valueBefore-236)*100)/100);
+ assert.equal(Number(run('require "config/database.php";echo database_connection()->query("SELECT COUNT(*) FROM invoice_payments WHERE id='+linkedReceipt.id+'")->fetchColumn();')),1);
+ assert.equal((await fetch(base+'document.php?type=invoice&id='+linkedInvoice.id,{headers:{Cookie:cookie}})).status,404);
+ // Draft invoices with advance payments can also be deleted without foreign-key errors.
+ ok(await request('invoices&id='+advanceInvoice.id,'DELETE'));
+ assert.equal((await request('invoices&id='+advanceInvoice.id)).status,404);
+ assert.equal((await request('invoices','POST',{action:'payment_delete',invoice_id:advanceInvoice.id,payment_id:receipt.id})).status,404);
  // Provision isolated test users through the existing users table.
  run('require "config/database.php";$q=database_connection()->prepare("INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,?)");$q->execute(["Test Admin","admin@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"admin"]);$q->execute(["Test Staff","staff@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"staff"]);');
- assert.equal((await request('invoices')).status,401);
- async function login(email) {
-   const r=await fetch(base+'login.php',{headers:{Cookie:cookie}});const html=await r.text();const token=html.match(/name="csrf" value="([^"]+)"/)[1];
-   const login=await fetch(base+'login.php',{method:'POST',headers:{Cookie:cookie,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({csrf:token,email,password:'test-password-123'}),redirect:'manual'});
-   assert.equal(login.status,302);cookie=login.headers.get('set-cookie').split(';')[0];csrf=ok(await request('security')).csrf;
+ cookie='';csrf='';
+ const security=await fetch(base+'api.php?resource=security');cookie=security.headers.get('set-cookie').split(';')[0];csrf=(await security.json()).csrf;
+ ok(await request('invoices'));ok(await request('categories','POST',{name:'Direct access category'}));
+ assert.equal((await request('categories','POST',{name:'Missing CSRF'},{'X-CSRF-Token':''})).status,403);
+ for(const entry of ['','index.php','login.php']){
+   const r=await fetch(base+entry,{redirect:'manual'});assert.equal(r.status,302);assert.equal(r.headers.get('location'),'dashboard.php');
  }
- await login('staff@example.test');ok(await request('invoices'));assert.equal((await request('categories','POST',{name:'Forbidden'})).status,403);
- await login('admin@example.test');ok(await request('categories','POST',{name:'Allowed'}));
- console.log('PASS: HTTP CSRF, session authentication, staff permissions, concurrent duplicate submission replay, A4 HTML escaping, and all module page responses.');
+ const dashboardResponse=await fetch(base+'dashboard.php');assert.equal(dashboardResponse.status,200);const dashboardHtml=await dashboardResponse.text();assert(dashboardHtml.includes('nivisInvoiceValue'));assert(!dashboardHtml.includes('Sign out'));
+ console.log('PASS: Direct dashboard access with existing accounts, CSRF, billing actions, duplicate submission replay, A4 HTML escaping, and all module page responses.');
 } finally {if(server)server.kill();if(!/^nivis_http_test_\d+$/.test(db))throw Error('Unsafe test database');run('require "config/database.php";database_connection(false)->exec("DROP DATABASE IF EXISTS '+db+'");');}})().catch(e=>{console.error(e);process.exitCode=1;});

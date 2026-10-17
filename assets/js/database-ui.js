@@ -371,6 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("editProductRegion").value = product.gst_region;
             document.getElementById("editProductName").value = product.name;
             document.getElementById("editProductSKU").value = product.sku;
+            if(!Array.from(categorySelect.options).some(option=>String(option.value)===String(product.category_id)))categorySelect.add(new Option(product.category+' (deleted category)',product.category_id));
             categorySelect.value = product.category_id;
             document.getElementById("editProductHSN").value = product.hsn;
             document.getElementById("editProductUnit").value = product.unit;
@@ -1323,8 +1324,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 view.dataset.id = invoice.id;
                 const a4=document.createElement("a");a4.className="btn btn-sm btn-outline-primary";a4.href="document.php?type=invoice&id="+invoice.id;a4.textContent="Save A4";action.append(a4);
                 action.appendChild(view);
-                if (invoice.status === "draft") {
-                    [["edit", "Edit details", "fa-pen-to-square"], ["delete", "Delete draft", "fa-trash-can"]].forEach(([kind,label,icon]) => {
+                {
+                    [["edit", "Edit details", "fa-pen-to-square"], ["delete", "Delete invoice", "fa-trash-can"]].forEach(([kind,label,icon]) => {
                         const button = nivisActionButton(kind,label,icon);
                         button.dataset.id = invoice.id;
                         action.appendChild(button);
@@ -1353,12 +1354,12 @@ document.addEventListener("DOMContentLoaded", () => {
         invoiceTable.addEventListener("click", async event => {
             const button = event.target.closest("[data-id]");
             if (button?.dataset.action === "delete") {
-                if (!confirm("Delete this draft invoice?")) return;
+                if (!confirm("Delete this invoice from active records and reports? Linked payment history will be preserved.")) return;
                 try { await nivisApi("invoices", "DELETE", null, button.dataset.id); await refreshInvoices(); }
                 catch (error) { alert(error.message); }
                 return;
             }
-            if (button?.dataset.action === "edit") {location.href="create-invoice.php?id="+encodeURIComponent(button.dataset.id);return;}
+            if (button?.dataset.action === "edit") {const item=invoices.find(i=>String(i.id)===button.dataset.id);location.href=(item?.status==='draft'&&Number(item.paid_total)===0?'create-invoice.php?id=':'add-edit-invoice.php?id=')+encodeURIComponent(button.dataset.id);return;}
             if (button) {
                 window.location.href = "add-edit-invoice.php?id=" +
                     encodeURIComponent(button.dataset.id);
@@ -1385,7 +1386,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const money = value => "Rs " + Number(value).toLocaleString("en-IN", {
                 minimumFractionDigits: 2, maximumFractionDigits: 2
             });
-            document.getElementById("invoiceDraftEditor").hidden = invoice.status !== "draft";
+            document.getElementById("invoiceDraftEditor").hidden = false;
             document.getElementById("invoiceDueDate").value = invoice.due_date || "";
             document.getElementById("invoiceDueDate").min = invoice.issue_date;
             document.getElementById("invoiceNotes").value = invoice.notes || "";

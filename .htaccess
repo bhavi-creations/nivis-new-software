@@ -1,4 +1,5 @@
 # Per-project limits for XAMPP / Apache PHP.
+DirectoryIndex index.php dashboard.php
 <IfModule php_module>
     php_value upload_max_filesize 50M
     php_value post_max_size 55M

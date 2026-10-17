@@ -20,5 +20,5 @@
   <div class="nlr-report-card table-responsive"><h2 class="h5">Payment history</h2><table class="table"><thead><tr><th>Customer</th><th>Date</th><th>Amount</th><th>Refunded</th><th>Method</th><th>Products credited</th><th>Reference / notes</th><th>Actions</th></tr></thead><tbody id="payHistory"></tbody></table></div>
   <dialog id="payReceipt" class="rounded border p-4"><h2 class="h5">Payment details</h2><div id="payReceiptDetails" style="white-space:pre-wrap"></div><form method="dialog"><button class="btn btn-secondary mt-3">Close</button></form></dialog>
 </div></section>
-<script src="assets/js/payments.js?v=2-actions"></script>
+<script src="assets/js/payments.js?v=3-report-actions"></script>
 <?php include 'footer.php'; ?>

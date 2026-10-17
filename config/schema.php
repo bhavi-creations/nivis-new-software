@@ -1,5 +1,17 @@
 <?php
 require_once __DIR__ . '/errors.php';
+function ensure_deletion_columns(PDO $pdo): void {
+    foreach (['categories','products','invoices'] as $table) {
+        if (!$pdo->query("SHOW COLUMNS FROM $table LIKE 'deleted_at'")->fetch()) {
+            try {$pdo->exec("ALTER TABLE $table ADD COLUMN deleted_at DATETIME NULL");}
+            catch(PDOException $e){if((int)($e->errorInfo[1]??0)!==1060)throw $e;}
+        }
+    }
+    $columns=$pdo->query('SHOW COLUMNS FROM invoices')->fetchAll(PDO::FETCH_COLUMN);
+    $exists=$pdo->query("SHOW FULL TABLES LIKE 'v_active_invoices'")->fetch();
+    $viewColumns=$exists?$pdo->query('SHOW COLUMNS FROM v_active_invoices')->fetchAll(PDO::FETCH_COLUMN):[];
+    if($columns!==$viewColumns)$pdo->exec('CREATE OR REPLACE VIEW v_active_invoices AS SELECT * FROM invoices WHERE deleted_at IS NULL');
+}
 /** Restore imported identities before starting a write transaction. */
 function ensure_identity_columns(PDO $pdo, array $tables): void
 {

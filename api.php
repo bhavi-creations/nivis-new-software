@@ -72,6 +72,7 @@ try {
     if ($denied = nivis_access($pdo, $write)) respond($denied, http_response_code());
     if (PHP_SAPI !== 'cli' && $write && !hash_equals($_SESSION['csrf'], $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) respond(['error'=>'Security token expired. Refresh the page and retry.'],403);
     $resource = (string) ($_GET['resource'] ?? '');
+    ensure_deletion_columns($pdo);
     if (in_array($resource, ['products', 'categories'], true)) {
         ensure_billing_columns($pdo, $resource);
     }
@@ -138,7 +139,7 @@ try {
 
     if ($resource === 'product_sales' && $method === 'GET') {
         if (!$id) respond(['error'=>'A product ID is required.'],422);
-        $pending=$pdo->prepare("SELECT i.id AS invoice_id,i.invoice_number,i.buyer_name AS customer,i.issue_date,ii.quantity,ii.unit FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.product_id=? AND i.status='draft' ORDER BY i.id DESC");
+        $pending=$pdo->prepare("SELECT i.id AS invoice_id,i.invoice_number,i.buyer_name AS customer,i.issue_date,ii.quantity,ii.unit FROM invoice_items ii JOIN v_active_invoices i ON i.id=ii.invoice_id WHERE ii.product_id=? AND i.status='draft' ORDER BY i.id DESC");
         $pending->execute([$id]);
         respond(['data'=>inventory_sales($pdo,(int)$id),'pending'=>$pending->fetchAll()]);
     }
@@ -151,7 +152,7 @@ try {
              FROM products p
              JOIN categories c ON c.id = p.category_id
              LEFT JOIN tax_rates t ON t.id = p.tax_rate_id
-             ORDER BY p.id"
+             WHERE p.deleted_at IS NULL ORDER BY p.id"
         )->fetchAll();
         foreach($rows as &$row) $row += inventory_balance($pdo,$row);
         unset($row);
@@ -202,9 +203,12 @@ try {
             respond(['error' => 'Invalid product ID.'], 422);
         }
         $oldImage = null;
+        $categoryCheck=$pdo->prepare('SELECT id FROM categories WHERE id=? AND (deleted_at IS NULL OR EXISTS (SELECT 1 FROM products WHERE id=? AND category_id=categories.id AND deleted_at IS NULL))');
+        $categoryCheck->execute([$categoryId,$productId?:0]);
+        if(!$categoryCheck->fetchColumn())respond(['error'=>'Choose an available category.'],422);
         $pdo->beginTransaction();
         if ($productId) {
-            $existing = $pdo->prepare('SELECT * FROM products WHERE id=? FOR UPDATE');
+            $existing = $pdo->prepare('SELECT * FROM products WHERE id=? AND deleted_at IS NULL FOR UPDATE');
             $existing->execute([$productId]);
             $record = $existing->fetch();
             if (!$record) respond(['error' => 'Product not found.'], 404);
@@ -258,14 +262,12 @@ try {
         $imageQuery = $pdo->prepare('SELECT image_path FROM products WHERE id=? FOR UPDATE');
         $imageQuery->execute([$id]);
         $deletedImage = $imageQuery->fetchColumn();
-        if (inventory_sales($pdo,(int)$id,true)) {$pdo->rollBack();respond(['error'=>'This product has saved invoices. Mark it inactive instead of deleting it.'],409);}
-        $statement = $pdo->prepare('DELETE FROM products WHERE id = ?');
+        $statement = $pdo->prepare('UPDATE products SET deleted_at=NOW(), status="inactive" WHERE id=? AND deleted_at IS NULL');
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
             respond(['error' => 'Product not found.'], 404);
         }
         $pdo->commit();
-        remove_product_image($deletedImage ?: null);
         respond(['message' => 'Product deleted.']);
     }
 
@@ -273,7 +275,8 @@ try {
         $rows = $pdo->query(
             'SELECT c.id, c.name, c.code, c.description, c.status, c.product_count,
                     COUNT(p.id) AS linked_products, COALESCE(c.product_count, COUNT(p.id)) AS products
-             FROM categories c LEFT JOIN products p ON p.category_id=c.id
+             FROM categories c LEFT JOIN products p ON p.category_id=c.id AND p.deleted_at IS NULL
+             WHERE c.deleted_at IS NULL
              GROUP BY c.id, c.name, c.code, c.description, c.status, c.product_count ORDER BY c.id'
         )->fetchAll();
         respond(['data' => $rows]);
@@ -294,6 +297,8 @@ try {
         $description = trim((string) ($data['description'] ?? ''));
         $status = valid_status($data, 'status');
         if ($categoryId) {
+            $check=$pdo->prepare('SELECT id FROM categories WHERE id=? AND deleted_at IS NULL');$check->execute([$categoryId]);
+            if(!$check->fetchColumn())respond(['error'=>'Category not found.'],404);
             $statement = $pdo->prepare(
                 'UPDATE categories SET name=?, code=?, description=?, status=?, product_count=? WHERE id=?'
             );
@@ -311,7 +316,7 @@ try {
         if (!$id) {
             respond(['error' => 'A valid category ID is required.'], 422);
         }
-        $statement = $pdo->prepare('DELETE FROM categories WHERE id=?');
+        $statement = $pdo->prepare('UPDATE categories SET deleted_at=NOW(), status="inactive" WHERE id=? AND deleted_at IS NULL');
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
             respond(['error' => 'Category not found.'], 404);
@@ -553,7 +558,7 @@ try {
                        GROUP_CONCAT(qi.product_name ORDER BY qi.line_no SEPARATOR ' | ') AS product_names
                 FROM quotations q
                 JOIN customers c ON c.id=q.customer_id
-                LEFT JOIN invoices i ON i.quotation_id=q.id
+                LEFT JOIN v_active_invoices i ON i.quotation_id=q.id
                 LEFT JOIN quotation_items qi ON qi.quotation_id=q.id";
         if ($id) {
             $statement = $pdo->prepare($sql . ' WHERE q.id=? AND q.deleted_at IS NULL GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id');
@@ -663,7 +668,7 @@ try {
             "SELECT p.id, p.name, p.sku, p.hsn_code, p.unit, p.selling_price, p.description, t.treatment,
                     COALESCE(t.rate_percent, 0) AS gst_rate, t.is_enabled, t.effective_from, t.effective_to
              FROM products p LEFT JOIN tax_rates t ON t.id=p.tax_rate_id
-             WHERE p.id=? AND p.status='active'"
+             WHERE p.id=? AND p.status='active' AND p.deleted_at IS NULL"
         );
         foreach ($items as $index => $item) {
             if (!is_array($item)) {
@@ -765,7 +770,7 @@ try {
 
         if ($directInvoice && ($data['action'] ?? '') === 'revise') {
             $invoiceId=filter_var($data['invoice_id'] ?? null,FILTER_VALIDATE_INT);
-            $q=$pdo->prepare('SELECT * FROM invoices WHERE id=? FOR UPDATE');$q->execute([$invoiceId]);$old=$q->fetch();
+            $q=$pdo->prepare('SELECT * FROM v_active_invoices WHERE id=? FOR UPDATE');$q->execute([$invoiceId]);$old=$q->fetch();
             if (!$old || $old['status']!=='draft') {$pdo->rollBack();respond(['error'=>'Only draft invoice lines can be edited.'],409);}
             if ($old['issue_date']!==$issueDate) {$pdo->rollBack();respond(['error'=>'The numbered invoice date cannot be changed.'],422);}
             $receipts=invoice_payment_details($pdo,(int)$invoiceId);
@@ -988,15 +993,16 @@ try {
         $invoiceId = filter_var($method === 'DELETE' ? $id : ($data['invoice_id'] ?? null), FILTER_VALIDATE_INT);
         if (!$invoiceId) respond(['error' => 'Choose a valid invoice.'], 422);
         $pdo->beginTransaction();
-        $check = $pdo->prepare('SELECT status, issue_date FROM invoices WHERE id=? FOR UPDATE');
+        $check = $pdo->prepare('SELECT status, issue_date FROM v_active_invoices WHERE id=? FOR UPDATE');
         $check->execute([$invoiceId]);
         $invoice = $check->fetch();
-        if (!$invoice || $invoice['status'] !== 'draft') {
+        if (!$invoice) {
             $pdo->rollBack();
-            respond(['error' => 'Only draft invoices can be edited or deleted.'], 409);
+            respond(['error' => 'Invoice not found.'], 404);
         }
         if ($method === 'DELETE') {
-            $pdo->prepare('DELETE FROM invoices WHERE id=?')->execute([$invoiceId]);
+            $pdo->prepare('UPDATE invoices SET deleted_at=NOW() WHERE id=?')->execute([$invoiceId]);
+            $pdo->prepare("INSERT INTO audit_logs(entity_type,entity_id,action,before_data) VALUES('invoice',?,'delete',?)")->execute([$invoiceId,json_encode($invoice)]);
         } else {
             $due = trim((string) ($data['due_date'] ?? ''));
             $date = $due === '' ? null : DateTime::createFromFormat('!Y-m-d', $due);
@@ -1007,7 +1013,7 @@ try {
             $pdo->prepare('UPDATE invoices SET due_date=?, notes=? WHERE id=?')->execute([$due ?: null, trim((string) ($data['notes'] ?? '')), $invoiceId]);
         }
         $pdo->commit();
-        respond(['message' => $method === 'DELETE' ? 'Draft invoice deleted.' : 'Invoice details saved.']);
+        respond(['message' => $method === 'DELETE' ? 'Invoice deleted. Linked payment history is preserved.' : 'Invoice details saved.']);
     }
 
     if ($resource === 'invoices' && $method === 'GET') {
@@ -1018,7 +1024,7 @@ try {
                        i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total,
                        (SELECT b.net_paid FROM v_invoice_balances b WHERE b.id=i.id) AS paid_total,
                        GROUP_CONCAT(DISTINCT ii.product_name ORDER BY ii.line_no SEPARATOR ' | ') AS product_names
-                FROM invoices i
+                FROM v_active_invoices i
                 JOIN customers c ON c.id=i.customer_id
                 LEFT JOIN quotations q ON q.id=i.quotation_id
                 LEFT JOIN invoice_items ii ON ii.invoice_id=i.id";
@@ -1037,7 +1043,7 @@ try {
             );
             $itemStatement->execute([$id]);
             $invoice['items'] = $itemStatement->fetchAll();
-            $full=$pdo->prepare('SELECT * FROM invoices WHERE id=?'); $full->execute([$id]);
+            $full=$pdo->prepare('SELECT * FROM v_active_invoices WHERE id=?'); $full->execute([$id]);
             $invoice=array_merge($invoice,$full->fetch());
             $paymentStatement = $pdo->prepare(
                 'SELECT payment_date, amount, payment_method, transaction_reference, notes
@@ -1086,7 +1092,7 @@ try {
             $pdo->rollBack();
             respond(['error' => 'This quotation cannot be converted. Choose a saved quotation that has not been converted or rejected.'], 409);
         }
-        $existingInvoice = $pdo->prepare('SELECT id FROM invoices WHERE quotation_id=?');
+        $existingInvoice = $pdo->prepare('SELECT id FROM v_active_invoices WHERE quotation_id=?');
         $existingInvoice->execute([$quotationId]);
         if ($existingInvoice->fetchColumn()) {
             $pdo->rollBack();
@@ -1194,7 +1200,7 @@ try {
             respond(['error' => 'A valid invoice ID is required.'], 422);
         }
         $pdo->beginTransaction();
-        $issueCheck=$pdo->prepare('SELECT status,supplier_gstin,cgst_total,sgst_total,igst_total FROM invoices WHERE id=? FOR UPDATE');$issueCheck->execute([$invoiceId]);$issueRecord=$issueCheck->fetch();
+        $issueCheck=$pdo->prepare('SELECT status,supplier_gstin,cgst_total,sgst_total,igst_total FROM v_active_invoices WHERE id=? FOR UPDATE');$issueCheck->execute([$invoiceId]);$issueRecord=$issueCheck->fetch();
         if ($issueRecord && !$issueRecord['supplier_gstin'] && ($issueRecord['cgst_total']+$issueRecord['sgst_total']+$issueRecord['igst_total'])>0) respond(['error'=>'A GST-charging invoice requires the actual supplier GSTIN. Correct company settings and recreate this draft before issuing.'],422);
         if (!$issueRecord || $issueRecord['status']!=='draft') {$pdo->rollBack();respond(['error'=>'Only draft invoices can be issued.'],409);}
         // Use a current read so the stock balance snapshot starts after acquiring product locks.
@@ -1230,7 +1236,8 @@ try {
         $paymentId=filter_var($data['payment_id']??null,FILTER_VALIDATE_INT);
         if(!$invoiceId||!$paymentId)respond(['error'=>'Choose a valid invoice and payment.'],422);
         $pdo->beginTransaction();
-        $lock=$pdo->prepare('SELECT id FROM invoices WHERE id=? FOR UPDATE');$lock->execute([$invoiceId]);
+        $lock=$pdo->prepare('SELECT id FROM v_active_invoices WHERE id=? FOR UPDATE');$lock->execute([$invoiceId]);
+        if(!$lock->fetchColumn()){$pdo->rollBack();respond(['error'=>'Invoice not found.'],404);}
         $q=$pdo->prepare('SELECT * FROM invoice_payments WHERE id=? AND invoice_id=? FOR UPDATE');$q->execute([$paymentId,$invoiceId]);$receipt=$q->fetch();
         if(!$receipt){$pdo->rollBack();respond(['error'=>'Payment not found.'],404);}
         $q=$pdo->prepare('SELECT COUNT(*) FROM payment_refunds WHERE payment_id=?');$q->execute([$paymentId]);
@@ -1255,7 +1262,7 @@ try {
         if (abs($amount-round($amount,2))>0.000001) respond(['error'=>'Payment amounts support at most two decimal places.'],422);
         $pdo->beginTransaction();
         $invoiceStatement = $pdo->prepare(
-            "SELECT grand_total, status FROM invoices WHERE id=? FOR UPDATE"
+            "SELECT grand_total, status FROM v_active_invoices WHERE id=? FOR UPDATE"
         );
         $invoiceStatement->execute([$invoiceId]);
         $invoice = $invoiceStatement->fetch();
@@ -1312,10 +1319,10 @@ try {
         $stats = $pdo->query(
             "SELECT
                 (SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL) AS customers,
-                (SELECT COUNT(*) FROM products) AS products,
+                (SELECT COUNT(*) FROM products WHERE deleted_at IS NULL) AS products,
                 (SELECT COUNT(*) FROM quotations WHERE deleted_at IS NULL) AS quotations,
                 (SELECT COUNT(*) FROM quotations WHERE deleted_at IS NULL AND status IN ('draft','sent')) AS waiting,
-                (SELECT COALESCE(SUM(grand_total),0) FROM invoices
+                (SELECT COALESCE(SUM(grand_total),0) FROM v_active_invoices
                  WHERE status IN ('draft','issued') AND issue_date >= DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')
                    AND issue_date < DATE_FORMAT(CURRENT_DATE() + INTERVAL 1 MONTH, '%Y-%m-01'))
                     AS invoice_value"
@@ -1323,7 +1330,7 @@ try {
         $monthly = $pdo->query(
             "SELECT DATE_FORMAT(issue_date, '%Y-%m') AS month,
                     COALESCE(SUM(grand_total),0) AS total
-             FROM invoices
+             FROM v_active_invoices
              WHERE status='issued'
                AND issue_date >= DATE_FORMAT(CURRENT_DATE() - INTERVAL 7 MONTH, '%Y-%m-01')
              GROUP BY DATE_FORMAT(issue_date, '%Y-%m')
@@ -1339,7 +1346,7 @@ try {
                 UNION ALL
                 SELECT i.invoice_number, c.name, i.grand_total, i.status, i.issue_date,
                        'Invoice'
-                FROM invoices i JOIN customers c ON c.id=i.customer_id
+                FROM v_active_invoices i JOIN customers c ON c.id=i.customer_id
              ) recent_documents
              ORDER BY document_date DESC, document_number DESC LIMIT 8"
         )->fetchAll();
@@ -1366,7 +1373,7 @@ try {
             "SELECT COALESCE(SUM(i.grand_total),0) AS sales,
                     COALESCE(SUM(CASE WHEN i.status='issued' THEN b.outstanding ELSE 0 END),0) AS outstanding,
                     COALESCE(SUM(b.net_paid),0) AS collected
-             FROM invoices i JOIN v_invoice_balances b ON b.id=i.id
+             FROM v_active_invoices i JOIN v_invoice_balances b ON b.id=i.id
              WHERE i.status IN ('draft','issued') AND i.issue_date BETWEEN ? AND ?
                AND (?=0 OR i.customer_id=?)"
         );
@@ -1382,7 +1389,7 @@ try {
                         CASE WHEN i.status='cancelled' THEN 0 ELSE b.outstanding END AS balance_due,
                         (SELECT GROUP_CONCAT(CONCAT(p.payment_date, ': ', p.amount, ' (', p.payment_method, ')') ORDER BY p.payment_date,p.id SEPARATOR '; ') FROM invoice_payments p WHERE p.invoice_id=i.id) AS payment_history,
                         i.status
-                 FROM invoices i JOIN customers c ON c.id=i.customer_id
+                 FROM v_active_invoices i JOIN customers c ON c.id=i.customer_id
                  LEFT JOIN quotations q ON q.id=i.quotation_id
                  JOIN v_invoice_balances b ON b.id=i.id
                  WHERE i.issue_date BETWEEN ? AND ? ORDER BY i.issue_date DESC, i.id DESC",
@@ -1391,7 +1398,7 @@ try {
             'sales' => [
                 "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
                         i.grand_total AS total, i.status
-                 FROM invoices i JOIN customers c ON c.id=i.customer_id
+                 FROM v_active_invoices i JOIN customers c ON c.id=i.customer_id
                  WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?
                  ORDER BY i.issue_date DESC, i.id DESC",
                 [$from, $to],
@@ -1399,7 +1406,7 @@ try {
             'gst' => [
                 "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
                         i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total, i.grand_total
-                 FROM invoices i JOIN customers c ON c.id=i.customer_id
+                 FROM v_active_invoices i JOIN customers c ON c.id=i.customer_id
                  WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?
                  ORDER BY i.issue_date DESC, i.id DESC",
                 [$from, $to],
@@ -1415,7 +1422,7 @@ try {
                 'SELECT i.invoice_number AS document, p.payment_date AS date, c.name AS customer,
                         p.payment_method, p.transaction_reference, p.amount
                  FROM invoice_payments p
-                 JOIN invoices i ON i.id=p.invoice_id
+                 JOIN v_active_invoices i ON i.id=p.invoice_id
                  JOIN customers c ON c.id=i.customer_id
                  WHERE p.payment_date BETWEEN ? AND ? ORDER BY p.payment_date DESC, p.id DESC',
                 [$from, $to],
@@ -1424,7 +1431,7 @@ try {
                 "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
                         b.grand_total AS total, b.net_paid, b.outstanding
                  FROM v_invoice_balances b
-                 JOIN invoices i ON i.id=b.id
+                 JOIN v_active_invoices i ON i.id=b.id
                  JOIN customers c ON c.id=i.customer_id
                  WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?
                    AND b.outstanding > 0.005
@@ -1433,8 +1440,8 @@ try {
             ],
             'customers' => [
                 "SELECT c.name, c.mobile, COUNT(i.id) AS invoices, COALESCE(SUM(i.grand_total),0) AS sales
-                 FROM customers c LEFT JOIN invoices i ON i.customer_id=c.id AND i.status='issued' AND i.issue_date BETWEEN ? AND ?
-                 GROUP BY c.id, c.name, c.mobile ORDER BY sales DESC, c.name",
+                 FROM customers c LEFT JOIN v_active_invoices i ON i.customer_id=c.id AND i.status='issued' AND i.issue_date BETWEEN ? AND ?
+                 WHERE c.deleted_at IS NULL GROUP BY c.id, c.name, c.mobile ORDER BY sales DESC, c.name",
                 [$from, $to],
             ],
             'products' => [
@@ -1442,17 +1449,24 @@ try {
                         COALESCE(SUM(s.quantity),0) AS quantity_sold, COALESCE(SUM(s.line_total),0) AS sales
                  FROM products p JOIN categories c ON c.id=p.category_id
                  LEFT JOIN (SELECT ii.product_id, ii.quantity, ii.line_total FROM invoice_items ii
-                    JOIN invoices i ON i.id=ii.invoice_id WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?) s ON s.product_id=p.id
-                 GROUP BY p.id, p.name, p.sku, c.name, p.hsn_code ORDER BY sales DESC, p.name",
+                    JOIN v_active_invoices i ON i.id=ii.invoice_id WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?) s ON s.product_id=p.id
+                 WHERE p.deleted_at IS NULL GROUP BY p.id, p.name, p.sku, c.name, p.hsn_code ORDER BY sales DESC, p.name",
                 [$from, $to],
             ],
         ];
         [$reportSql, $reportParams] = $queries[$type];
+        $metadata=match($type){
+            'products'=>'p.id AS _id, ', 'customers'=>'c.id AS _id, ',
+            'quotation'=>'q.id AS _id, q.source_type AS _source_type, ',
+            'payments'=>'p.id AS _id, i.id AS _invoice_id, ',
+            default=>'i.id AS _id, i.status AS _status, (SELECT COUNT(*) FROM invoice_payments ip WHERE ip.invoice_id=i.id) AS _has_payments, ',
+        };
+        $reportSql=preg_replace('/^SELECT /','SELECT '.$metadata,$reportSql,1);
         if ($clientId) {
             if ($type === 'products') {
                 $reportSql = str_replace('i.issue_date BETWEEN ? AND ?', 'i.issue_date BETWEEN ? AND ? AND i.customer_id=?', $reportSql);
             } elseif ($type === 'customers') {
-                $reportSql = str_replace('GROUP BY c.id', 'WHERE c.id=? GROUP BY c.id', $reportSql);
+                $reportSql = str_replace('GROUP BY c.id', 'AND c.id=? GROUP BY c.id', $reportSql);
             } else {
                 $dateColumn = $type === 'quotation' ? 'q.issue_date' : ($type === 'payments' ? 'p.payment_date' : 'i.issue_date');
                 $reportSql = str_replace($dateColumn . ' BETWEEN ? AND ?', $dateColumn . ' BETWEEN ? AND ? AND c.id=?', $reportSql);
