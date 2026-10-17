@@ -14,10 +14,11 @@
     <div class="col-md-3"><label for="payAmount">Amount (Rs)</label><input id="payAmount" type="number" class="form-control" min="0.01" step="0.01" required></div>
     <div class="col-md-2"><label for="payMethod">Method</label><select id="payMethod" class="form-select"><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="cheque">Cheque</option><option value="card">Card</option><option value="other">Other</option></select></div>
     <div class="col-md-8"><label for="payReference">Transaction reference / notes</label><input id="payReference" class="form-control" maxlength="160"></div>
-    <div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary" id="paySave" type="submit">Save payment</button></div>
+    <div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-primary" id="paySave" type="submit">Save payment</button><button id="payCancelEdit" type="button" class="btn btn-outline-secondary" hidden>Cancel edit</button></div>
     <p>Choose a product to pay for that product only. “All unpaid products” applies the amount in invoice line order. Advances and earlier invoice-level receipts also follow line order.</p>
   </form>
-  <div class="nlr-report-card table-responsive"><h2 class="h5">Payment history</h2><table class="table"><thead><tr><th>Customer</th><th>Date</th><th>Amount</th><th>Refunded</th><th>Method</th><th>Products credited</th><th>Reference / notes</th></tr></thead><tbody id="payHistory"></tbody></table></div>
+  <div class="nlr-report-card table-responsive"><h2 class="h5">Payment history</h2><table class="table"><thead><tr><th>Customer</th><th>Date</th><th>Amount</th><th>Refunded</th><th>Method</th><th>Products credited</th><th>Reference / notes</th><th>Actions</th></tr></thead><tbody id="payHistory"></tbody></table></div>
+  <dialog id="payReceipt" class="rounded border p-4"><h2 class="h5">Payment details</h2><div id="payReceiptDetails" style="white-space:pre-wrap"></div><form method="dialog"><button class="btn btn-secondary mt-3">Close</button></form></dialog>
 </div></section>
-<script src="assets/js/payments.js?v=1"></script>
+<script src="assets/js/payments.js?v=2-actions"></script>
 <?php include 'footer.php'; ?>

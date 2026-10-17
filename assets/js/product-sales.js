@@ -15,6 +15,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
             for(const value of [sale.customer,Number(sale.quantity)+' '+sale.unit,sale.issue_date]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}
             const cell=document.createElement('td'),link=document.createElement('a');link.href='add-edit-invoice.php?id='+sale.invoice_id;link.textContent='Review / Complete sale — '+sale.invoice_number;cell.append(link);row.append(cell);document.getElementById('productPendingBody').append(row);
         }
-        message.textContent=sales.data.length?'':'No completed sales yet. Draft invoices do not reduce stock.';
+        message.textContent=sales.data.length?'':'No issued invoices yet. Draft invoices below are included in catalogue quantities.';
     }catch(error){message.textContent=error.message;}
 });

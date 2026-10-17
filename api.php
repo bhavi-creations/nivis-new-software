@@ -209,7 +209,7 @@ try {
             $record = $existing->fetch();
             if (!$record) respond(['error' => 'Product not found.'], 404);
             $balance=inventory_balance($pdo,$record);
-            if (strtoupper($unit)!==strtoupper($record['unit']) && inventory_sales($pdo,(int)$productId)) { $pdo->rollBack();respond(['error'=>'A product with sales must keep its stock unit.'],422); }
+            if (strtoupper($unit)!==strtoupper($record['unit']) && inventory_sales($pdo,(int)$productId,true)) { $pdo->rollBack();respond(['error'=>'A product on saved invoices must keep its stock unit.'],422); }
             if ($quantity < $balance['sold_quantity']) {$pdo->rollBack();respond(['error'=>'Total quantity cannot be less than the quantity already sold.'],422);}
             $oldImage = $record['image_path'];
         }
@@ -258,7 +258,7 @@ try {
         $imageQuery = $pdo->prepare('SELECT image_path FROM products WHERE id=? FOR UPDATE');
         $imageQuery->execute([$id]);
         $deletedImage = $imageQuery->fetchColumn();
-        if (inventory_sales($pdo,(int)$id)) {$pdo->rollBack();respond(['error'=>'This product has sales history. Mark it inactive instead of deleting it.'],409);}
+        if (inventory_sales($pdo,(int)$id,true)) {$pdo->rollBack();respond(['error'=>'This product has saved invoices. Mark it inactive instead of deleting it.'],409);}
         $statement = $pdo->prepare('DELETE FROM products WHERE id = ?');
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
@@ -1210,7 +1210,7 @@ try {
             $needed[$pid]=($needed[$pid]??0)+$qty;
         }
         foreach($needed as $pid=>$qty){
-            $balance=inventory_balance($pdo,$stock[$pid]);
+            $balance=inventory_balance($pdo,$stock[$pid],false);
             if($balance['stock_error'] || $qty>$balance['available_quantity']+0.00001){$pdo->rollBack();respond(['error'=>$stock[$pid]['name'].': only '.$balance['available_quantity'].' '.$stock[$pid]['unit'].' available. '.($balance['stock_error']??'Reduce quantity or update total stock received.')],409);}
         }
         $statement = $pdo->prepare(
@@ -1225,8 +1225,22 @@ try {
         respond(['message' => 'Invoice issued.']);
     }
 
+    if ($resource === 'invoices' && $method === 'POST' && ($data['action'] ?? '') === 'payment_delete') {
+        $invoiceId=filter_var($data['invoice_id']??null,FILTER_VALIDATE_INT);
+        $paymentId=filter_var($data['payment_id']??null,FILTER_VALIDATE_INT);
+        if(!$invoiceId||!$paymentId)respond(['error'=>'Choose a valid invoice and payment.'],422);
+        $pdo->beginTransaction();
+        $lock=$pdo->prepare('SELECT id FROM invoices WHERE id=? FOR UPDATE');$lock->execute([$invoiceId]);
+        $q=$pdo->prepare('SELECT * FROM invoice_payments WHERE id=? AND invoice_id=? FOR UPDATE');$q->execute([$paymentId,$invoiceId]);$receipt=$q->fetch();
+        if(!$receipt){$pdo->rollBack();respond(['error'=>'Payment not found.'],404);}
+        $q=$pdo->prepare('SELECT COUNT(*) FROM payment_refunds WHERE payment_id=?');$q->execute([$paymentId]);
+        if($q->fetchColumn()>0){$pdo->rollBack();respond(['error'=>'This payment has refunds. Its refund history must be preserved.'],409);}
+        $pdo->prepare("INSERT INTO audit_logs(entity_type,entity_id,action,before_data) VALUES('payment',?,'delete',?)")->execute([$paymentId,json_encode($receipt)]);
+        $pdo->prepare('DELETE FROM invoice_payments WHERE id=?')->execute([$paymentId]);
+        $pdo->commit();respond(['message'=>'Payment deleted. Invoice and product balances updated.']);
+    }
     if ($resource === 'invoices' && $method === 'POST' &&
-        ($data['action'] ?? '') === 'payment') {
+        in_array(($data['action'] ?? ''),['payment','payment_edit'],true)) {
         $invoiceId = filter_var($data['invoice_id'] ?? null, FILTER_VALIDATE_INT);
         $amount = filter_var($data['amount'] ?? null, FILTER_VALIDATE_FLOAT);
         $paymentDate = (string) ($data['payment_date'] ?? '');
@@ -1249,12 +1263,20 @@ try {
             $pdo->rollBack();
             respond(['error' => 'Payments can only be recorded against draft or issued invoices.'], 409);
         }
+        $editPaymentId=null;$previousReceipt=null;
+        if(($data['action']??'')==='payment_edit'){
+            $editPaymentId=filter_var($data['payment_id']??null,FILTER_VALIDATE_INT);
+            $q=$pdo->prepare('SELECT * FROM invoice_payments WHERE id=? AND invoice_id=? FOR UPDATE');$q->execute([$editPaymentId,$invoiceId]);$previousReceipt=$q->fetch();
+            if(!$previousReceipt){$pdo->rollBack();respond(['error'=>'Payment not found.'],404);}
+            $q=$pdo->prepare('SELECT COUNT(*) FROM payment_refunds WHERE payment_id=?');$q->execute([$editPaymentId]);
+            if($q->fetchColumn()>0){$pdo->rollBack();respond(['error'=>'Payments with refunds cannot be edited.'],409);}
+        }
         $paymentTotals = $pdo->prepare(
             'SELECT COALESCE(SUM(amount), 0) FROM invoice_payments WHERE invoice_id=?'
         );
         $paymentTotals->execute([$invoiceId]);
         $paymentTotals->fetchColumn();
-        $paymentDetails=invoice_payment_details($pdo,(int)$invoiceId);
+        $paymentDetails=invoice_payment_details($pdo,(int)$invoiceId,$editPaymentId);
         $paid=$paymentDetails['paid_total'];
         $itemId=isset($data['invoice_item_id']) && $data['invoice_item_id']!=='' ? filter_var($data['invoice_item_id'],FILTER_VALIDATE_INT) : null;
         if($itemId!==null){
@@ -1265,6 +1287,12 @@ try {
             $pdo->rollBack();
             respond(['error' => 'Payment exceeds the invoice outstanding balance.'], 422);
         }
+        if($editPaymentId!==null){
+            $pdo->prepare('UPDATE invoice_payments SET payment_date=?,amount=?,payment_method=?,transaction_reference=?,notes=? WHERE id=?')->execute([$paymentDate,$amount,$paymentMethod,substr(trim((string)($data['transaction_reference']??'')),0,160),substr(trim((string)($data['notes']??$previousReceipt['notes']??'')),0,500),$editPaymentId]);
+            $pdo->prepare('DELETE FROM invoice_payment_allocations WHERE payment_id=?')->execute([$editPaymentId]);
+            $paymentId=(int)$editPaymentId;
+            $pdo->prepare("INSERT INTO audit_logs(entity_type,entity_id,action,before_data,after_data) VALUES('payment',?,'edit',?,?)")->execute([$paymentId,json_encode($previousReceipt),json_encode($data)]);
+        }else{
         $insert = $pdo->prepare(
             'INSERT INTO invoice_payments (invoice_id, payment_date, amount, payment_method, transaction_reference, notes)
              VALUES (?, ?, ?, ?, ?, ?)'
@@ -1274,6 +1302,7 @@ try {
             trim((string) ($data['transaction_reference'] ?? '')) ?: null, substr(trim((string)($data['notes'] ?? '')),0,500),
         ]);
         $paymentId=(int)$pdo->lastInsertId();
+        }
         store_payment_allocation($pdo,$paymentId,$paymentDetails['items'],(float)$amount,$itemId);
         $pdo->commit();
         respond(['message' => 'Payment recorded.', 'id' => $paymentId], 201);

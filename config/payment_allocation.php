@@ -9,17 +9,18 @@ function ensure_payment_allocations(PDO $pdo): void {
         FOREIGN KEY(invoice_item_id) REFERENCES invoice_items(id) ON DELETE CASCADE
     ) ENGINE=InnoDB');
 }
-function invoice_payment_details(PDO $pdo, int $id): array {
+function invoice_payment_details(PDO $pdo, int $id, ?int $excludePaymentId=null): array {
     $q=$pdo->prepare('SELECT * FROM invoice_items WHERE invoice_id=? ORDER BY line_no');$q->execute([$id]);
     $items=$q->fetchAll();$indices=[];
     foreach($items as $k=>&$item){$indices[$item['id']]=$k;$item['paid_amount']=0;}unset($item);
     $q=$pdo->prepare('SELECT p.*, COALESCE((SELECT SUM(r.amount) FROM payment_refunds r WHERE r.payment_id=p.id),0) AS refunded_amount FROM invoice_payments p WHERE invoice_id=? ORDER BY payment_date,id');$q->execute([$id]);$payments=$q->fetchAll();
+    if($excludePaymentId!==null)$payments=array_values(array_filter($payments,fn($p)=>(int)$p['id']!==$excludePaymentId));
     $q=$pdo->prepare('SELECT a.* FROM invoice_payment_allocations a JOIN invoice_payments p ON p.id=a.payment_id WHERE p.invoice_id=?');$q->execute([$id]);$allocations=[];
     foreach($q->fetchAll() as $a)$allocations[$a['payment_id']][]=$a;
     $paid=0;
     foreach($payments as &$payment){
         $net=round(max(0,(float)$payment['amount']-(float)$payment['refunded_amount']),2);$paid+=$net;$payment['products']=[];
-        $parts=$allocations[$payment['id']]??[];
+        $parts=$allocations[$payment['id']]??[];$payment['credited_items']=[];
         if($parts){
             $remaining=(int)round($net*100);
             foreach($parts as $n=>$part){
@@ -27,13 +28,14 @@ function invoice_payment_details(PDO $pdo, int $id): array {
                 $k=$indices[$part['invoice_item_id']];
                 $cents=$n===count($parts)-1?$remaining:min($remaining,(int)round((float)$part['amount']/(float)$payment['amount']*$net*100));$remaining-=$cents;
                 $items[$k]['paid_amount']+=$cents/100;
+                $payment['credited_items'][]=['id'=>$items[$k]['id'],'amount'=>$cents/100];
                 $payment['products'][]=$items[$k]['product_name'].' ('.number_format($cents/100,2,'.','').')';
             }
         }else{
             $remaining=(int)round($net*100);
             foreach($items as &$line){
                 $cents=min($remaining,max(0,(int)round(((float)$line['line_total']-$line['paid_amount'])*100)));
-                if($cents>0){$line['paid_amount']+=$cents/100;$remaining-=$cents;$payment['products'][]=$line['product_name'].' ('.number_format($cents/100,2,'.','').')';}
+                if($cents>0){$line['paid_amount']+=$cents/100;$remaining-=$cents;$payment['products'][]=$line['product_name'].' ('.number_format($cents/100,2,'.','').')';$payment['credited_items'][]=['id'=>$line['id'],'amount'=>$cents/100];}
             }unset($line);
         }
         $payment['products']=implode('; ',$payment['products']);
