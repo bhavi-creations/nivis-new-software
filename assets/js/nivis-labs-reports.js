@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const tableBody = document.getElementById("nlrReportTableBody");
     const empty = document.getElementById("nlrEmptyMessage");
     const exportButton = document.getElementById("nlrExportCSV");
+    const printButton = document.getElementById('nlrPrint');
+    const client = document.getElementById('nlrClient');
+    const allDates = document.getElementById('nlrAllDates');
+    const clients = new Map();
     let currentRows = [];
     let requestVersion = 0;
     let reportSelection = null;
@@ -29,11 +33,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadReport() {
+        client.setCustomValidity(client.value && !clients.has(client.value) ? 'Select a client from the suggestions, or clear for all clients.' : '');
+        from.disabled = to.disabled = allDates.checked;
         to.setCustomValidity("");
-        if (!form.reportValidity()) return;
-        exportButton.disabled = true;
+        exportButton.disabled = printButton.disabled = true;
         const version = ++requestVersion;
-        if (to.value < from.value) {
+        if (!form.reportValidity()) return;
+        if (!allDates.checked && to.value < from.value) {
             to.setCustomValidity("End date must not be earlier than start date.");
             to.reportValidity();
             return;
@@ -41,19 +47,22 @@ document.addEventListener("DOMContentLoaded", () => {
         to.setCustomValidity("");
         const query = new URLSearchParams({
             resource: "reports",
-            from: from.value,
-            to: to.value,
-            type: type.value
+            from: allDates.checked ? '1000-01-01' : from.value,
+            to: allDates.checked ? '9999-12-31' : to.value,
+            type: type.value,
+            customer_id: clients.get(client.value) || 0
         });
+        const selection={type:type.value, from:query.get('from'), to:query.get('to'), client:client.value||'All clients', customerId:query.get('customer_id')};
+        const title=type.selectedOptions[0].text+' | '+selection.client+' | '+(allDates.checked?'All dates':selection.from+' to '+selection.to);
         try {
             const response = await fetch("api.php?" + query);
             const result = await response.json();
             if (version !== requestVersion) return;
             if (!response.ok) throw new Error(result.error || "Could not load report.");
             currentRows = result.rows;
-            document.getElementById("nlrReportTitle").textContent = type.selectedOptions[0].text + " | " + from.value + " to " + to.value;
-            reportSelection = {type:type.value, from:from.value, to:to.value};
-            exportButton.disabled = !currentRows.length;
+            document.getElementById("nlrReportTitle").textContent = title;
+            reportSelection = {...selection, summary:result.summary};
+            exportButton.disabled = printButton.disabled = !currentRows.length;
             document.getElementById("nlrInvoicedSales").textContent =
                 formatMoney(result.summary.sales);
             document.getElementById("nlrCollected").textContent =
@@ -89,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const cell = document.createElement("td");
                     const value = record[column];
                     cell.textContent = value !== null &&
-                        /total|amount|price|outstanding|paid|sales/.test(column)
+                        /total|amount|price|outstanding|paid|sales|balance_due/.test(column)
                         ? formatMoney(value) : (value ?? "");
                     row.appendChild(cell);
                 });
@@ -119,13 +128,16 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
         loadReport();
     });
-    [from, to, type].forEach(control =>
+    [from, to, type, client, allDates].forEach(control =>
         control.addEventListener("change", loadReport)
     );
     exportButton.addEventListener("click", () => {
         if (!currentRows.length) return;
         const columns = Object.keys(currentRows[0]);
         const csv = [
+            ['Client',reportSelection.client].map(csvEscape).join(','),
+            ['Invoice dates',reportSelection.from,reportSelection.to].map(csvEscape).join(','),
+            ['Invoiced sales',reportSelection.summary.sales,'Collected (net)',reportSelection.summary.collected,'Balance due (issued)',reportSelection.summary.outstanding].map(csvEscape).join(','),
             columns.map(csvEscape).join(","),
             ...currentRows.map(row => columns.map(column => csvEscape(row[column])).join(","))
         ].join("\r\n");
@@ -134,12 +146,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }));
         const link = document.createElement("a");
         link.href = url;
-        link.download = "nivis-" + reportSelection.type + "-report-" + reportSelection.from + "-to-" + reportSelection.to + ".csv";
+        link.download = "nivis-" + reportSelection.type + "-client-" + (reportSelection.customerId==='0'?'all':reportSelection.customerId) + "-report-" + reportSelection.from + "-to-" + reportSelection.to + ".csv";
         document.body.appendChild(link);
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
     });
-    document.getElementById("nlrPrint").addEventListener("click", () => window.print());
-    loadReport();
+    printButton.addEventListener("click", () => {if(!printButton.disabled)window.print();});
+    client.addEventListener('input',()=>{client.setCustomValidity('');exportButton.disabled=printButton.disabled=true;requestVersion++;});
+    document.getElementById('nlrClearClient').addEventListener('click',()=>{client.value='';loadReport();});
+    fetch('api.php?resource=customers').then(async response=>{
+        const result=await response.json();if(!response.ok)throw new Error(result.error||'Could not load clients.');
+        const list=document.getElementById('nlrClients');
+        result.data.forEach(c=>{const label=c.name+' (#'+c.id+')';clients.set(label,c.id);list.append(new Option(label,label));});
+        return loadReport();
+    }).catch(error=>{empty.textContent=error.message;empty.classList.remove('d-none');});
 });

@@ -91,7 +91,7 @@ try {
         }
     }
     $data = request_data();
-    if (in_array($resource,['quotations','invoices','settings'],true)) { ensure_document_columns($pdo); ensure_billing_columns($pdo,'tax_rates'); }
+    if (in_array($resource,['quotations','invoices','settings','dashboard','reports'],true)) { ensure_document_columns($pdo); ensure_billing_columns($pdo,'tax_rates'); }
     if ($resource === 'security' && $method === 'GET') respond(['csrf'=>$_SESSION['csrf'] ?? '']);
     if (PHP_SAPI !== 'cli' && $write && !empty($_SERVER['HTTP_IDEMPOTENCY_KEY'])) {
         $key = $_SERVER['HTTP_IDEMPOTENCY_KEY'];
@@ -555,7 +555,7 @@ try {
                 LEFT JOIN invoices i ON i.quotation_id=q.id
                 LEFT JOIN quotation_items qi ON qi.quotation_id=q.id";
         if ($id) {
-            $statement = $pdo->prepare($sql . ' WHERE q.id=? GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id');
+            $statement = $pdo->prepare($sql . ' WHERE q.id=? AND q.deleted_at IS NULL GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id');
             $statement->execute([$id]);
             $rows = $statement->fetchAll();
             if (!$rows) {
@@ -577,7 +577,7 @@ try {
             unset($line);
             respond(['data' => $rows[0]]);
         }
-        $rows = $pdo->query($sql . ' GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id ORDER BY q.id DESC')->fetchAll();
+        $rows = $pdo->query($sql . ' WHERE q.deleted_at IS NULL GROUP BY q.id, q.quote_number, q.customer_id, c.name, q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total, i.id ORDER BY q.id DESC')->fetchAll();
         foreach ($rows as &$row) {
             $row['products'] = $row['product_names'] === null
                 ? [] : explode(' | ', $row['product_names']);
@@ -861,12 +861,12 @@ try {
         }
         $fromStatus = null;
         if ($quoteId) {
-            $existing = $pdo->prepare('SELECT quote_number, status, source_type FROM quotations WHERE id=? FOR UPDATE');
+            $existing = $pdo->prepare('SELECT quote_number, status, source_type FROM quotations WHERE id=? AND deleted_at IS NULL FOR UPDATE');
             $existing->execute([$quoteId]);
             $quote = $existing->fetch();
-            if (!$quote || $quote['status'] !== 'draft') {
+            if (!$quote || $quote['status'] === 'converted') {
                 $pdo->rollBack();
-                respond(['error' => 'Only an existing draft quotation can be edited.'], 409);
+                respond(['error' => 'Only an existing unconverted quotation or order can be edited.'], 409);
             }
             $quoteNumber = $quote['quote_number'];
             $sourceType = $quote['source_type'];
@@ -960,12 +960,12 @@ try {
         if (!$id) {
             respond(['error' => 'A valid quotation ID is required.'], 422);
         }
-        $statement = $pdo->prepare("DELETE FROM quotations WHERE id=? AND status='draft'");
+        $statement = $pdo->prepare('UPDATE quotations SET deleted_at=NOW() WHERE id=? AND deleted_at IS NULL');
         $statement->execute([$id]);
         if ($statement->rowCount() === 0) {
-            respond(['error' => 'Only draft quotations can be deleted.'], 409);
+            respond(['error' => 'Quotation or order not found or already deleted.'], 404);
         }
-        respond(['message' => 'Quotation deleted.']);
+        respond(['message' => 'Quotation or order deleted. Linked invoices and payments are preserved.']);
     }
 
     if ($resource === 'invoices' && ($method === 'DELETE' || ($method === 'POST' && ($data['action'] ?? '') === 'edit'))) {
@@ -1058,7 +1058,7 @@ try {
              JOIN customers c ON c.id=q.customer_id
              LEFT JOIN customer_addresses a
                ON a.customer_id=c.id AND a.address_type='billing'
-             WHERE q.id=? FOR UPDATE"
+             WHERE q.id=? AND q.deleted_at IS NULL FOR UPDATE"
         );
         $quoteStatement->execute([$quotationId]);
         $quote = $quoteStatement->fetch();
@@ -1250,8 +1250,8 @@ try {
             "SELECT
                 (SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL) AS customers,
                 (SELECT COUNT(*) FROM products) AS products,
-                (SELECT COUNT(*) FROM quotations) AS quotations,
-                (SELECT COUNT(*) FROM quotations WHERE status IN ('draft','sent')) AS waiting,
+                (SELECT COUNT(*) FROM quotations WHERE deleted_at IS NULL) AS quotations,
+                (SELECT COUNT(*) FROM quotations WHERE deleted_at IS NULL AND status IN ('draft','sent')) AS waiting,
                 (SELECT COALESCE(SUM(grand_total),0) FROM invoices
                  WHERE status IN ('draft','issued') AND issue_date >= DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')
                    AND issue_date < DATE_FORMAT(CURRENT_DATE() + INTERVAL 1 MONTH, '%Y-%m-01'))
@@ -1272,7 +1272,7 @@ try {
                 SELECT q.quote_number AS document_number, c.name AS customer,
                        q.grand_total AS amount, q.status, q.issue_date AS document_date,
                        'Quotation' AS document_type
-                FROM quotations q JOIN customers c ON c.id=q.customer_id
+                FROM quotations q JOIN customers c ON c.id=q.customer_id WHERE q.deleted_at IS NULL
                 UNION ALL
                 SELECT i.invoice_number, c.name, i.grand_total, i.status, i.issue_date,
                        'Invoice'
@@ -1287,6 +1287,8 @@ try {
         $from = (string) ($_GET['from'] ?? '');
         $to = (string) ($_GET['to'] ?? '');
         $type = (string) ($_GET['type'] ?? 'sales');
+        $clientId = filter_var($_GET['customer_id'] ?? 0, FILTER_VALIDATE_INT);
+        if ($clientId === false || $clientId < 0) respond(['error' => 'Choose a valid client.'], 422);
         $validDate = static function (string $value): bool {
             $date = DateTime::createFromFormat('!Y-m-d', $value);
             return $date !== false && $date->format('Y-m-d') === $value;
@@ -1299,25 +1301,27 @@ try {
 
         $invoiceSummary = $pdo->prepare(
             "SELECT COALESCE(SUM(i.grand_total),0) AS sales,
-                    COALESCE(SUM(b.outstanding),0) AS outstanding
+                    COALESCE(SUM(CASE WHEN i.status='issued' THEN b.outstanding ELSE 0 END),0) AS outstanding,
+                    COALESCE(SUM(b.net_paid),0) AS collected
              FROM invoices i JOIN v_invoice_balances b ON b.id=i.id
-             WHERE i.status='issued' AND i.issue_date BETWEEN ? AND ?"
+             WHERE i.status IN ('draft','issued') AND i.issue_date BETWEEN ? AND ?
+               AND (?=0 OR i.customer_id=?)"
         );
-        $invoiceSummary->execute([$from, $to]);
+        $invoiceSummary->execute([$from, $to, $clientId, $clientId]);
         $summary = $invoiceSummary->fetch();
-        $paymentSummary = $pdo->prepare(
-            'SELECT COALESCE(SUM(amount),0) FROM invoice_payments
-             WHERE payment_date BETWEEN ? AND ?'
-        );
-        $paymentSummary->execute([$from, $to]);
-        $summary['collected'] = $paymentSummary->fetchColumn();
 
         $queries = [
             'invoice' => [
                 "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
-                        COALESCE(q.quote_number, 'Direct invoice') AS source, i.grand_total AS total, i.status
+                        COALESCE(q.quote_number, 'Direct invoice') AS source,
+                        (SELECT GROUP_CONCAT(CONCAT(ii.product_name, ' x ', ii.quantity, ' ', ii.unit) ORDER BY ii.line_no SEPARATOR '; ') FROM invoice_items ii WHERE ii.invoice_id=i.id) AS products,
+                        i.grand_total AS total, b.paid_amount, b.refunded_amount, b.net_paid,
+                        CASE WHEN i.status='cancelled' THEN 0 ELSE b.outstanding END AS balance_due,
+                        (SELECT GROUP_CONCAT(CONCAT(p.payment_date, ': ', p.amount, ' (', p.payment_method, ')') ORDER BY p.payment_date,p.id SEPARATOR '; ') FROM invoice_payments p WHERE p.invoice_id=i.id) AS payment_history,
+                        i.status
                  FROM invoices i JOIN customers c ON c.id=i.customer_id
                  LEFT JOIN quotations q ON q.id=i.quotation_id
+                 JOIN v_invoice_balances b ON b.id=i.id
                  WHERE i.issue_date BETWEEN ? AND ? ORDER BY i.issue_date DESC, i.id DESC",
                 [$from, $to],
             ],
@@ -1341,7 +1345,7 @@ try {
                 'SELECT q.quote_number AS document, q.issue_date AS date, c.name AS customer,
                         q.status, q.grand_total AS total
                  FROM quotations q JOIN customers c ON c.id=q.customer_id
-                 WHERE q.issue_date BETWEEN ? AND ? ORDER BY q.issue_date DESC, q.id DESC',
+                 WHERE q.deleted_at IS NULL AND q.issue_date BETWEEN ? AND ? ORDER BY q.issue_date DESC, q.id DESC',
                 [$from, $to],
             ],
             'payments' => [
@@ -1355,7 +1359,7 @@ try {
             ],
             'outstanding' => [
                 "SELECT i.invoice_number AS document, i.issue_date AS date, c.name AS customer,
-                        b.grand_total AS total, b.paid_amount, b.outstanding
+                        b.grand_total AS total, b.net_paid, b.outstanding
                  FROM v_invoice_balances b
                  JOIN invoices i ON i.id=b.id
                  JOIN customers c ON c.id=i.customer_id
@@ -1380,8 +1384,20 @@ try {
                 [$from, $to],
             ],
         ];
-        $statement = $pdo->prepare($queries[$type][0]);
-        $statement->execute($queries[$type][1]);
+        [$reportSql, $reportParams] = $queries[$type];
+        if ($clientId) {
+            if ($type === 'products') {
+                $reportSql = str_replace('i.issue_date BETWEEN ? AND ?', 'i.issue_date BETWEEN ? AND ? AND i.customer_id=?', $reportSql);
+            } elseif ($type === 'customers') {
+                $reportSql = str_replace('GROUP BY c.id', 'WHERE c.id=? GROUP BY c.id', $reportSql);
+            } else {
+                $dateColumn = $type === 'quotation' ? 'q.issue_date' : ($type === 'payments' ? 'p.payment_date' : 'i.issue_date');
+                $reportSql = str_replace($dateColumn . ' BETWEEN ? AND ?', $dateColumn . ' BETWEEN ? AND ? AND c.id=?', $reportSql);
+            }
+            $reportParams[] = $clientId;
+        }
+        $statement = $pdo->prepare($reportSql);
+        $statement->execute($reportParams);
         respond([
             'summary' => $summary,
             'rows' => $statement->fetchAll(),

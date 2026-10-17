@@ -22,10 +22,19 @@ include 'sidebar.php';
       </div>
     </div>
 
-    <p class="text-muted">Summary totals below cover issued invoices and payments in the selected period.</p>
+    <p class="text-muted">Sales include draft and issued invoices. Collected shows payments less refunds against these invoices; balance due covers issued invoices only. Dates filter the invoice date; payment history includes all recorded payments.</p>
     <!-- Report Filters -->
     <div class="nlr-filter-card">
       <form id="nlrFilterForm" class="row g-3 align-items-end">
+        <div class="col-12">
+          <label for="nlrClient">CLIENT</label>
+          <div class="d-flex gap-2">
+            <input id="nlrClient" class="form-control" type="search" list="nlrClients" placeholder="All clients — type or select a client" autocomplete="off">
+            <datalist id="nlrClients"></datalist>
+            <button id="nlrClearClient" class="btn btn-outline-secondary" type="button">Clear client / All clients</button>
+          </div>
+          <label class="mt-2"><input id="nlrAllDates" type="checkbox" checked> All dates (total report)</label>
+        </div>
 
         <div class="col-12 col-md-6 col-xl-4">
           <label for="nlrFromDate">FROM DATE</label>
@@ -125,6 +134,16 @@ include 'sidebar.php';
   </div>
 </section>
 
-<script src="assets/js/nivis-labs-reports.js"></script>
+<style>
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  .nlr-filter-card, .nlr-account { display: none !important; }
+  .nlr-report-table { table-layout: fixed; width: 100%; }
+  .nlr-report-table thead th, .nlr-report-table tbody td { white-space: normal; overflow-wrap: anywhere; font-size: 8px; padding: 5px 3px; }
+  .nlr-report-table thead { display: table-header-group; }
+  .nlr-report-table tr { break-inside: avoid; }
+}
+</style>
+<script src="assets/js/nivis-labs-reports.js?v=20261017-clients"></script>
 
 <?php include 'footer.php'; ?>

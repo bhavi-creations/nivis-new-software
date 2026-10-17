@@ -25,7 +25,7 @@ try {
     }
     $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
     $table = $type === 'quotation' ? 'quotations' : 'invoices';
-    $q = $pdo->prepare("SELECT * FROM $table WHERE id=?");
+    $q = $pdo->prepare("SELECT * FROM $table WHERE id=?" . ($type === 'quotation' ? ' AND deleted_at IS NULL' : ''));
     $q->execute([$id]);
     $doc = $q->fetch();
     if (!$doc) {
@@ -85,7 +85,7 @@ try {
         <div class="parties">
             <section class="supplier-details">
                 <h2>From</h2>
-                <img src="assets/img/logo.png" alt="Nivis Labs logo" class="supplier-logo" width="140" height="72">
+                <img src="assets/img/logo_1.jpeg" alt="Nivis Labs logo" class="supplier-logo" width="140" height="72">
                 <strong><?= e($supplier['company_name']) ?></strong>
                 <p><?= nl2br(e($supplier['address'])) ?></p>
                 <p>Email: <?= e($supplier['email'] ?? '') ?></p>

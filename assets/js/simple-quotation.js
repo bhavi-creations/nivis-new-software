@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customer=document.getElementById('simpleQuoteCustomer'), body=document.getElementById('simpleQuoteLines');
     const save=document.getElementById('simpleQuoteSave'), message=document.getElementById('simpleQuoteMessage');
     let products=[],customers=[],config={},defaults={},busy=false;
-    const rows=[];const editId=mode!=='order'?new URLSearchParams(location.search).get('id'):null;let saved=null;
+    const rows=[];const editId=new URLSearchParams(location.search).get('id');let saved=null;
     const region=document.getElementById('simpleQuoteRegion'), supply=document.getElementById('simpleQuoteSupplyState');
     const states={'Andhra Pradesh':'37','Telangana':'36','Karnataka':'29','Tamil Nadu':'33','Maharashtra':'27','Kerala':'32','Odisha':'21','Delhi':'07'};
     function place() {return region.value==='inside' ? config.seller_state_code : supply.value;}
@@ -77,12 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         customers.forEach(c=>customer.add(new Option(c.name,c.id)));nivisCustomerSearch(customer,document.getElementById('simpleQuoteSearch'),document.getElementById('simpleQuoteMatches'));
         if(editId){
  saved=(await nivisApi(mode==='invoice'?'invoices':'quotations','GET',null,editId)).data;
- if(saved.status!=='draft')throw new Error('Only draft documents can be edited.');
+ if(mode==='invoice'?saved.status!=='draft':saved.status==='converted'||saved.invoice_id)throw new Error('Converted quotations and issued invoices cannot be edited.');
  defaults={...defaults,...JSON.parse(saved.document_details||'{}')};customer.value=saved.customer_id;customerRegion();
  gstin.value=JSON.parse(saved.party_snapshot||'{}').buyer?.gstin||'';
  region.value=saved.place_of_supply_state_code===config.seller_state_code?'inside':'outside';supply.value=saved.place_of_supply_state_code;updateRegion();
  rows.push(...saved.items.filter(i=>i.product_id).map(i=>({...i,product_id:String(i.product_id)})));
- document.querySelector('.nlcq-header h1').textContent=mode==='invoice'?'Edit invoice':'Edit quotation';save.textContent='Save changes';
+ document.querySelector('.nlcq-header h1').textContent=mode==='invoice'?'Edit invoice':mode==='order'?'Edit order':'Edit quotation';save.textContent='Save changes';
  }else rows.push({product_id:'',quantity:1,unit:'PCS',unit_price:0,discount_percent:0});render();save.disabled=false;nivisMessage(message,'');
     }catch(error){nivisMessage(message,error.message,true);}
 });

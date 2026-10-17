@@ -4,7 +4,7 @@ function ensure_document_columns(PDO $pdo): void {
     foreach (['quotations','invoices','company_settings'] as $table) {
         $columns = $pdo->query('SHOW COLUMNS FROM '.$table)->fetchAll(PDO::FETCH_COLUMN);
         $definitions = $table === 'company_settings' ? ['document_defaults' => 'TEXT NULL'] : ['party_snapshot' => 'LONGTEXT NULL', 'document_details' => 'TEXT NULL', 'additional_charges' => 'DECIMAL(15,2) NOT NULL DEFAULT 0', 'cancellation_reason' => 'VARCHAR(500) NULL'];
-        if ($table === 'quotations') $definitions += ['source_type' => "ENUM('quotation','order') NOT NULL DEFAULT 'quotation'", 'order_number' => 'VARCHAR(40) NULL'];
+        if ($table === 'quotations') $definitions += ['source_type' => "ENUM('quotation','order') NOT NULL DEFAULT 'quotation'", 'order_number' => 'VARCHAR(40) NULL', 'deleted_at' => 'DATETIME NULL'];
         foreach ($definitions as $column => $definition) if (!in_array($column,$columns,true)) {
             try { $pdo->exec("ALTER TABLE $table ADD COLUMN $column $definition"); }
             catch (PDOException $e) { if (($e->errorInfo[1] ?? 0) != 1060) throw $e; }
@@ -39,7 +39,7 @@ function billing_actions(PDO $pdo, string $resource, string $method, array $data
         $id=filter_var($data['id'] ?? null,FILTER_VALIDATE_INT);
         $next=$data['status'] ?? ''; if ($next === 'accepted') $next='approved';
         $pdo->beginTransaction();
-        $q=$pdo->prepare('SELECT * FROM quotations WHERE id=? FOR UPDATE'); $q->execute([$id]); $quote=$q->fetch();
+        $q=$pdo->prepare('SELECT * FROM quotations WHERE id=? AND deleted_at IS NULL FOR UPDATE'); $q->execute([$id]); $quote=$q->fetch();
         $allowed=['draft'=>['sent','approved','rejected','expired'],'sent'=>['approved','rejected','expired']];
         if (!$quote || !in_array($next,$allowed[$quote['status']] ?? [],true)) { $pdo->rollBack(); respond(['error'=>'This status transition is not allowed.'],409); }
         if ($next==='expired' && $quote['valid_until']>=date('Y-m-d')) { $pdo->rollBack(); respond(['error'=>'The quotation validity date has not passed.'],422); }

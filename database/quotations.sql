@@ -1,5 +1,6 @@
 USE nivis_labs_billing;
 CREATE TABLE IF NOT EXISTS quotations (
+ deleted_at DATETIME NULL,
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  quote_number VARCHAR(40) NOT NULL UNIQUE,
  customer_id BIGINT UNSIGNED NOT NULL,

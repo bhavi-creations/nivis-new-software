@@ -832,7 +832,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 actions.className = "nivis-labs-quotation-actions";
                 const view=nivisActionButton("view","View","fa-eye");
                 view.className="btn btn-outline-primary btn-sm";view.dataset.id=quote.id;actions.append(view);
-                if(quote.status==='draft' && !quote.invoice_id){const edit=document.createElement('a');edit.href='create-quotation.php?id='+quote.id;edit.className='btn btn-outline-primary btn-sm';edit.textContent='Edit';actions.append(edit);}
+                for(const [action,label,icon] of [['edit','Edit','fa-pen-to-square'],['delete','Delete','fa-trash-can']]) {
+                    const button=nivisActionButton(action,label,icon);button.dataset.id=quote.id;
+                    button.disabled=action==='edit'&&(quote.status==='converted'||!!quote.invoice_id);
+                    if(button.disabled)button.title='Already converted to an invoice';
+                    actions.append(button);
+                }
                 if (["draft","sent","approved"].includes(quote.status) && !quote.invoice_id) {
                     const convert = document.createElement("button");
                     convert.type = "button";
@@ -888,7 +893,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             if (button.dataset.action === "delete") {
-                if (!window.confirm("Delete draft " + quote.quote_number + "?")) return;
+                if (!window.confirm("Delete " + quote.quote_number + "? Linked invoices and payments will be kept.")) return;
                 try {
                     await nivisApi("quotations", "DELETE", null, quote.id);
                     await refreshQuotations();

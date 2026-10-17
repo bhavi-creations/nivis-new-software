@@ -6,5 +6,5 @@
   <div class="nivis-labs-quotation-filters"><label for="orderSearch">SEARCH ORDER / CUSTOMER / PRODUCT</label><input type="search" id="orderSearch" class="form-control" placeholder="Search orders"></div>
   <div class="nivis-labs-quotation-table-card"><div class="table-responsive"><table class="table nivis-labs-quotation-table"><thead><tr><th>Order #</th><th>Quotation #</th><th>Customer</th><th>Products</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="orderTable"></tbody></table></div><p id="orderMessage" role="status">Loading orders...</p></div>
 </div></section>
-<script src="assets/js/orders.js"></script>
+<script src="assets/js/orders.js?v=20261017-delete2"></script>
 <?php include __DIR__.'/footer.php'; ?>

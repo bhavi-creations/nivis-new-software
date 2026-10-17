@@ -143,6 +143,52 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  assert.equal(await invoiceValue(),currentValue,'Previous months are excluded');
  ok(await request('invoices&id='+tooMuch,'DELETE'));
  assert.equal(await invoiceValue(),Math.round((currentValue-2478)*100)/100,'Deleted drafts are removed from Invoice Value');
+ // Saved quotations/orders support edit and delete; converted records remain protected.
+ for(const source_type of ['quotation','order']) {
+   const saved=ok(await request('quotations','POST',{...orderPayload,source_type,status:'approved'}));
+   ok(await request('quotations','POST',{...orderPayload,id:saved.id,source_type,status:'draft',items:[{product_id:product,quantity:1,unit_price:75}]}));
+   assert.equal(Number(ok(await request('quotations&id='+saved.id)).data.grand_total),88.5);
+   ok(await request('quotations&id='+saved.id,'DELETE'));
+   assert.equal((await request('quotations&id='+saved.id)).status,404);
+ }
+ ok(await request('quotations&id='+quote,'DELETE'));
+ assert.equal((await request('quotations&id='+quote)).status,404);
+ assert.equal((await request('quotations&id='+quote,'DELETE')).status,404);
+ assert.equal((await request('invoices','POST',{action:'convert_simple',quotation_id:quote})).status,409);
+ assert.equal(Number(ok(await request('invoices&id='+simple.id)).data.grand_total),424.8/2);
+ assert.equal((await request('quotations','POST',{...orderPayload,id:quote})).status,409);
+ // Reports reflect persisted payments and isolate the selected client in every report type.
+ ok(await request('invoices','POST',{action:'payment',invoice_id:editInvoice.id,amount:100,payment_date:today,payment_method:'cash'}));
+ const secondCustomer=ok(await request('customers','POST',{name:'Second report client',mobile:'9000000001',customer_type:'unregistered',billing_address:'Second street',city:'Test city',state:'Andhra Pradesh',pincode:'533001'})).id;
+ const otherInvoice=ok(await request('invoices','POST',{...draft,customer_id:secondCustomer}));
+ const report=async(type,client='')=>ok(await request('reports&from=1000-01-01&to=9999-12-31&type='+type+'&customer_id='+(client||0)));
+ const selected=await report('invoice',customer);
+ assert(!selected.rows.some(r=>r.document===otherInvoice.invoice_number));
+ const paidRow=selected.rows.find(r=>r.document===revised.invoice_number);
+ assert.equal(Number(paidRow.net_paid),100);assert.equal(Number(paidRow.balance_due),154.88);
+ assert(paidRow.products.includes('Stock product'));assert(paidRow.payment_history.includes(today+': 100.00 (cash)'));
+ assert.equal(Number(selected.summary.collected),100);
+ assert.equal(Number(selected.summary.sales),Math.round(selected.rows.filter(r=>r.status!=='cancelled').reduce((s,r)=>s+Number(r.total),0)*100)/100);
+ assert.equal(Number(selected.summary.outstanding),Math.round(selected.rows.filter(r=>r.status==='issued').reduce((s,r)=>s+Number(r.balance_due),0)*100)/100);
+ const other=await report('invoice',secondCustomer);assert.equal(other.rows.length,1);assert.equal(Number(other.summary.sales),212.4);assert.equal(Number(other.summary.collected),0);assert.equal(Number(other.summary.outstanding),0);
+ assert.equal(Number((await report('invoice')).summary.sales),Math.round((Number(selected.summary.sales)+212.4)*100)/100);
+ for(const type of ['sales','gst','quotation','payments','outstanding','customers','products']) {
+   const result=await report(type,secondCustomer);
+   if(type==='customers')assert.deepEqual(result.rows.map(r=>r.name),['Second report client']);
+   else if(type==='products')assert(result.rows.every(r=>Number(r.sales)===0));
+   else assert.equal(result.rows.length,0,type);
+ }
+ assert.equal((await request('reports&from=1000-01-01&to=9999-12-31&type=invoice&customer_id=invalid')).status,422);
+ const totalsBeforeDelete=(await report('invoice')).summary;
+ const dashboardBeforeDelete=ok(await request('dashboard')).stats;
+ ok(await request('quotations&id='+editQuote.id,'DELETE'));
+ assert(!ok(await request('quotations')).data.some(q=>q.id===editQuote.id));
+ const retained=ok(await request('invoices&id='+editInvoice.id)).data;
+ assert.equal(Number(retained.grand_total),254.88);assert.equal(Number(retained.payments[0].amount),100);
+ assert.deepEqual((await report('invoice')).summary,totalsBeforeDelete);
+ assert.equal(Number(ok(await request('dashboard')).stats.quotations),Number(dashboardBeforeDelete.quotations)-1);
+ assert(!(await report('quotation')).rows.some(q=>q.document===editQuote.quote_number));
+ assert.equal((await fetch(base+'document.php?type=quotation&id='+editQuote.id,{headers:{Cookie:cookie}})).status,404);
  // Provision isolated test users through the existing users table.
  run('require "config/database.php";$q=database_connection()->prepare("INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,?)");$q->execute(["Test Admin","admin@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"admin"]);$q->execute(["Test Staff","staff@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"staff"]);');
  assert.equal((await request('invoices')).status,401);
