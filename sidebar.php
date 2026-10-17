@@ -73,6 +73,7 @@
         Invoices
       </a>
 
+      <a href="payments.php" class="nav-link"><i class="fa-solid fa-money-bill" aria-hidden="true"></i>Payments</a>
       <a href="reports.php" class="nav-link">
         <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
         Reports

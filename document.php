@@ -53,9 +53,8 @@ try {
     $number = $doc[$type === 'quotation' ? 'quote_number' : 'invoice_number'];
     $paid = 0;
     if ($type === 'invoice') {
-        $q = $pdo->prepare('SELECT COALESCE(SUM(amount),0) FROM invoice_payments WHERE invoice_id=?');
-        $q->execute([$id]);
-        $paid = $q->fetchColumn();
+        $paymentDetails=invoice_payment_details($pdo,(int)$id);
+        $paid=$paymentDetails['paid_total'];
     }
 } catch (Throwable $error) {
     error_log($error->getMessage());
@@ -143,12 +142,23 @@ try {
                 <dd><?= money($doc['round_off']) ?></dd>
                 <dt class="grand"><?= $type === 'quotation' ? 'Quotation total' : 'Invoice total' ?></dt>
                 <dd class="grand"><?= money($doc['grand_total']) ?></dd>
+                <?php if ($type === 'quotation' && (float)$doc['advance_amount']>0): ?><dt>Advance received (<?= e($doc['advance_date']) ?>)</dt><dd><?= money($doc['advance_amount']) ?></dd><dt>Remaining after advance</dt><dd><?= money($doc['grand_total']-$doc['advance_amount']) ?></dd><?php endif; ?>
                 <?php if ($type === 'invoice'): ?><dt>Paid</dt>
                     <dd><?= money($paid) ?></dd>
                     <dt>Outstanding</dt>
                     <dd><?= money($doc['grand_total'] - $paid) ?></dd><?php endif; ?>
             </dl>
         </section>
+        <?php if ($type === 'invoice'): ?>
+        <h2>Product payment status</h2><p>Advances and whole-invoice payments apply in line order; product-specific receipts apply to the selected product.</p>
+        <table><thead><tr><th>Product</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead><tbody>
+        <?php foreach($paymentDetails['items'] as $line): ?><tr><td><?= e($line['product_name']) ?></td><td><?= money($line['line_total']) ?></td><td><?= money($line['paid_amount']) ?></td><td><?= money($line['balance_due']) ?></td><td><?= e($line['payment_status']) ?></td></tr><?php endforeach; ?>
+        </tbody></table>
+        <h2>Payment history — <?= e($doc['buyer_name']) ?></h2><table><thead><tr><th>Date / Method</th><th>Amount</th><th>Refunded</th><th>Products credited</th><th>Reference / Notes</th></tr></thead><tbody>
+        <?php foreach($paymentDetails['payments'] as $payment): ?><tr><td><?= e($payment['payment_date'].' / '.$payment['payment_method']) ?></td><td><?= money($payment['amount']) ?></td><td><?= money($payment['refunded_amount']) ?></td><td><?= e($payment['products']) ?></td><td><?= e(trim(($payment['transaction_reference']??'').' '.($payment['notes']??''))) ?></td></tr><?php endforeach; ?>
+        <?php if(!$paymentDetails['payments']): ?><tr><td colspan="5">No payments recorded.</td></tr><?php endif; ?>
+        </tbody></table>
+        <?php endif; ?>
         <p><strong>Amount in words:</strong> <span id="amountWords" data-amount="<?= e($doc['grand_total']) ?>"></span></p>
         <?php if ($doc['notes']): ?><section class="terms">
                 <h2>Notes</h2>

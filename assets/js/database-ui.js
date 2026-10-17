@@ -834,7 +834,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 view.className="btn btn-outline-primary btn-sm";view.dataset.id=quote.id;actions.append(view);
                 for(const [action,label,icon] of [['edit','Edit','fa-pen-to-square'],['delete','Delete','fa-trash-can']]) {
                     const button=nivisActionButton(action,label,icon);button.dataset.id=quote.id;
-                    button.disabled=action==='edit'&&(quote.status==='converted'||!!quote.invoice_id);
+                    button.disabled=false;
                     if(button.disabled)button.title='Already converted to an invoice';
                     actions.append(button);
                 }
@@ -1393,7 +1393,10 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("invoiceSavedDue").textContent = invoice.due_date || "Not set";
             document.getElementById("invoiceTypeTitle").textContent=invoice.supplier_gstin ? "TAX INVOICE" : "INVOICE";
             document.getElementById("invoicePrintLink").href="document.php?type=invoice&id="+invoice.id;
-            const editLines=document.getElementById("invoiceLinesEdit");editLines.hidden=invoice.status!=="draft";editLines.href="create-invoice.php?id="+invoice.id;
+            document.getElementById('invoicePaymentsLink').href='payments.php?invoice_id='+invoice.id;
+            const productPayments=document.getElementById('invoiceProductPayments');productPayments.replaceChildren();
+            for(const line of invoice.product_payments){const tr=document.createElement('tr');for(const value of [line.product_name,money(line.line_total),money(line.paid_amount),money(line.balance_due),line.payment_status]){const td=document.createElement('td');td.textContent=value;tr.append(td);}productPayments.append(tr);}
+            const editLines=document.getElementById("invoiceLinesEdit");editLines.hidden=invoice.status!=="draft"||invoice.payments.length>0;editLines.href="create-invoice.php?id="+invoice.id;
             document.getElementById("invoiceCancel").hidden=invoice.status!=="issued" || Number(invoice.paid_total)>0;
             document.getElementById("invoiceCancellationReason").textContent=invoice.cancellation_reason || "";
             const history=document.getElementById("invoicePaymentHistory");history.replaceChildren();
@@ -1441,7 +1444,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("nlidpOutstanding").textContent =
                 money(Math.max(0, Number(invoice.grand_total) - paid));
             const paymentButton = document.getElementById("nlidpRecordPayment");
-            paymentButton.disabled = invoice.status !== "issued" || Number(invoice.grand_total) - paid <= 0.005;
+            paymentButton.disabled = !['draft','issued'].includes(invoice.status) || Number(invoice.grand_total) - paid <= 0.005;
             document.getElementById("nlidpPaid").textContent = money(paid);
             document.getElementById("nlidpBalance").textContent = money(Math.max(0, Number(invoice.grand_total) - paid));
             document.getElementById("nlidpDocumentStatus").textContent = invoice.status.toUpperCase();

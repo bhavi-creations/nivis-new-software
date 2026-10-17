@@ -43,6 +43,15 @@ $simpleTitle = $simpleMode === 'order' ? 'New order' : ($simpleMode === 'invoice
       </div>
       <div class="nlcq-card">
         <p id="simpleQuoteTaxMode" class="text-muted"></p>
+        <?php if ($simpleMode !== 'invoice'): ?>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><label for="orderAdvance">Advance received (Rs)</label><input id="orderAdvance" class="form-control" type="number" min="0" step="0.01" value="0" required></div>
+          <div class="col-md-4"><label for="orderAdvanceDate">Advance date</label><input id="orderAdvanceDate" class="form-control" type="date" value="<?= date('Y-m-d') ?>"></div>
+          <div class="col-md-4"><label for="orderAdvanceMethod">Payment method</label><select id="orderAdvanceMethod" class="form-select"><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option><option value="cheque">Cheque</option><option value="other">Other</option></select></div>
+        </div>
+        <p>Advance is carried to the invoice once on conversion, applied to products in line order. <strong id="orderRemaining"></strong></p>
+        <p id="sourceEditNotice" class="alert alert-info" hidden>This document has an invoice. Changes here update only the source order/quotation; the invoice and its recorded payments stay unchanged. Use Payments to record further receipts.</p>
+        <?php endif; ?>
         <div class="nlcq-totals"><div><span>Tax</span><strong id="simpleQuoteTax">Rs 0.00</strong></div><div class="nlcq-grand-total"><span>Total</span><strong id="simpleQuoteTotal">Rs 0.00</strong></div></div>
         <div class="nlcq-actions"><a href="<?= $simpleMode === 'order' ? 'orders.php' : ($simpleMode === 'invoice' ? 'invoices.php' : 'quotations.php') ?>" class="nlcq-btn nlcq-btn-outline">Cancel</a><button type="submit" id="simpleQuoteSave" class="nlcq-btn nlcq-btn-primary" disabled>Save <?= $simpleMode ?></button></div>
         <p id="simpleQuoteMessage" role="status">Loading customers and products...</p>
@@ -50,4 +59,4 @@ $simpleTitle = $simpleMode === 'order' ? 'New order' : ($simpleMode === 'invoice
     </form>
   </div>
 </section>
-<script src="assets/js/simple-quotation.js?v=20261017-edit"></script>
+<script src="assets/js/simple-quotation.js?v=20261017-advance"></script>

@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form=document.getElementById('simpleQuotationForm'); if(!form)return;
     const mode=form.dataset.mode||'quotation';
     const gstin=document.getElementById('simpleQuoteGstin');
+    const advance=document.getElementById('orderAdvance'),advanceDate=document.getElementById('orderAdvanceDate'),advanceMethod=document.getElementById('orderAdvanceMethod');
+    if(advance)advance.addEventListener('input',calculate);
     gstin.addEventListener('input',()=>{gstin.value=gstin.value.toUpperCase().replace(/\s/g,'');});
     const customer=document.getElementById('simpleQuoteCustomer'), body=document.getElementById('simpleQuoteLines');
     const save=document.getElementById('simpleQuoteSave'), message=document.getElementById('simpleQuoteMessage');
@@ -34,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         document.getElementById('simpleQuoteTax').textContent=region.value==='inside' ? 'CGST '+nivisMoney(cgst)+' + SGST '+nivisMoney(sgst) : 'IGST '+nivisMoney(tax);
         document.getElementById('simpleQuoteTotal').textContent=nivisMoney(total);
+        if(advance){advance.max=total.toFixed(2);advanceDate.required=Number(advance.value)>0;document.getElementById('orderRemaining').textContent='Remaining: '+nivisMoney(Math.max(0,total-Number(advance.value)));}
         document.getElementById('simpleQuoteTaxMode').textContent=(region.value==='inside'?'Inside GST: CGST + SGST':'Outside GST: IGST')+' · Prices '+(config.price_mode||'exclusive')+' of GST';
     }
     function render() {
@@ -64,6 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const today=new Date(),valid=new Date(today);valid.setDate(valid.getDate()+15);
         const date=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
         try {
+            if(advance)Object.assign(defaults,{advance_amount:Number(advance.value),advance_date:advanceDate.value,advance_method:advanceMethod.value});
             const result=await nivisApi(mode==='invoice'?'invoices':'quotations','POST',{...defaults,id:editId||undefined,notes:saved?.notes||'',additional_charges:saved?.additional_charges||0,invoice_id:mode==='invoice'?editId:undefined,action:mode==='invoice'?(editId?'revise':'create'):undefined,source_type:mode==='order'?'order':'quotation',customer_gstin:gstin.value.trim(),due_date:saved?.due_date||date(valid),customer_id:customer.value,issue_date:saved?.issue_date||date(today),valid_until:saved?.valid_until||date(valid),place_of_supply_state_code:place(),status:'draft',items:rows.map(r=>({...r,quantity:Number(r.quantity),unit_price:Number(r.unit_price),discount_percent:Number(r.discount_percent)||0}))});
             location.href=mode==='invoice'?'add-edit-invoice.php?id='+result.id:mode==='order'?'orders.php?saved=1':'quotations.php?saved=1';
         } catch(error){nivisMessage(message,error.message,true);busy=false;save.disabled=false;save.textContent='Save '+mode;}
@@ -77,7 +81,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         customers.forEach(c=>customer.add(new Option(c.name,c.id)));nivisCustomerSearch(customer,document.getElementById('simpleQuoteSearch'),document.getElementById('simpleQuoteMatches'));
         if(editId){
  saved=(await nivisApi(mode==='invoice'?'invoices':'quotations','GET',null,editId)).data;
- if(mode==='invoice'?saved.status!=='draft':saved.status==='converted'||saved.invoice_id)throw new Error('Converted quotations and issued invoices cannot be edited.');
+ if(mode==='invoice'&&saved.status!=='draft')throw new Error('Only draft invoices can be edited.');
+ if(mode==='invoice'&&saved.payments?.length)throw new Error('This invoice has recorded payments. Edit the source order/quotation separately or use Payments to record further receipts.');
+ if(advance){advance.value=saved.advance_amount||0;advanceDate.value=saved.advance_date||advanceDate.value;advanceMethod.value=saved.advance_method||'cash';if(saved.status==='converted'){advance.disabled=advanceDate.disabled=advanceMethod.disabled=true;document.getElementById('sourceEditNotice').hidden=false;}}
  defaults={...defaults,...JSON.parse(saved.document_details||'{}')};customer.value=saved.customer_id;customerRegion();
  gstin.value=JSON.parse(saved.party_snapshot||'{}').buyer?.gstin||'';
  region.value=saved.place_of_supply_state_code===config.seller_state_code?'inside':'outside';supply.value=saved.place_of_supply_state_code;updateRegion();

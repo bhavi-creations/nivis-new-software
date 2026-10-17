@@ -25,3 +25,11 @@ CREATE TABLE IF NOT EXISTS payment_refunds (
  FOREIGN KEY(payment_id) REFERENCES invoice_payments(id) ON DELETE RESTRICT,
  CONSTRAINT chk_refund_amount CHECK(amount > 0)
 ) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS invoice_payment_allocations (
+ payment_id BIGINT UNSIGNED NOT NULL,
+ invoice_item_id BIGINT UNSIGNED NOT NULL,
+ amount DECIMAL(15,2) NOT NULL,
+ PRIMARY KEY(payment_id,invoice_item_id),
+ FOREIGN KEY(payment_id) REFERENCES invoice_payments(id) ON DELETE CASCADE,
+ FOREIGN KEY(invoice_item_id) REFERENCES invoice_items(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

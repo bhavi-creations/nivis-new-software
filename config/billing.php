@@ -1,15 +1,17 @@
 <?php
 require_once __DIR__ . '/schema.php';
+require_once __DIR__ . '/payment_allocation.php';
 function ensure_document_columns(PDO $pdo): void {
     foreach (['quotations','invoices','company_settings'] as $table) {
         $columns = $pdo->query('SHOW COLUMNS FROM '.$table)->fetchAll(PDO::FETCH_COLUMN);
         $definitions = $table === 'company_settings' ? ['document_defaults' => 'TEXT NULL'] : ['party_snapshot' => 'LONGTEXT NULL', 'document_details' => 'TEXT NULL', 'additional_charges' => 'DECIMAL(15,2) NOT NULL DEFAULT 0', 'cancellation_reason' => 'VARCHAR(500) NULL'];
-        if ($table === 'quotations') $definitions += ['source_type' => "ENUM('quotation','order') NOT NULL DEFAULT 'quotation'", 'order_number' => 'VARCHAR(40) NULL', 'deleted_at' => 'DATETIME NULL'];
+        if ($table === 'quotations') $definitions += ['source_type' => "ENUM('quotation','order') NOT NULL DEFAULT 'quotation'", 'order_number' => 'VARCHAR(40) NULL', 'deleted_at' => 'DATETIME NULL', 'advance_amount'=>'DECIMAL(15,2) NOT NULL DEFAULT 0', 'advance_date'=>'DATE NULL', 'advance_method'=>"VARCHAR(20) NOT NULL DEFAULT 'cash'"];
         foreach ($definitions as $column => $definition) if (!in_array($column,$columns,true)) {
             try { $pdo->exec("ALTER TABLE $table ADD COLUMN $column $definition"); }
             catch (PDOException $e) { if (($e->errorInfo[1] ?? 0) != 1060) throw $e; }
         }
     }
+    ensure_payment_allocations($pdo);
 }
 function billing_details(array $data): array {
     $result = [];

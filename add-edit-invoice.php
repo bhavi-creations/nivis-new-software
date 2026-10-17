@@ -125,6 +125,10 @@ include 'sidebar.php';
       </form>
       <h3 class="h5 mt-4">Payment history</h3><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th>Notes</th></tr></thead><tbody id="invoicePaymentHistory"></tbody></table></div>
       <a id="invoicePrintLink" class="btn btn-outline-primary" href="#">View A4 / Print / PDF</a>
+      <a id="invoicePaymentsLink" class="btn btn-primary" href="payments.php">Payments / Pay by product</a>
+      <h3 class="h5 mt-3">Product payment status</h3>
+      <p class="text-muted">Advances and whole-invoice payments are applied in line order. Use Payments to pay a specific product.</p>
+      <div class="table-responsive"><table class="table"><thead><tr><th>Product</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead><tbody id="invoiceProductPayments"></tbody></table></div>
       <a id="invoiceLinesEdit" class="btn btn-outline-primary" hidden href="#">Edit draft line items</a>
       <button type="button" id="invoiceCancel" class="btn btn-outline-danger" hidden>Cancel issued invoice</button>
       <p id="invoiceCancellationReason"></p>

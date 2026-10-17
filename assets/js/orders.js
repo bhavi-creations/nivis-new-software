@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
             const actions=document.createElement('td');const view=document.createElement('a');view.className='btn btn-sm btn-outline-primary';view.textContent='View / Save A4';view.href='document.php?type=quotation&id='+order.id;actions.append(view);
             for(const [action,label,icon] of [['edit','Edit','fa-pen-to-square'],['delete','Delete','fa-trash-can']]) {
                 const button=nivisActionButton(action,label,icon);
-                button.disabled=action==='edit'&&(order.status==='converted'||!!order.invoice_id);
+                button.disabled=false;
                 if(button.disabled)button.title='Already converted to an invoice';
                 button.onclick=async()=>{
                     if(action==='edit'){location.href='create-order.php?id='+order.id;return;}

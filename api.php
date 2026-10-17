@@ -549,6 +549,7 @@ try {
         $sql = "SELECT q.id, q.quote_number, q.customer_id, COALESCE(MAX(JSON_UNQUOTE(JSON_EXTRACT(q.party_snapshot, '$.buyer.name'))), c.name) AS customer,
                        q.issue_date, q.valid_until, q.notes, q.place_of_supply_state_code, q.status, q.grand_total,
                        i.id AS invoice_id, MAX(q.source_type) AS source_type, MAX(q.order_number) AS order_number,
+                       MAX(q.advance_amount) AS advance_amount, MAX(q.advance_date) AS advance_date, MAX(q.advance_method) AS advance_method,
                        GROUP_CONCAT(qi.product_name ORDER BY qi.line_no SEPARATOR ' | ') AS product_names
                 FROM quotations q
                 JOIN customers c ON c.id=q.customer_id
@@ -767,6 +768,8 @@ try {
             $q=$pdo->prepare('SELECT * FROM invoices WHERE id=? FOR UPDATE');$q->execute([$invoiceId]);$old=$q->fetch();
             if (!$old || $old['status']!=='draft') {$pdo->rollBack();respond(['error'=>'Only draft invoice lines can be edited.'],409);}
             if ($old['issue_date']!==$issueDate) {$pdo->rollBack();respond(['error'=>'The numbered invoice date cannot be changed.'],422);}
+            $receipts=invoice_payment_details($pdo,(int)$invoiceId);
+            if ($receipts['payments']) {$pdo->rollBack();respond(['error'=>'This invoice has recorded payments. Its product lines and customer cannot be changed; edit the source order/quotation separately.'],409);}
             $bp=$parties['buyer'];$sp=$parties['supplier'];
             $pdo->prepare('UPDATE invoices SET customer_id=?,due_date=?,supplier_name=?,supplier_gstin=?,supplier_address=?,supplier_state_code=?,buyer_name=?,buyer_gstin=?,billing_address=?,shipping_address=?,place_of_supply_state_code=?,tax_mode=?,price_mode=?,subtotal=?,discount_total=?,taxable_total=?,cgst_total=?,sgst_total=?,igst_total=?,grand_total=?,notes=? WHERE id=?')
                 ->execute([$customerId,$validUntil,$sp['company_name'],$sp['gstin'],$sp['address'],$sellerCode,$bp['name'],$bp['gstin'],$bp['billing_address'] ?? '',$bp['shipping_address'],$placeCode,$taxMode,$priceMode,$totals['subtotal'],$totals['discount_total'],$totals['taxable_total'],$totals['cgst_total'],$totals['sgst_total'],$totals['igst_total'],$totals['grand_total'],$notes,$invoiceId]);
@@ -861,16 +864,17 @@ try {
         }
         $fromStatus = null;
         if ($quoteId) {
-            $existing = $pdo->prepare('SELECT quote_number, status, source_type FROM quotations WHERE id=? AND deleted_at IS NULL FOR UPDATE');
+            $existing = $pdo->prepare('SELECT * FROM quotations WHERE id=? AND deleted_at IS NULL FOR UPDATE');
             $existing->execute([$quoteId]);
             $quote = $existing->fetch();
-            if (!$quote || $quote['status'] === 'converted') {
+            if (!$quote) {
                 $pdo->rollBack();
-                respond(['error' => 'Only an existing unconverted quotation or order can be edited.'], 409);
+                respond(['error' => 'Quotation or order not found.'], 404);
             }
             $quoteNumber = $quote['quote_number'];
             $sourceType = $quote['source_type'];
             $fromStatus = $quote['status'];
+            if ($fromStatus === 'converted') $requestedStatus = 'converted';
             $update = $pdo->prepare(
                 "UPDATE quotations SET customer_id=?, issue_date=?, valid_until=?, status=?,
                  supplier_state_code=?, place_of_supply_state_code=?, tax_mode=?, price_mode=?,
@@ -949,6 +953,18 @@ try {
         );
         $history->execute([$quoteId, $fromStatus, $requestedStatus, 'Saved from quotation screen']);
         $orderNumber=$sourceType==='order' ? 'ORD-'.substr($quoteNumber,3) : null;
+        $advance = filter_var($data['advance_amount'] ?? ($quote['advance_amount'] ?? 0), FILTER_VALIDATE_FLOAT);
+        $advanceDate = (string)($data['advance_date'] ?? ($quote['advance_date'] ?? date('Y-m-d')));
+        $advanceMethod = (string)($data['advance_method'] ?? ($quote['advance_method'] ?? 'cash'));
+        $parsedAdvanceDate = DateTime::createFromFormat('!Y-m-d',$advanceDate);
+        if ($advance===false || $advance<0 || abs($advance-round($advance,2))>0.000001 || $advance>$totals['grand_total']+0.005 ||
+            ($advance>0 && (!$parsedAdvanceDate || $parsedAdvanceDate->format('Y-m-d')!==$advanceDate || !in_array($advanceMethod,['cash','upi','bank_transfer','cheque','card','other'],true)))) {
+            $pdo->rollBack();respond(['error'=>'Enter a valid advance amount (no more than the total), date and payment method.'],422);
+        }
+        if ($fromStatus==='converted' && ($advance!=(float)$quote['advance_amount'] || ($advance>0 && ($advanceDate!==$quote['advance_date'] || $advanceMethod!==$quote['advance_method'])))) {
+            $pdo->rollBack();respond(['error'=>'The advance is already on the invoice. Record further payments from Payments.'],409);
+        }
+        $pdo->prepare('UPDATE quotations SET advance_amount=?,advance_date=?,advance_method=? WHERE id=?')->execute([$advance,$advance>0?$advanceDate:null,$advanceMethod,$quoteId]);
         $pdo->prepare('UPDATE quotations SET source_type=?,order_number=? WHERE id=?')->execute([$sourceType,$orderNumber,$quoteId]);
         if($orderNumber)$details['order_number']=$orderNumber;
         billing_store($pdo,'quotations',$quoteId,$parties,$details,$charge);
@@ -995,13 +1011,12 @@ try {
     }
 
     if ($resource === 'invoices' && $method === 'GET') {
-        $sql = "SELECT i.id, i.invoice_number, i.quotation_id, q.quote_number,
+        $sql = "SELECT i.id, i.customer_id, i.invoice_number, i.quotation_id, q.quote_number,
                        i.buyer_name AS customer, i.due_date, i.notes, i.issue_date, i.status, i.grand_total,
                        i.supplier_name, i.supplier_gstin, i.supplier_address, i.buyer_name,
                        i.buyer_gstin, i.billing_address, i.shipping_address, i.place_of_supply_state_code,
                        i.tax_mode, i.taxable_total, i.cgst_total, i.sgst_total, i.igst_total,
-                       (SELECT COALESCE(SUM(p.amount), 0) FROM invoice_payments p
-                        WHERE p.invoice_id=i.id) AS paid_total,
+                       (SELECT b.net_paid FROM v_invoice_balances b WHERE b.id=i.id) AS paid_total,
                        GROUP_CONCAT(DISTINCT ii.product_name ORDER BY ii.line_no SEPARATOR ' | ') AS product_names
                 FROM invoices i
                 JOIN customers c ON c.id=i.customer_id
@@ -1030,6 +1045,10 @@ try {
             );
             $paymentStatement->execute([$id]);
             $invoice['payments'] = $paymentStatement->fetchAll();
+            $paymentDetails=invoice_payment_details($pdo,(int)$id);
+            $invoice['product_payments']=$paymentDetails['items'];
+            $invoice['payments']=$paymentDetails['payments'];
+            $invoice['paid_total']=$paymentDetails['paid_total'];
             $invoice['products'] = $invoice['product_names'] === null
                 ? [] : explode(' | ', $invoice['product_names']);
             respond(['data' => $invoice]);
@@ -1154,6 +1173,11 @@ try {
                 $item['line_total'],
             ]);
         }
+        if ((float)$quote['advance_amount']>0) {
+            $advanceDetails=invoice_payment_details($pdo,$invoiceId);
+            $pdo->prepare('INSERT INTO invoice_payments(invoice_id,payment_date,amount,payment_method,notes) VALUES(?,?,?,?,?)')->execute([$invoiceId,$quote['advance_date'],$quote['advance_amount'],$quote['advance_method'],'Advance from '.$quote['quote_number']]);
+            store_payment_allocation($pdo,(int)$pdo->lastInsertId(),$advanceDetails['items'],(float)$quote['advance_amount']);
+        }
         $pdo->prepare("UPDATE quotations SET status='converted' WHERE id=?")->execute([$quotationId]);
         $pdo->prepare(
             "INSERT INTO quotation_status_history (quotation_id, from_status, to_status, notes)
@@ -1173,7 +1197,8 @@ try {
         $issueCheck=$pdo->prepare('SELECT status,supplier_gstin,cgst_total,sgst_total,igst_total FROM invoices WHERE id=? FOR UPDATE');$issueCheck->execute([$invoiceId]);$issueRecord=$issueCheck->fetch();
         if ($issueRecord && !$issueRecord['supplier_gstin'] && ($issueRecord['cgst_total']+$issueRecord['sgst_total']+$issueRecord['igst_total'])>0) respond(['error'=>'A GST-charging invoice requires the actual supplier GSTIN. Correct company settings and recreate this draft before issuing.'],422);
         if (!$issueRecord || $issueRecord['status']!=='draft') {$pdo->rollBack();respond(['error'=>'Only draft invoices can be issued.'],409);}
-        $lines=$pdo->prepare('SELECT product_id,quantity,unit FROM invoice_items WHERE invoice_id=? AND product_id IS NOT NULL ORDER BY product_id');$lines->execute([$invoiceId]);
+        // Use a current read so the stock balance snapshot starts after acquiring product locks.
+        $lines=$pdo->prepare('SELECT product_id,quantity,unit FROM invoice_items WHERE invoice_id=? AND product_id IS NOT NULL ORDER BY product_id FOR UPDATE');$lines->execute([$invoiceId]);
         $needed=[];$stock=[];
         foreach($lines->fetchAll() as $line){
             $pid=(int)$line['product_id'];
@@ -1220,15 +1245,22 @@ try {
         );
         $invoiceStatement->execute([$invoiceId]);
         $invoice = $invoiceStatement->fetch();
-        if (!$invoice || $invoice['status'] !== 'issued') {
+        if (!$invoice || !in_array($invoice['status'],['draft','issued'],true)) {
             $pdo->rollBack();
-            respond(['error' => 'Payments can only be recorded against issued invoices.'], 409);
+            respond(['error' => 'Payments can only be recorded against draft or issued invoices.'], 409);
         }
         $paymentTotals = $pdo->prepare(
             'SELECT COALESCE(SUM(amount), 0) FROM invoice_payments WHERE invoice_id=?'
         );
         $paymentTotals->execute([$invoiceId]);
-        $paid = (float) $paymentTotals->fetchColumn();
+        $paymentTotals->fetchColumn();
+        $paymentDetails=invoice_payment_details($pdo,(int)$invoiceId);
+        $paid=$paymentDetails['paid_total'];
+        $itemId=isset($data['invoice_item_id']) && $data['invoice_item_id']!=='' ? filter_var($data['invoice_item_id'],FILTER_VALIDATE_INT) : null;
+        if($itemId!==null){
+            $matches=array_values(array_filter($paymentDetails['items'],fn($item)=>(int)$item['id']===$itemId));
+            if(!$itemId || !$matches || $amount>$matches[0]['balance_due']+0.005){$pdo->rollBack();respond(['error'=>'Choose a product on this invoice and an amount within its remaining balance.'],422);}
+        }
         if ($paid + $amount > (float) $invoice['grand_total'] + 0.005) {
             $pdo->rollBack();
             respond(['error' => 'Payment exceeds the invoice outstanding balance.'], 422);
@@ -1241,8 +1273,10 @@ try {
             $invoiceId, $paymentDate, $amount, $paymentMethod,
             trim((string) ($data['transaction_reference'] ?? '')) ?: null, substr(trim((string)($data['notes'] ?? '')),0,500),
         ]);
+        $paymentId=(int)$pdo->lastInsertId();
+        store_payment_allocation($pdo,$paymentId,$paymentDetails['items'],(float)$amount,$itemId);
         $pdo->commit();
-        respond(['message' => 'Payment recorded.', 'id' => (int) $pdo->lastInsertId()], 201);
+        respond(['message' => 'Payment recorded.', 'id' => $paymentId], 201);
     }
 
     if ($resource === 'dashboard' && $method === 'GET') {

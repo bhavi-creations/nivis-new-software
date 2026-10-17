@@ -156,7 +156,7 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  assert.equal((await request('quotations&id='+quote,'DELETE')).status,404);
  assert.equal((await request('invoices','POST',{action:'convert_simple',quotation_id:quote})).status,409);
  assert.equal(Number(ok(await request('invoices&id='+simple.id)).data.grand_total),424.8/2);
- assert.equal((await request('quotations','POST',{...orderPayload,id:quote})).status,409);
+ assert.equal((await request('quotations','POST',{...orderPayload,id:quote})).status,404);
  // Reports reflect persisted payments and isolate the selected client in every report type.
  ok(await request('invoices','POST',{action:'payment',invoice_id:editInvoice.id,amount:100,payment_date:today,payment_method:'cash'}));
  const secondCustomer=ok(await request('customers','POST',{name:'Second report client',mobile:'9000000001',customer_type:'unregistered',billing_address:'Second street',city:'Test city',state:'Andhra Pradesh',pincode:'533001'})).id;
@@ -189,6 +189,39 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  assert.equal(Number(ok(await request('dashboard')).stats.quotations),Number(dashboardBeforeDelete.quotations)-1);
  assert(!(await report('quotation')).rows.some(q=>q.document===editQuote.quote_number));
  assert.equal((await fetch(base+'document.php?type=quotation&id='+editQuote.id,{headers:{Cookie:cookie}})).status,404);
+ // Advances carry over once; specific product payments do not mark other products paid.
+ const advancePayload={...orderPayload,advance_amount:50,advance_date:today,advance_method:'upi',items:[{product_id:product,quantity:1,unit:'PCS',unit_price:100},{product_id:product,quantity:1,unit:'PCS',unit_price:200}]};
+ assert.equal((await request('quotations','POST',{...advancePayload,advance_amount:355})).status,422);
+ const advanceOrder=ok(await request('quotations','POST',advancePayload));
+ assert.equal(Number(ok(await request('quotations&id='+advanceOrder.id)).data.advance_amount),50);
+ const advanceInvoice=ok(await request('invoices','POST',{action:'convert_simple',quotation_id:advanceOrder.id}));
+ let advanceSaved=ok(await request('invoices&id='+advanceInvoice.id)).data;
+ assert.equal(Number(advanceSaved.paid_total),50);assert.equal(advanceSaved.payments.length,1);
+ assert.deepEqual(advanceSaved.product_payments.map(i=>[Number(i.paid_amount),Number(i.balance_due),i.payment_status]),[[50,68,'Part paid'],[0,236,'Unpaid']]);
+ assert.equal((await request('invoices','POST',{action:'convert_simple',quotation_id:advanceOrder.id})).status,409);
+ // Converted source edits retain invoice history and cannot change the transferred advance.
+ ok(await request('quotations','POST',{...advancePayload,id:advanceOrder.id,notes:'Edited source after conversion',items:[{product_id:product,quantity:2,unit:'PCS',unit_price:200}]}));
+ assert.equal(ok(await request('quotations&id='+advanceOrder.id)).data.status,'converted');
+ assert.equal(Number(ok(await request('invoices&id='+advanceInvoice.id)).data.grand_total),354);
+ assert.equal((await request('quotations','POST',{...advancePayload,id:advanceOrder.id,advance_amount:60})).status,409);
+ const secondLine=advanceSaved.product_payments[1].id;
+ const payProduct={action:'payment',invoice_id:advanceInvoice.id,invoice_item_id:secondLine,amount:236,payment_date:today,payment_method:'cash'};
+ const receipt=ok(await request('invoices','POST',payProduct));
+ advanceSaved=ok(await request('invoices&id='+advanceInvoice.id)).data;
+ assert.equal(Number(advanceSaved.paid_total),286);
+ assert.deepEqual(advanceSaved.product_payments.map(i=>i.payment_status),['Part paid','Paid']);
+ assert.equal((await request('invoices','POST',{...payProduct,amount:1})).status,422);
+ assert.equal((await request('invoices','POST',{...payProduct,invoice_item_id:999999})).status,422);
+ assert.equal((await request('invoices','POST',{...draft,action:'revise',invoice_id:advanceInvoice.id})).status,409);
+ ok(await request('invoices','POST',{...payProduct,invoice_item_id:advanceSaved.product_payments[0].id,amount:68}));
+ advanceSaved=ok(await request('invoices&id='+advanceInvoice.id)).data;
+ assert.equal(Number(advanceSaved.paid_total),354);assert(advanceSaved.product_payments.every(i=>i.payment_status==='Paid'));
+ const paidHtml=await(await fetch(base+'document.php?type=invoice&id='+advanceInvoice.id,{headers:{Cookie:cookie}})).text();assert(paidHtml.includes('Product payment status'));assert(paidHtml.includes('Payment history'));assert(paidHtml.includes('Advance from'));
+ assert.equal((await fetch(base+'payments.php',{headers:{Cookie:cookie}})).status,200);
+ // A partial refund reopens only the credited product balance.
+ run('require "config/database.php";database_connection()->exec("INSERT INTO payment_refunds(payment_id,refund_date,amount,reason) VALUES('+receipt.id+',CURRENT_DATE(),36,\'Test refund\')");');
+ advanceSaved=ok(await request('invoices&id='+advanceInvoice.id)).data;
+ assert.equal(Number(advanceSaved.paid_total),318);assert.equal(Number(advanceSaved.product_payments[1].balance_due),36);assert.equal(advanceSaved.product_payments[0].payment_status,'Paid');
  // Provision isolated test users through the existing users table.
  run('require "config/database.php";$q=database_connection()->prepare("INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,?)");$q->execute(["Test Admin","admin@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"admin"]);$q->execute(["Test Staff","staff@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"staff"]);');
  assert.equal((await request('invoices')).status,401);
