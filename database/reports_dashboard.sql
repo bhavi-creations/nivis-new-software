@@ -40,7 +40,7 @@ GROUP BY c.id,c.name;
 -- SELECT (SELECT COUNT(*) FROM customers WHERE status='active') customers,
 --        (SELECT COUNT(*) FROM products WHERE status='active') products,
 --        (SELECT COUNT(*) FROM quotations WHERE status='sent') waiting_quotes,
---        (SELECT COALESCE(SUM(grand_total),0) FROM invoices WHERE status='issued'
+--        (SELECT COALESCE(SUM(grand_total),0) FROM invoices WHERE status IN ('draft','issued')
 --          AND issue_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01')
 --          AND issue_date<DATE_FORMAT(CURDATE()+INTERVAL 1 MONTH,'%Y-%m-01')) month_invoices;
 -- Report example: SELECT * FROM v_monthly_sales ORDER BY sales_month DESC;

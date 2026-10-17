@@ -20,7 +20,10 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  const rate=ok(await request('tax_rates','POST',{name:'Test 18',rate_percent:18,treatment:'taxable',effective_from:'2020-01-01',hsn_codes:'330499'})).id;
  const product=ok(await request('products','POST',{name:'<script>unsafe</script>',category_id:category,hsn:'330499',unit:'PCS',price:100,gst:18,tax_rate_id:rate})).id;
  const customer=ok(await request('customers','POST',{name:'Test buyer',mobile:'9000000000',customer_type:'unregistered',billing_address:'Test street',city:'Test city',state:'Andhra Pradesh',pincode:'533001'})).id;
- const draft={action:'create',customer_id:customer,issue_date:'2026-10-16',due_date:'2026-10-30',items:[{product_id:product,quantity:2,unit_price:100,discount_percent:10}]};
+ const today=run('require "config/database.php";echo database_connection()->query("SELECT CURRENT_DATE()")->fetchColumn();').trim();
+ const draft={action:'create',customer_id:customer,issue_date:today,due_date:today,items:[{product_id:product,quantity:2,unit_price:100,discount_percent:10}]};
+ const invoiceValue=async()=>Number(ok(await request('dashboard')).stats.invoice_value);
+ assert.equal(await invoiceValue(),0);
  // Quotations must save without a company_settings row, using configured supplier state.
  for(const [state,mode] of [['37','cgst_sgst'],['36','igst']]) {
    const result=ok(await request('quotations','POST',{...draft,action:undefined,valid_until:'2099-12-31',place_of_supply_state_code:state,status:'draft'}));
@@ -36,6 +39,8 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  const key='billing-test-'+Date.now();
  const [first,second]=await Promise.all([request('invoices','POST',draft,{'Idempotency-Key':key}),request('invoices','POST',draft,{'Idempotency-Key':key})]);
  ok(first);ok(second);assert.equal(first.id,second.id);assert.equal(ok(await request('invoices')).data.length,1);
+ assert.equal(Number(ok(await request('invoices&id='+first.id)).data.grand_total),212.4);
+ assert.equal(await invoiceValue(),212.4,'Saved direct draft invoice is counted once');
  assert.equal((await request('invoices','POST',{...draft,notes:'Changed'},{'Idempotency-Key':key})).status,409);
  const quote=ok(await request('quotations','POST',{...draft,action:undefined,valid_until:'2099-12-31',status:'draft'})).id;
  for(const [type,id] of [['invoice',first.id],['quotation',quote]]) {
@@ -56,6 +61,7 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  assert(ok(await request('invoices')).data.some(i=>i.id===simple.id));
  assert.equal((await request('invoices','POST',{action:'convert_simple',quotation_id:quote})).status,409);
  assert.equal(ok(await request('quotations&id='+quote)).data.status,'converted');
+ assert.equal(await invoiceValue(),424.8,'Converted draft invoice is included without counting its quotation');
  const simpleForm=await (await fetch(base+'create-quotation.php',{headers:{Cookie:cookie}})).text();
  assert(simpleForm.includes('simpleQuotationForm'));assert(!simpleForm.includes('nlcqApprove'));assert(!simpleForm.includes('Additional charges'));
  // Orders are persisted quotations, with quantity units retained on conversion.
@@ -117,6 +123,26 @@ const ok=r=>{assert(!r.error,JSON.stringify(r));return r;};
  const raceIds=[await saleDraft(15),await saleDraft(15)];
  const issueProcess=id=>new Promise((resolve,reject)=>cp.execFile(php,['-r','$_SERVER["REQUEST_METHOD"]="POST";$_GET=["resource"=>"invoices"];$_POST=["action"=>"issue","invoice_id"=>(int)$argv[1]];require "api.php";','--',String(id)],{cwd:root,env,encoding:'utf8'},(e,out)=>{if(e)reject(e);else{try{resolve(JSON.parse(out));}catch(e){reject(e);}}}));
  const race=await Promise.all(raceIds.map(issueProcess));assert.equal(race.filter(r=>!r.error).length,1);assert.equal(Number((await balance()).available_quantity),5);
+ // Converted invoices can edit their lines without changing the source quotation.
+ const editQuote=ok(await request('quotations','POST',{...orderPayload,items:[{product_id:stockId,quantity:2,unit:'PCS',unit_price:100}]}));
+ const editInvoice=ok(await request('invoices','POST',{action:'convert_simple',quotation_id:editQuote.id}));
+ const original=ok(await request('invoices&id='+editInvoice.id)).data;
+ ok(await request('invoices','POST',{...draft,action:'revise',invoice_id:editInvoice.id,issue_date:original.issue_date,items:[{product_id:stockId,quantity:3,unit:'PCS',unit_price:80,discount_percent:10}]}));
+ const revised=ok(await request('invoices&id='+editInvoice.id)).data;assert.equal(revised.quotation_id,editQuote.id);assert.equal(Number(revised.items[0].quantity),3);assert.equal(Number(revised.grand_total),254.88);
+ assert.equal(Number(ok(await request('quotations&id='+editQuote.id)).data.items[0].quantity),2);
+ assert(ok(await request('product_sales&id='+stockId)).pending.some(i=>i.invoice_id===editInvoice.id&&Number(i.quantity)===3));
+ const editHtml=await(await fetch(base+'create-invoice.php?id='+editInvoice.id,{headers:{Cookie:cookie}})).text();assert(editHtml.includes('data-mode="invoice"'));assert(editHtml.includes('simpleQuotationForm'));
+ ok(await request('invoices','POST',{action:'issue',invoice_id:editInvoice.id}));assert.equal(Number((await balance()).available_quantity),2);
+ assert.equal((await request('invoices','POST',{...draft,action:'revise',invoice_id:editInvoice.id})).status,409);
+ // Dashboard uses persisted monthly totals after edits, issuance and cancellation.
+ const persistedValue=()=>Number(run('require "config/database.php";echo database_connection()->query("SELECT COALESCE(SUM(grand_total),0) FROM invoices WHERE status IN (\'draft\',\'issued\') AND YEAR(issue_date)=YEAR(CURRENT_DATE()) AND MONTH(issue_date)=MONTH(CURRENT_DATE())")->fetchColumn();'));
+ assert.equal(await invoiceValue(),persistedValue());
+ const previousMonth=run('require "config/database.php";echo database_connection()->query("SELECT DATE_FORMAT(CURRENT_DATE() - INTERVAL 1 MONTH,\'%Y-%m-01\')")->fetchColumn();').trim();
+ const currentValue=await invoiceValue();
+ ok(await request('invoices','POST',{...draft,issue_date:previousMonth}));
+ assert.equal(await invoiceValue(),currentValue,'Previous months are excluded');
+ ok(await request('invoices&id='+tooMuch,'DELETE'));
+ assert.equal(await invoiceValue(),Math.round((currentValue-2478)*100)/100,'Deleted drafts are removed from Invoice Value');
  // Provision isolated test users through the existing users table.
  run('require "config/database.php";$q=database_connection()->prepare("INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,?)");$q->execute(["Test Admin","admin@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"admin"]);$q->execute(["Test Staff","staff@example.test",password_hash("test-password-123",PASSWORD_DEFAULT),"staff"]);');
  assert.equal((await request('invoices')).status,401);

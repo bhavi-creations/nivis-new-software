@@ -55,7 +55,7 @@ include 'sidebar.php';
         <div class="nivis_dashboard_stat_card">
           <h6>Invoice Value</h6>
           <h2 id="nivisInvoiceValue">Rs 0</h2>
-          <p>This month</p>
+          <p>This month · Draft + issued invoices</p>
         </div>
       </div>
 

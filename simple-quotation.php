@@ -50,4 +50,4 @@ $simpleTitle = $simpleMode === 'order' ? 'New order' : ($simpleMode === 'invoice
     </form>
   </div>
 </section>
-<script src="assets/js/simple-quotation.js?v=orders-3"></script>
+<script src="assets/js/simple-quotation.js?v=orders-4"></script>

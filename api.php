@@ -138,7 +138,9 @@ try {
 
     if ($resource === 'product_sales' && $method === 'GET') {
         if (!$id) respond(['error'=>'A product ID is required.'],422);
-        respond(['data'=>inventory_sales($pdo,(int)$id)]);
+        $pending=$pdo->prepare("SELECT i.id AS invoice_id,i.invoice_number,i.buyer_name AS customer,i.issue_date,ii.quantity,ii.unit FROM invoice_items ii JOIN invoices i ON i.id=ii.invoice_id WHERE ii.product_id=? AND i.status='draft' ORDER BY i.id DESC");
+        $pending->execute([$id]);
+        respond(['data'=>inventory_sales($pdo,(int)$id),'pending'=>$pending->fetchAll()]);
     }
     if ($resource === 'products' && $method === 'GET') {
         $rows = $pdo->query(
@@ -763,7 +765,7 @@ try {
         if ($directInvoice && ($data['action'] ?? '') === 'revise') {
             $invoiceId=filter_var($data['invoice_id'] ?? null,FILTER_VALIDATE_INT);
             $q=$pdo->prepare('SELECT * FROM invoices WHERE id=? FOR UPDATE');$q->execute([$invoiceId]);$old=$q->fetch();
-            if (!$old || $old['status']!=='draft' || $old['quotation_id']) {$pdo->rollBack();respond(['error'=>'Only direct draft invoice lines can be edited.'],409);}
+            if (!$old || $old['status']!=='draft') {$pdo->rollBack();respond(['error'=>'Only draft invoice lines can be edited.'],409);}
             if ($old['issue_date']!==$issueDate) {$pdo->rollBack();respond(['error'=>'The numbered invoice date cannot be changed.'],422);}
             $bp=$parties['buyer'];$sp=$parties['supplier'];
             $pdo->prepare('UPDATE invoices SET customer_id=?,due_date=?,supplier_name=?,supplier_gstin=?,supplier_address=?,supplier_state_code=?,buyer_name=?,buyer_gstin=?,billing_address=?,shipping_address=?,place_of_supply_state_code=?,tax_mode=?,price_mode=?,subtotal=?,discount_total=?,taxable_total=?,cgst_total=?,sgst_total=?,igst_total=?,grand_total=?,notes=? WHERE id=?')
@@ -771,6 +773,8 @@ try {
             $pdo->prepare('DELETE FROM invoice_items WHERE invoice_id=?')->execute([$invoiceId]);
             $q=$pdo->prepare('INSERT INTO invoice_items(invoice_id,line_no,product_id,product_name,sku,hsn_code,unit,quantity,unit_price,discount_percent,discount_amount,taxable_amount,gst_rate,cgst_amount,sgst_amount,igst_amount,line_total) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
             foreach($preparedItems as $item) $q->execute(array_merge([$invoiceId],array_values($item)));
+            $oldDetails=json_decode($old['document_details']??'{}',true)?:[];
+            if(isset($oldDetails['order_number']))$details['order_number']=$oldDetails['order_number'];
             billing_store($pdo,'invoices',$invoiceId,$parties,$details,$charge);
             $pdo->commit();respond(['message'=>'Draft invoice updated.','id'=>$invoiceId]);
         }
@@ -1249,7 +1253,7 @@ try {
                 (SELECT COUNT(*) FROM quotations) AS quotations,
                 (SELECT COUNT(*) FROM quotations WHERE status IN ('draft','sent')) AS waiting,
                 (SELECT COALESCE(SUM(grand_total),0) FROM invoices
-                 WHERE status='issued' AND issue_date >= DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')
+                 WHERE status IN ('draft','issued') AND issue_date >= DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01')
                    AND issue_date < DATE_FORMAT(CURRENT_DATE() + INTERVAL 1 MONTH, '%Y-%m-01'))
                     AS invoice_value"
         )->fetch();

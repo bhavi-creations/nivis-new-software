@@ -1353,6 +1353,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 catch (error) { alert(error.message); }
                 return;
             }
+            if (button?.dataset.action === "edit") {location.href="create-invoice.php?id="+encodeURIComponent(button.dataset.id);return;}
             if (button) {
                 window.location.href = "add-edit-invoice.php?id=" +
                     encodeURIComponent(button.dataset.id);
@@ -1387,7 +1388,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("invoiceSavedDue").textContent = invoice.due_date || "Not set";
             document.getElementById("invoiceTypeTitle").textContent=invoice.supplier_gstin ? "TAX INVOICE" : "INVOICE";
             document.getElementById("invoicePrintLink").href="document.php?type=invoice&id="+invoice.id;
-            const editLines=document.getElementById("invoiceLinesEdit");editLines.hidden=invoice.status!=="draft" || !!invoice.quotation_id;editLines.href="create-invoice.php?id="+invoice.id;
+            const editLines=document.getElementById("invoiceLinesEdit");editLines.hidden=invoice.status!=="draft";editLines.href="create-invoice.php?id="+invoice.id;
             document.getElementById("invoiceCancel").hidden=invoice.status!=="issued" || Number(invoice.paid_total)>0;
             document.getElementById("invoiceCancellationReason").textContent=invoice.cancellation_reason || "";
             const history=document.getElementById("invoicePaymentHistory");history.replaceChildren();
@@ -1441,7 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("nlidpDocumentStatus").textContent = invoice.status.toUpperCase();
             document.getElementById("nlidpPaymentAmount").max = Math.max(0, Number(invoice.grand_total) - paid).toFixed(2);
             const issueButton = document.getElementById("nlidpSendInvoice");
-            issueButton.textContent = invoice.status === "draft" ? "Issue invoice" : "Invoice issued";
+            issueButton.textContent = invoice.status === "draft" ? "Complete sale / Issue invoice" : "Invoice issued";
             issueButton.disabled = invoice.status !== "draft";
         }
 
@@ -1459,7 +1460,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 await nivisApi("invoices", "POST", { action: "issue", invoice_id: currentInvoice.id });
                 await loadInvoice();
-                nivisMessage(feedback, "Invoice issued.");
+                nivisMessage(feedback, "Sale completed. Sold and available stock have been updated.");
             } catch (error) {
                 nivisMessage(feedback, error.message, true);
             }
